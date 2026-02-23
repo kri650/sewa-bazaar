@@ -569,6 +569,59 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="clientSaySection" aria-label="Client testimonials">
+        <div className="clientSayInner">
+          <div className="clientSayHeader">
+            <h2>What Our Clients Say</h2>
+            <p>
+              Discover why thousands of families trust Sewa Bazaar for their fresh produce and
+              mindful living.
+            </p>
+            <p>Real reviews from real people who love our fruits and vegetables.</p>
+          </div>
+
+          <div className="clientSaySlider">
+            <button type="button" className="clientNav clientNavLeft" aria-label="Previous testimonial">‹</button>
+
+            <div className="clientSayCards">
+              <article className="clientCard">
+                <span className="clientQuote" aria-hidden="true">“</span>
+                <h3>Freshness you can taste</h3>
+                <p>
+                  The produce arrives crisp and full of flavor every time. The apples were the best
+                  we have had this season, and the leafy greens stayed fresh for days.
+                </p>
+                <div className="clientMeta">
+                  <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&q=80" alt="Jane Travis" />
+                  <div>
+                    <strong>Jane Travis</strong>
+                    <span>Home Chef</span>
+                  </div>
+                </div>
+              </article>
+
+              <article className="clientCard">
+                <span className="clientQuote" aria-hidden="true">“</span>
+                <h3>100% Recommended</h3>
+                <p>
+                  We switched to Sewa Bazaar for our weekly fruits and veggies and have been
+                  impressed by the quality, clean packaging, and timely deliveries.
+                </p>
+                <div className="clientMeta">
+                  <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80" alt="Larry Wilson" />
+                  <div>
+                    <strong>Larry Wilson</strong>
+                    <span>Nutrition Coach</span>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <button type="button" className="clientNav clientNavRight" aria-label="Next testimonial">›</button>
+          </div>
+        </div>
+      </section>
+
       <footer className="siteFooter" aria-label="Footer">
         <div className="siteFooterInner">
           <div className="footerContent">
