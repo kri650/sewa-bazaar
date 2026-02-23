@@ -569,6 +569,61 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="clientSaySection" aria-label="Client testimonials">
+        <div className="clientSayInner">
+          <div className="clientSayHeader">
+            <h2>What Our Clients Say</h2>
+            <p>
+              Discover why thousands of families trust Sewa Bazaar for their fresh produce and
+              mindful living.
+            </p>
+            <p>Real reviews from real people who love our fruits and vegetables.</p>
+          </div>
+
+          <div className="clientSaySlider">
+            <button type="button" className="clientNav clientNavLeft" aria-label="Previous testimonial">‹</button>
+
+            <div className="clientSayCards">
+              <article className="clientCard">
+                <span className="clientQuote" aria-hidden="true">“</span>
+                <h3>Prakriti Care is the Best!</h3>
+                <p>
+                  I've been using Prakriti Care's herbal hair oil for three months now, and the
+                  transformation is remarkable. My hair is stronger, shinier, and healthier. The
+                  natural ingredients make all the difference!
+                </p>
+                <div className="clientMeta">
+                  <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&q=80" alt="Jane Travis" />
+                  <div>
+                    <strong>Jane Travis</strong>
+                    <span>Writer</span>
+                  </div>
+                </div>
+              </article>
+
+              <article className="clientCard">
+                <span className="clientQuote" aria-hidden="true">“</span>
+                <h3>100% Recommended</h3>
+                <p>
+                  As someone with sensitive skin, I've struggled to find products that work for me.
+                  Prakriti Care's Ayurvedic skincare line has been a game-changer. Natural, effective,
+                  and gentle on my skin!
+                </p>
+                <div className="clientMeta">
+                  <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80" alt="Larry Wilson" />
+                  <div>
+                    <strong>Larry Wilson</strong>
+                    <span>Journalist</span>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <button type="button" className="clientNav clientNavRight" aria-label="Next testimonial">›</button>
+          </div>
+        </div>
+      </section>
+
       <footer className="siteFooter" aria-label="Footer">
         <div className="siteFooterInner">
           <div className="footerContent">
