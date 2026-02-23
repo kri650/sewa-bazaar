@@ -1,4 +1,4 @@
-body { margin: 0; font-family: 'Edu VIC WA NT Beginner', 'Playfair Display', 'Slabo 27px', serif; background:#fff; overflow-x:hidden; }
+body { margin: 0; font-family: 'Manrope', 'Edu VIC WA NT Beginner', 'Playfair Display', 'Slabo 27px', sans-serif; background:#fff; overflow-x:hidden; }
 
 html, body, #__next {
 	height: 100%;
@@ -1137,7 +1137,7 @@ main > section {
 
 .clientSaySection {
 	background:#fff;
-	padding:68px 0 70px;
+	padding:32px 0 8px;
 }
 .clientSayInner {
 	width:min(1200px, calc(100% - 32px));
@@ -1206,16 +1206,18 @@ main > section {
 }
 .clientCard h3 {
 	margin:6px 0 10px;
-	font-size:20px;
+	font-size:22px;
 	font-family:'Playfair Display', serif;
 	color:#2a2a2a;
+	font-weight:600;
 }
 .clientCard p {
 	margin:0;
-	color:#8a8a8a;
-	font-size:15px;
-	line-height:1.7;
+	color:#8f8f8f;
+	font-size:14px;
+	line-height:1.8;
 	max-width:440px;
+	font-weight:300;
 }
 .clientMeta {
 	display:flex;
@@ -1232,14 +1234,15 @@ main > section {
 }
 .clientMeta strong {
 	display:block;
-	font-size:15px;
+	font-size:14px;
 	color:#1d1d1d;
 	font-family:'Playfair Display', serif;
+	font-weight:600;
 }
 .clientMeta span {
 	display:block;
-	font-size:13px;
-	color:#7f7f7f;
+	font-size:12px;
+	color:#8d8d8d;
 	margin-top:2px;
 }
 

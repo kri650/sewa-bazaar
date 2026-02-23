@@ -586,16 +586,17 @@ export default function Home() {
             <div className="clientSayCards">
               <article className="clientCard">
                 <span className="clientQuote" aria-hidden="true">“</span>
-                <h3>Freshness you can taste</h3>
+                <h3>Prakriti Care is the Best!</h3>
                 <p>
-                  The produce arrives crisp and full of flavor every time. The apples were the best
-                  we have had this season, and the leafy greens stayed fresh for days.
+                  I've been using Prakriti Care's herbal hair oil for three months now, and the
+                  transformation is remarkable. My hair is stronger, shinier, and healthier. The
+                  natural ingredients make all the difference!
                 </p>
                 <div className="clientMeta">
                   <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&q=80" alt="Jane Travis" />
                   <div>
                     <strong>Jane Travis</strong>
-                    <span>Home Chef</span>
+                    <span>Writer</span>
                   </div>
                 </div>
               </article>
@@ -604,14 +605,15 @@ export default function Home() {
                 <span className="clientQuote" aria-hidden="true">“</span>
                 <h3>100% Recommended</h3>
                 <p>
-                  We switched to Sewa Bazaar for our weekly fruits and veggies and have been
-                  impressed by the quality, clean packaging, and timely deliveries.
+                  As someone with sensitive skin, I've struggled to find products that work for me.
+                  Prakriti Care's Ayurvedic skincare line has been a game-changer. Natural, effective,
+                  and gentle on my skin!
                 </p>
                 <div className="clientMeta">
                   <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80" alt="Larry Wilson" />
                   <div>
                     <strong>Larry Wilson</strong>
-                    <span>Nutrition Coach</span>
+                    <span>Journalist</span>
                   </div>
                 </div>
               </article>
