@@ -864,8 +864,8 @@ main > section {
 	color:#090909;
 	font-size:clamp(36px, 4.2vw, 56px);
 	line-height:1;
-	font-family:'Playfair Display', serif;
-	font-weight:600;
+	font-family:inherit;
+	font-weight:500;
 	letter-spacing:.01em;
 }
 .homeFeatureArrivalHead p {
@@ -873,8 +873,8 @@ main > section {
 	color:#619233;
 	font-size:clamp(30px, 3.4vw, 48px);
 	line-height:1;
-	font-family:'Slabo 27px', serif;
-	font-weight:300;
+	font-family:inherit;
+	font-weight:400;
 }
 .homeFeatureLeaf {
 	display:inline-block;
@@ -974,26 +974,26 @@ main > section {
 .homeFeatureOfferCard {
 	border:1px solid #d1d1d1;
 	background:#fff;
-	padding:8px;
+	padding:12px;
 	display:grid;
 	grid-template-rows:auto auto 1fr;
-	min-height:320px;
+	min-height:420px;
 }
 .homeFeatureOfferImage {
 	background:#e8e9ee !important;
-	min-height:150px;
+	min-height:220px;
 	display:grid;
 	place-items:center;
-	font-size:52px;
+	font-size:82px;
 }
 .homeFeatureOfferClosed {
 	margin:12px 4px 0;
-	min-height:38px;
+	min-height:54px;
 	display:grid;
 	place-items:center;
 	background:#619233;
 	color:#fff;
-	font-size:19px;
+	font-size:20px;
 	font-family:'Playfair Display', serif;
 	font-weight:600;
 }
@@ -1001,27 +1001,27 @@ main > section {
 	display:grid;
 	place-content:center;
 	text-align:center;
-	gap:4px;
-	padding-top:10px;
+	gap:8px;
+	padding-top:16px;
 }
 .homeFeatureOfferBody h3 {
 	margin:0;
 	color:#619233;
 	font-family:'Playfair Display', serif;
 	font-weight:500;
-	font-size:19px;
+	font-size:26px;
 	line-height:1.03;
 }
 .homeFeatureOfferBody p {
 	margin:0;
 	color:#6b6b6b;
-	font-size:14px;
+	font-size:18px;
 	font-family:'Playfair Display', serif;
 	font-weight:300;
 }
 
 .shopCategoriesSection {
-	background:#fff;
+	background:#f6f7f5;
 	padding:42px 0 58px;
 	position:relative;
 	overflow:hidden;
@@ -1030,20 +1030,21 @@ main > section {
 	width:min(1200px, calc(100% - 32px));
 	margin:0 auto;
 	text-align:center;
+	padding:8px 0 0;
 }
 .shopCategoriesHead h2 {
 	margin:0;
 	font-size:clamp(36px, 4.2vw, 66px);
 	line-height:1;
-	font-family:'Playfair Display', serif;
+	font-family:inherit;
 	color:#0e0e0e;
-	font-weight:700;
+	font-weight:500;
 }
 .shopCategoriesHead p {
 	margin:10px 0 0;
 	font-size:clamp(30px, 3.4vw, 54px);
 	line-height:1;
-	font-family:'Slabo 27px', serif;
+	font-family:inherit;
 	color:#63972f;
 	font-weight:400;
 }
@@ -1073,6 +1074,7 @@ main > section {
 	width:min(1240px, calc(100% - 22px));
 	margin:34px auto 0;
 	overflow:hidden;
+	background:inherit;
 }
 .shopCategoriesTrack {
 	display:flex;
@@ -1226,10 +1228,20 @@ main > section {
 .siteFooterInner {
 	width:min(1400px, calc(100% - 34px));
 	margin:0 auto;
-	padding-top:320px;
 	min-height:calc(clamp(360px, 50vw, 960px) - 32px);
+	position:relative;
+}
+
+.footerContent {
+	position:absolute;
+	left:0;
+	right:0;
+	top:0;
+	bottom:0;
+	padding:24px 0 20px;
 	display:flex;
 	flex-direction:column;
+	gap:18px;
 }
 
 .footerNewsletter {
@@ -1298,7 +1310,7 @@ main > section {
 	display:grid;
 	grid-template-columns:1.2fr 1fr 1fr 1.1fr;
 	gap:24px;
-	margin-top:0;
+	margin-top:auto;
 	align-items:start;
 }
 
@@ -1355,13 +1367,12 @@ main > section {
 }
 
 .footerBottom {
-	margin-top:auto;
-	padding-top:18px;
+	margin-top:8px;
+	padding-top:6px;
 	border-top:0;
 	text-align:center;
 	font-size:13px;
 	color:#595959;
-	margin-bottom:0;
 	align-self:center;
 }
 
@@ -1372,8 +1383,12 @@ main > section {
 		min-height:auto;
 	}
 	.siteFooterInner {
-		padding-top:170px;
 		min-height:auto;
+		position:relative;
+	}
+	.footerContent {
+		position:static;
+		padding:16px 0 0;
 	}
 	.footerNewsletter {
 		grid-template-columns:1fr;
@@ -1411,8 +1426,7 @@ main > section {
 		height:160px;
 	}
 	.footerBottom {
-		margin-top:16px;
-		padding-top:8px;
+		padding-top:6px;
 		font-size:12px;
 	}
 }

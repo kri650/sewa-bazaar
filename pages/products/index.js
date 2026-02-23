@@ -121,6 +121,60 @@ export default function Products() {
         {!data ? <p>Loading products...</p> : <p>Loaded {data.length} products from API.</p>}
       </section>
 
+      <footer className="siteFooter" aria-label="Footer">
+        <div className="siteFooterInner">
+          <div className="footerContent">
+            <section className="footerColumns" aria-label="Footer links and contact">
+              <article className="footerCol">
+                <h4>Contact Us</h4>
+                <p>6 Fifth Avenue 5501, Broadway, New York, NY 10012</p>
+                <ul>
+                  <li>foodano@email.com</li>
+                  <li>+1 (123) 4567 8900</li>
+                </ul>
+              </article>
+
+              <article className="footerCol">
+                <h4>Useful Links</h4>
+                <ul>
+                  <li>Shop</li>
+                  <li>Blog</li>
+                  <li>Contact Us</li>
+                  <li>FAQ Page</li>
+                  <li>Services</li>
+                </ul>
+              </article>
+
+              <article className="footerCol">
+                <h4>Follow Us Now</h4>
+                <ul>
+                  <li>Facebook</li>
+                  <li>Twitter</li>
+                  <li>Dribbble</li>
+                  <li>Pinterest</li>
+                  <li>LinkedIn</li>
+                </ul>
+              </article>
+
+              <article className="footerCol">
+                <h4>Get Direction</h4>
+                <div className="footerMap">
+                  <iframe
+                    title="Map to New York"
+                    src="https://www.openstreetmap.org/export/embed.html?bbox=-74.20%2C40.55%2C-73.70%2C40.95&amp;layer=mapnik"
+                    loading="lazy"
+                  />
+                </div>
+              </article>
+            </section>
+
+            <div className="footerBottom">
+              © {new Date().getFullYear()} Sewa Bazaar. All rights reserved.
+            </div>
+          </div>
+        </div>
+      </footer>
+
       <style jsx>{`
         .latestArrivalsPage {
           background: #fff;
@@ -200,8 +254,8 @@ export default function Products() {
           font-size: clamp(36px, 4.2vw, 56px);
           line-height: 1;
           color: #060606;
-          font-family: 'Playfair Display', serif;
-          font-weight: 600;
+          font-family: inherit;
+          font-weight: 500;
           letter-spacing: 0.01em;
         }
 
@@ -210,8 +264,8 @@ export default function Products() {
           font-size: clamp(30px, 3.4vw, 48px);
           line-height: 1;
           color: #619233;
-          font-family: 'Slabo 27px', serif;
-          font-weight: 300;
+          font-family: inherit;
+          font-weight: 400;
         }
 
         .leafMark {
@@ -226,7 +280,7 @@ export default function Products() {
         .latestGridWrap {
           margin-top: 30px;
           display: grid;
-          grid-template-columns: 1fr 240px;
+          grid-template-columns: 1fr 280px;
           gap: 20px;
           align-items: stretch;
         }
@@ -241,7 +295,7 @@ export default function Products() {
           position: relative;
           display: grid;
           grid-template-columns: 46% 54%;
-          min-height: 148px;
+          min-height: 124px;
           border: 1px solid #d7d7d7;
           background: #f2f3f6;
         }
@@ -254,13 +308,13 @@ export default function Products() {
           display: grid;
           place-items: center;
           background: #fff !important;
-          font-size: 56px;
+          font-size: 54px;
           line-height: 1;
         }
 
         .arrivalInfo {
           background: #e8e9ee;
-          padding: 22px 14px 10px 14px;
+          padding: 16px 12px 10px 12px;
           position: relative;
         }
 
@@ -307,28 +361,28 @@ export default function Products() {
         .offerCard {
           border: 1px solid #d0d0d0;
           background: #fff;
-          padding: 8px;
+          padding: 14px;
           display: grid;
           grid-template-rows: auto auto 1fr;
-          min-height: 320px;
+          min-height: 480px;
         }
 
         .offerImage {
           background: #e8e9ee !important;
           display: grid;
           place-items: center;
-          min-height: 150px;
-          font-size: 52px;
+          min-height: 250px;
+          font-size: 90px;
         }
 
         .offerClosed {
-          margin: 8px 4px 0;
+          margin: 14px 6px 0;
           background: #619233;
           color: #fff;
-          min-height: 38px;
+          min-height: 62px;
           display: grid;
           place-items: center;
-          font-size: 17px;
+          font-size: 22px;
           font-family: 'Arial Black', sans-serif;
         }
 
@@ -336,8 +390,8 @@ export default function Products() {
           display: grid;
           place-content: center;
           text-align: center;
-          gap: 4px;
-          padding-top: 10px;
+          gap: 10px;
+          padding-top: 18px;
         }
 
         .offerBody h3 {
@@ -345,14 +399,14 @@ export default function Products() {
           color: #619233;
           font-family: 'Playfair Display', serif;
           font-weight: 500;
-          font-size: 17px;
+          font-size: 30px;
           line-height: 1.04;
         }
 
         .offerBody p {
           margin: 0;
           color: #6d6d6d;
-          font-size: 14px;
+          font-size: 20px;
           font-family: 'Playfair Display', serif;
           font-weight: 300;
         }
@@ -376,7 +430,7 @@ export default function Products() {
           }
 
           .offerCard {
-            max-width: 300px;
+            max-width: 360px;
           }
         }
 
