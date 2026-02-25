@@ -167,7 +167,7 @@ html, body, #__next {
 
 /* nav */
 .mainNav { display:flex; align-items:center; justify-content:space-between; background:var(--theme-green); padding:8px 12px; color:#fff }
-.mainNav ul { display:flex; gap:10px; list-style:none; margin:0; padding:0; overflow:auto }
+.mainNav ul { display:flex; gap:10px; list-style:none; margin:0; padding:0; /*overflow:auto*/ }
 .mainNav li button, .accountBtn { background:transparent; border:0; color:inherit; font-weight:600; padding:6px 8px }
 
 @media (max-width: 900px) {
@@ -1561,3 +1561,5 @@ main > section {
 		font-size:12px;
 	}
 }
+
+

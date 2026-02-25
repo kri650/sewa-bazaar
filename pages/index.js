@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import VegetablesDropdown from '../components/VegetablesDropdown'
+
 
 const navItems = [
   'VEGETABLES',
@@ -242,11 +244,25 @@ export default function Home() {
       <nav className="mainNav">
         <ul>
           {navItems.map(i => (
-            <li key={i}><button type="button">{i}</button></li>
+            i === 'VEGETABLES' ? (
+              <li key={i} style={{ position: 'relative' }}>
+                <button type="button">{i}</button>
+                <VegetablesDropdown />
+              </li>
+            ) : (
+              <li key={i}><button type="button">{i}</button></li>
+            )
           ))}
         </ul>
         <button className="accountBtn" type="button">Account</button>
       </nav>
+
+      <style jsx global>{`
+        /* Show dropdown on hover */
+        .mainNav li:hover > .veg-dropdown {
+          display: block;
+        }
+      `}</style>
 
       <section className="heroAnimationSection">
         <div className="topAnimationBar" aria-hidden="true">
