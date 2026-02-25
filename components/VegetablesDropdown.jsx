@@ -8,11 +8,27 @@ export default function VegetablesDropdown() {
             Leafy Vegetables
           </a>
         </li>
-        <li>Regular Vegetables</li>
-        <li>Exotic Vegetables</li>
-        <li>Gourds and Pumpkin</li>
-        <li>Salad Vegetables</li>
-        <li>Organic Vegetable Boxes</li>
+        <li>
+          <a href="/vegetables/regular-vegetables" style={{ color: 'inherit', textDecoration: 'none', display: 'block' }}>
+          Regular Vegetables
+         </a>
+        </li>
+        <li>
+          <a href="/vegetables/exotic-vegetables" style={{ color: 'inherit', textDecoration: 'none', display: 'block' }}>
+        Exotic Vegetables
+          </a>
+          </li>
+        <li>
+          <a href="/vegetables/gourds-and-pumpkin" style={{ color: 'inherit', textDecoration: 'none', display: 'block' }}>
+        Gourds & Pumpkin
+          </a>
+          </li>
+        <li>
+          <a href="/vegetables/salad-vegetables" style={{ color: 'inherit', textDecoration: 'none', display: 'block' }}>
+        Salad Vegetables
+          </a>
+          </li>
+        {/* <li>Organic Vegetable Boxes</li> */}
       </ul>
       <style jsx global>{`
         .veg-dropdown {
