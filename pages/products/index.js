@@ -1,5 +1,6 @@
 import useSWR from 'swr'
 import axios from 'axios'
+import SiteHeader from '../components/SiteHeader'
 
 const fetcher = (url) => axios.get(url).then((r) => r.data)
 
@@ -15,6 +16,7 @@ export default function Products() {
 
   return (
     <main className="latestArrivalsPage pageShell">
+      <SiteHeader />
       <header className="productsHeroHeader" aria-label="Products header">
         <div className="productsHeroOverlay">
           <p>Farm Fresh Everyday</p>

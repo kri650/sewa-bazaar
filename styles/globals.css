@@ -1,4 +1,7 @@
-body { margin: 0; font-family: 'Manrope', 'Edu VIC WA NT Beginner', 'Playfair Display', 'Slabo 27px', sans-serif; background:#fff; overflow-x:hidden; }
+body { margin: 0; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background:#fff; overflow-x:hidden; }
+
+/* use border-box globally to make width calculations predictable */
+*, *::before, *::after { box-sizing: border-box; }
 
 html, body, #__next {
 	height: 100%;
@@ -14,6 +17,12 @@ html, body, #__next {
 	--theme-green: #6aa333;
 	--theme-green-dark: #4f8525;
 	--theme-green-soft: #eef6e5;
+	--base-font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* apply base font to common text elements */
+body, input, button, textarea, select, h1, h2, h3, h4, h5, h6 {
+	font-family: var(--base-font);
 }
 
 .promoStrip {
@@ -132,14 +141,16 @@ html, body, #__next {
 	grid-template-columns: max-content 1fr max-content;
 	align-items: center;
 	gap: 18px;
-	padding: 14px 18px;
+	padding: 12px 18px;
 	background: #fff;
 	border-bottom: 1px solid #e6e6e6;
+	min-height: 64px;
 }
 
-.logoWrap { display:flex; align-items:center; gap:4px; margin-left:8px }
-.logoWrap img { width: 60px; display:block }
-.brandName { display:flex; flex-direction:column; font-size:14px; font-weight:700; color:#1e3d32; line-height:1 }
+.logoWrap { display:flex; align-items:center; gap:8px; margin-left:8px; text-decoration:none; color:inherit }
+.logoWrap img { width: 72px; display:block }
+.logoWrap, .logoWrap * { text-decoration: none !important; }
+.brandName { display:flex; flex-direction:column; font-size:16px; font-weight:800; color:#1e3d32; line-height:1 }
 
 .searchWrap { display:flex; justify-content:center; gap:12px }
 .searchWrap input { width: min(560px, 100%); height:40px; border-radius:999px; border:1px solid #d7e6e0; padding:0 18px }
@@ -166,9 +177,78 @@ html, body, #__next {
 .cartCount { position:absolute; right:-8px; top:-8px; background:var(--theme-green); color:#fff; width:20px; height:20px; display:grid; place-items:center; border-radius:50%; font-size:12px }
 
 /* nav */
-.mainNav { display:flex; align-items:center; justify-content:space-between; background:var(--theme-green); padding:8px 12px; color:#fff }
-.mainNav ul { display:flex; gap:10px; list-style:none; margin:0; padding:0; overflow:auto }
-.mainNav li button, .accountBtn { background:transparent; border:0; color:inherit; font-weight:600; padding:6px 8px }
+.mainNav {
+	display:flex;
+	align-items:center;
+	justify-content:space-between;
+	background:var(--theme-green);
+	padding:8px 12px;
+	color:#fff;
+	min-height:48px;
+}
+
+/* keep nav items on a single line; allow horizontal scroll instead of wrapping */
+.mainNav ul {
+	display:flex;
+	gap:6px; /* tightened gap to make items sit closer */
+	list-style:none;
+	margin:0;
+	padding:0 6px; /* small side padding inside the rail */
+	overflow-x:auto;
+	overflow-y:hidden;
+	flex-wrap:nowrap;
+	white-space:nowrap;
+	-webkit-overflow-scrolling: touch;
+	flex: 1 1 auto; /* occupy remaining space so items stay on one line */
+	min-width: 0; /* allow flex shrinking on small screens */
+	align-items: center; /* vertically center nav items */
+}
+.mainNav ul::-webkit-scrollbar { display: none; }
+.mainNav { -ms-overflow-style: none; }
+
+.mainNav li { flex: 0 0 auto; display: flex; align-items: center; }
+
+.mainNav li button,
+.mainNav li a,
+.accountBtn {
+	background:transparent;
+	border:0;
+	color:#fff;
+	font-weight:600;
+	padding:6px 10px; /* slightly smaller padding for a tighter look */
+	font-size:13px; /* small reduction to keep items compact */
+	text-decoration:none;
+	white-space:nowrap;
+	height:30px;
+	display:inline-flex;
+	align-items:center;
+	transition: color .15s ease, background .15s ease, transform .12s ease;
+}
+
+.accountBtn {
+	flex: 0 0 auto;
+	margin-left: 8px;
+	padding: 6px 10px;
+}
+
+/* hover / focus feedback for nav items (VEGETABLES, etc.) */
+.mainNav li button:hover,
+.mainNav li a:hover,
+.mainNav li button:focus,
+.mainNav li a:focus {
+	background: rgba(255,255,255,0.10); /* subtle lightening on hover */
+	color: #fff; /* keep text readable */
+	text-decoration: underline; /* underline on hover as requested */
+	text-underline-offset: 4px;
+	border-radius: 6px;
+	transform: translateY(-1px);
+	outline: none;
+}
+
+.mainNav li button:focus-visible,
+.mainNav li a:focus-visible {
+	box-shadow: 0 0 0 3px rgba(255,255,255,0.08);
+}
 
 @media (max-width: 900px) {
 	.promoStrip::before,
@@ -194,7 +274,15 @@ html, body, #__next {
 		justify-content:flex-start;
 		gap:10px;
 	}
-	.headerInfoRow { font-size:11px; }
+
+	/* reduce nav padding and keep single-line behaviour on small screens */
+	.mainNav li button,
+	.mainNav li a,
+	.accountBtn {
+		padding:4px 8px;
+		font-size:13px;
+	}
+	.headerInfoRow { font-size:13px; }
 	.phoneWrap { font-size:13px; }
 	.cartBtn { margin-left:0; }
 }
@@ -497,6 +585,31 @@ main > section {
 	position:relative;
 	padding:0 58px;
 }
+
+/* Mango page: make the mango grid match home product container styling */
+.mangoGridSection {
+	padding: 32px 0 56px;
+	background: #fff;
+}
+.mangoGridHeader {
+	width: min(1200px, calc(100% - 32px));
+	margin: 0 auto 18px;
+	text-align: center;
+}
+.mangoGridHeader h2 {
+	margin: 0 0 6px;
+	font-size: clamp(26px, 3.2vw, 36px);
+	color: var(--theme-green-dark);
+	font-weight: 700;
+}
+.mangoGridHeader p { margin: 6px 0 0; color:#6b7a70 }
+.mangoGrid {
+	width: min(1200px, calc(100% - 32px));
+	margin: 0 auto;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 22px;
+}
 .productNav {
 	position:absolute;
 	top:50%;
@@ -524,7 +637,8 @@ main > section {
 	background:#fff;
 	border:1px solid #d8e6de;
 	border-radius:12px;
-	padding:14px 12px 0;
+	/* add a small bottom padding so controls and buttons have room */
+	padding:14px 12px 12px;
 	text-align:center;
 	overflow:hidden;
 }
@@ -541,10 +655,29 @@ main > section {
 .productImageWrap img {
 	width:100%;
 	height:100%;
-	object-fit:contain;
-	padding:8px;
+	object-fit:cover;
+	padding:0;
 	display:block;
 }
+
+/* special-case: some images (e.g., potato) include white padding in the source — force a small zoom to crop it */
+.productImageWrap img.forceCover {
+	transform: scale(1.08);
+	transition: transform 160ms ease;
+}
+
+/* Make section images cover their container (fills full area) */
+.cover-section img,
+.promoCard img,
+.heroCarousel .carouselItem img,
+.productImageWrap img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	object-position: center;
+	display: block;
+}
+
 .productName {
 	margin:4px 0;
 	font-size:12px;
@@ -568,6 +701,9 @@ main > section {
 	color:var(--theme-green-dark);
 	background:var(--theme-green-soft);
 }
+/* small product description and a subtle note used on basket pages */
+.productDescription { color:#445444; font-size:13px; margin:8px 0 0 }
+.productNote { display:block; color:#7a887f; margin-top:6px; font-size:12px }
 .qtyRow {
 	display:grid;
 	grid-template-columns:38px 1fr 38px;
@@ -589,8 +725,9 @@ main > section {
 	font-weight:500;
 }
 .pickNowBtn {
-	width:calc(100% + 24px);
-	margin:0 -12px;
+	/* make button span the card width without negative margins */
+	width:100%;
+	margin-top:12px;
 	height:42px;
 	border:0;
 	background:var(--theme-green);
@@ -599,6 +736,7 @@ main > section {
 	font-weight:600;
 	letter-spacing:.01em;
 	cursor:pointer;
+	border-radius:6px;
 }
 
 @media (max-width: 1200px) {

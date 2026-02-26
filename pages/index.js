@@ -1,90 +1,75 @@
 import { useEffect, useRef, useState } from 'react'
-
-const navItems = [
-  'VEGETABLES',
-  'HYDROPONIC VEGGIES',
-  'FRUITS',
-  'GROCERY',
-  'BEVERAGES',
-  'READY TO EAT',
-  'BREAKFAST',
-  'BAKERY',
-  'SNACKS',
-  'HOME CARE',
-  'GIFTING',
-  'GOURMET & IMPORTED',
-  'MANGOES',
-]
+import SiteHeader from './components/SiteHeader'
 
 const organicRangeItems = [
-  { title: 'Rice', image: 'https://source.unsplash.com/700x700/?rice,grain' },
-  { title: 'Millets', image: 'https://source.unsplash.com/700x700/?millets,cereal' },
-  { title: 'Spices', image: 'https://source.unsplash.com/700x700/?spices,masala' },
-  { title: 'Pure Ghee', image: 'https://source.unsplash.com/700x700/?ghee,butter' },
-  { title: 'Honey', image: 'https://source.unsplash.com/700x700/?honey,jar' },
-  { title: 'Snacks', image: 'https://source.unsplash.com/700x700/?healthy-snacks,nuts' },
-  { title: 'Vegetables', image: 'https://source.unsplash.com/700x700/?organic,vegetables' },
-  { title: 'Fruits', image: 'https://source.unsplash.com/700x700/?fresh,fruits' },
-  { title: 'Beverages', image: 'https://source.unsplash.com/700x700/?organic,beverage,drink' },
-  { title: 'Bakery', image: 'https://source.unsplash.com/700x700/?bakery,bread' },
-  { title: 'Breakfast', image: 'https://source.unsplash.com/700x700/?breakfast,healthy' },
-  { title: 'Home Care', image: 'https://source.unsplash.com/700x700/?home-care,cleaning' },
+  { title: 'Leafy Greens', image: 'https://unsplash.com/photos/whPlG79QzS0/download?force=true' },
+  { title: 'Root Vegetables', image: 'https://unsplash.com/photos/BWzzZkQtZS0/download?force=true' },
+  { title: 'Cruciferous', image: 'https://unsplash.com/photos/9nzQserYaN8/download?force=true' },
+  { title: 'Alliums', image: 'https://unsplash.com/photos/FK1m_uWmqs4/download?force=true' },
+  { title: 'Tomatoes', image: 'https://unsplash.com/photos/tYJfQ1sSMbY/download?force=true' },
+  { title: 'Cucumbers', image: 'https://source.unsplash.com/700x700/?cucumber' },
+  { title: 'Citrus Fruits', image: 'https://source.unsplash.com/700x700/?citrus,orange,lemon' },
+  { title: 'Tropical Fruits', image: 'https://source.unsplash.com/700x700/?tropical-fruits' },
+  { title: 'Berries', image: 'https://source.unsplash.com/700x700/?berries' },
+  { title: 'Stone Fruits', image: 'https://source.unsplash.com/700x700/?peach,plum' },
+  { title: 'Melons', image: 'https://source.unsplash.com/700x700/?watermelon,melon' },
+  { title: 'Exotic Picks', image: 'https://source.unsplash.com/700x700/?dragon-fruit,kiwi' },
 ]
 
 const newArrivals = [
-  { name: 'Fresh Tomato', price: 'Rs. 32.00', size: '500 GM', image: 'https://source.unsplash.com/500x320/?tomato,vegetable' },
-  { name: 'Organic Potato', price: 'Rs. 50.00', size: '1 KG', image: 'https://source.unsplash.com/500x320/?potato,vegetable' },
-  { name: 'Green Capsicum', price: 'Rs. 42.00', size: '500 GM', image: 'https://source.unsplash.com/500x320/?green-capsicum' },
-  { name: 'Red Onion', price: 'Rs. 52.00', size: '1 KG', image: 'https://source.unsplash.com/500x320/?red-onion' },
-  { name: 'Fresh Carrot', price: 'Rs. 48.00', size: '500 GM', image: 'https://source.unsplash.com/500x320/?carrot,vegetable' },
-  { name: 'Cucumber', price: 'Rs. 36.00', size: '500 GM', image: 'https://source.unsplash.com/500x320/?cucumber,organic' },
-  { name: 'Bottle Gourd', price: 'Rs. 44.00', size: '1 KG', image: 'https://source.unsplash.com/500x320/?bottle-gourd' },
-  { name: 'Lady Finger', price: 'Rs. 40.00', size: '500 GM', image: 'https://source.unsplash.com/500x320/?okra,vegetable' },
-  { name: 'Cauliflower', price: 'Rs. 38.00', size: '1 PC', image: 'https://source.unsplash.com/500x320/?cauliflower' },
-  { name: 'Cabbage', price: 'Rs. 30.00', size: '1 PC', image: 'https://source.unsplash.com/500x320/?cabbage' },
-  { name: 'Spinach', price: 'Rs. 25.00', size: '250 GM', image: 'https://source.unsplash.com/500x320/?spinach' },
-  { name: 'Beetroot', price: 'Rs. 40.00', size: '500 GM', image: 'https://source.unsplash.com/500x320/?beetroot' },
+  { name: 'Fresh Tomato', price: 'Rs. 32.00', size: '500 GM', image: 'https://unsplash.com/photos/YfLRk4RtRcU/download?force=true' },
+  { name: 'Organic Potato', price: 'Rs. 50.00', size: '1 KG', image: 'https://unsplash.com/photos/jJUuF4hqCQM/download?force=true' },
+  { name: 'Green Capsicum', price: 'Rs. 42.00', size: '500 GM', image: 'https://unsplash.com/photos/3N_znw90QlU/download?force=true' },
+  { name: 'Red Onion', price: 'Rs. 52.00', size: '1 KG', image: 'https://unsplash.com/photos/SQ51rwKOi9s/download?force=true' },
+  { name: 'Fresh Carrot', price: 'Rs. 48.00', size: '500 GM', image: 'https://unsplash.com/photos/R198mTymEFQ/download?force=true' },
+  { name: 'Cucumber', price: 'Rs. 36.00', size: '500 GM', image: 'https://unsplash.com/photos/puMz26-ub30/download?force=true' },
+  { name: 'Bottle Gourd', price: 'Rs. 44.00', size: '1 KG', image: 'https://unsplash.com/photos/jS02QWnPOAA/download?force=true' },
+  { name: 'Lady Finger', price: 'Rs. 40.00', size: '500 GM', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcThiXMjOAHWxGVinoRCv4I0Wmo8tUQ39z-Y_4O0xgCsFHxJWQF6vipyVyReKd5ATUOTIRXdMr99vyvbcn5KfJZerlzD6gt7ps6IvVd2ltPJ&s=10' },
+  { name: 'Cauliflower', price: 'Rs. 38.00', size: '1 PC', image: 'https://unsplash.com/photos/PT-GXFtQj-s/download?force=true' },
+  { name: 'Cabbage', price: 'Rs. 30.00', size: '1 PC', image: 'https://unsplash.com/photos/5MU_4hPl67Y/download?force=true' },
+  { name: 'Spinach', price: 'Rs. 25.00', size: '250 GM', image: 'https://unsplash.com/photos/4jpNPu7IW8k/download?force=true' },
+  { name: 'Beetroot', price: 'Rs. 40.00', size: '500 GM', image: 'https://unsplash.com/photos/eZBVfr8EpaA/download?force=true' },
 ]
 
 const vegetableDeals = [
-  { name: 'Banana', price: 'Rs. 60.00', size: '1 DOZEN', image: 'https://source.unsplash.com/500x320/?banana,fruit' },
-  { name: 'Apple', price: 'Rs. 180.00', size: '1 KG', image: 'https://source.unsplash.com/500x320/?apple,fruit' },
-  { name: 'Orange', price: 'Rs. 120.00', size: '1 KG', image: 'https://source.unsplash.com/500x320/?orange,fruit' },
-  { name: 'Pomegranate', price: 'Rs. 220.00', size: '1 KG', image: 'https://source.unsplash.com/500x320/?pomegranate' },
-  { name: 'Papaya', price: 'Rs. 80.00', size: '1 KG', image: 'https://source.unsplash.com/500x320/?papaya' },
-  { name: 'Watermelon', price: 'Rs. 35.00', size: '1 KG', image: 'https://source.unsplash.com/500x320/?watermelon' },
-  { name: 'Grapes', price: 'Rs. 95.00', size: '500 GM', image: 'https://source.unsplash.com/500x320/?grapes' },
-  { name: 'Mango', price: 'Rs. 210.00', size: '1 KG', image: 'https://source.unsplash.com/500x320/?mango' },
-  { name: 'Guava', price: 'Rs. 90.00', size: '1 KG', image: 'https://source.unsplash.com/500x320/?guava' },
-  { name: 'Pineapple', price: 'Rs. 70.00', size: '1 PC', image: 'https://source.unsplash.com/500x320/?pineapple' },
-  { name: 'Muskmelon', price: 'Rs. 55.00', size: '1 KG', image: 'https://source.unsplash.com/500x320/?muskmelon' },
-  { name: 'Kiwi', price: 'Rs. 140.00', size: '500 GM', image: 'https://source.unsplash.com/500x320/?kiwi,fruit' },
+  { name: 'Banana', price: 'Rs. 60.00', size: '1 DOZEN', image: 'https://unsplash.com/photos/Kl3467edwsE/download?force=true' },
+  { name: 'Apple', price: 'Rs. 180.00', size: '1 KG', image: 'https://unsplash.com/photos/XiWQbLEhFyo/download?force=true' },
+  { name: 'Orange', price: 'Rs. 120.00', size: '1 KG', image: 'https://unsplash.com/photos/SOdyjl7A0Qk/download?force=true' },
+  { name: 'Pomegranate', price: 'Rs. 220.00', size: '1 KG', image: 'https://unsplash.com/photos/XiWQbLEhFyo/download?force=true' },
+  { name: 'Papaya', price: 'Rs. 80.00', size: '1 KG', image: 'https://unsplash.com/photos/RC6RbCzw_lg/download?force=true' },
+  { name: 'Watermelon', price: 'Rs. 35.00', size: '1 KG', image: 'https://unsplash.com/photos/izi5AnlbRIA/download?force=true' },
+  { name: 'Grapes', price: 'Rs. 95.00', size: '500 GM', image: 'https://unsplash.com/photos/KyFEImlFKQY/download?force=true' },
+  { name: 'Mango', price: 'Rs. 210.00', size: '1 KG', image: 'https://unsplash.com/photos/7iLlgS5o09c/download?force=true' },
+  { name: 'Guava', price: 'Rs. 90.00', size: '1 KG', image: 'https://unsplash.com/photos/vUlr2F01z-o/download?force=true' },
+  { name: 'Pineapple', price: 'Rs. 70.00', size: '1 PC', image: 'https://unsplash.com/photos/Cr9hZrpC1Oc/download?force=true' },
+  { name: 'Muskmelon', price: 'Rs. 55.00', size: '1 KG', image: 'https://unsplash.com/photos/PIybW7_fg1U/download?force=true' },
+  { name: 'Kiwi', price: 'Rs. 140.00', size: '500 GM', image: 'https://unsplash.com/photos/wds9ue_gops/download?force=true' },
 ]
 
 const pantryPicks = [
-  { name: 'Seasonal Veg Combo', price: 'Rs. 199.00', size: '2 KG', image: 'https://source.unsplash.com/500x320/?vegetable-basket' },
-  { name: 'Leafy Greens Mix', price: 'Rs. 75.00', size: '500 GM', image: 'https://source.unsplash.com/500x320/?leafy-greens' },
-  { name: 'Root Vegetables Pack', price: 'Rs. 140.00', size: '1 KG', image: 'https://source.unsplash.com/500x320/?root-vegetables' },
-  { name: 'Salad Veg Mix', price: 'Rs. 95.00', size: '800 GM', image: 'https://source.unsplash.com/500x320/?salad-vegetables' },
-  { name: 'Tropical Fruit Box', price: 'Rs. 299.00', size: '2 KG', image: 'https://source.unsplash.com/500x320/?tropical-fruits' },
-  { name: 'Citrus Fruit Box', price: 'Rs. 220.00', size: '1.5 KG', image: 'https://source.unsplash.com/500x320/?citrus-fruits' },
-  { name: 'Berry Fruit Pack', price: 'Rs. 260.00', size: '500 GM', image: 'https://source.unsplash.com/500x320/?berries' },
-  { name: 'Family Fruit Basket', price: 'Rs. 349.00', size: '3 KG', image: 'https://source.unsplash.com/500x320/?fruit-basket' },
-  { name: 'Farm Fresh Veg Basket', price: 'Rs. 289.00', size: '3 KG', image: 'https://source.unsplash.com/500x320/?fresh-vegetables,basket' },
-  { name: 'Kids Fruit Box', price: 'Rs. 175.00', size: '1 KG', image: 'https://source.unsplash.com/500x320/?mixed-fruits' },
-  { name: 'Hydroponic Veg Pack', price: 'Rs. 240.00', size: '1 KG', image: 'https://source.unsplash.com/500x320/?hydroponic-vegetables' },
-  { name: 'Exotic Fruits Pack', price: 'Rs. 390.00', size: '1 KG', image: 'https://source.unsplash.com/500x320/?exotic-fruits' },
+  { name: 'Seasonal Veg Combo', price: 'Rs. 199.00', size: '2 KG', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQL3Evx-3CrwP-gEBdpeUbxguBnZXuserSqzg&s' },
+  { name: 'Leafy Greens Mix', price: 'Rs. 75.00', size: '500 GM', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRdeLSkf0wrGWhCTDI_PBYaK0rR_Oyv2TxovA&s' },
+  { name: 'Root Vegetables Pack', price: 'Rs. 140.00', size: '1 KG', image: 'https://unsplash.com/photos/-r5KSMkyoSc/download?force=true' },
+  { name: 'Salad Veg Mix', price: 'Rs. 95.00', size: '800 GM', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRP6BuOWHh7oM2cHY2WjhCXSoHTrqOn7q1HEQ&s' },
+  { name: 'Tropical Fruit Box', price: 'Rs. 299.00', size: '2 KG', image: 'https://unsplash.com/photos/0xgDzbm8rO8/download?force=true' },
+  { name: 'Citrus Fruit Box', price: 'Rs. 220.00', size: '1.5 KG', image: 'https://unsplash.com/photos/m8TlqcWBjT0/download?force=true' },
+  { name: 'Berry Fruit Pack', price: 'Rs. 260.00', size: '500 GM', image: 'https://unsplash.com/photos/jHcKq383ibg/download?force=true' },
+  { name: 'Family Fruit Basket', price: 'Rs. 349.00', size: '3 KG', image: 'https://unsplash.com/photos/2ZgflmYgK_E/download?force=true' },
+  { name: 'Farm Fresh Veg Basket', price: 'Rs. 289.00', size: '3 KG', image: 'https://unsplash.com/photos/_U8BWkVytUI/download?force=true' },
+  { name: 'Kids Fruit Box', price: 'Rs. 175.00', size: '1 KG', image: 'https://unsplash.com/photos/23XEGHMH5dQ/download?force=true' },
+  { name: 'Hydroponic Veg Pack', price: 'Rs. 240.00', size: '1 KG', image: 'https://unsplash.com/photos/7_TOqDuIqp4/download?force=true' },
+  { name: 'Exotic Fruits Pack', price: 'Rs. 390.00', size: '1 KG', image: 'https://unsplash.com/photos/qPBKEyJbyS8/download?force=true' },
 ]
 
 const bestSellers = [
-  { name: 'Organic Apple Box', price: 'Rs. 399.00', size: '2 KG', image: 'https://source.unsplash.com/500x320/?apple-box' },
+  { name: 'Organic Apple Box', price: 'Rs. 399.00', size: '2 KG', image: 'https://unsplash.com/photos/kbi-wnPrOMI/download?force=true' },
   { name: 'Farm Fresh Tomato', price: 'Rs. 32.00', size: '500 GM', image: 'https://source.unsplash.com/500x320/?fresh-tomato' },
-  { name: 'Premium Alphonso Mango', price: 'Rs. 320.00', size: '1 KG', image: 'https://source.unsplash.com/500x320/?alphonso-mango' },
-  { name: 'Organic Baby Spinach', price: 'Rs. 65.00', size: '250 GM', image: 'https://source.unsplash.com/500x320/?baby-spinach' },
-  { name: 'Fresh Pomegranate Pack', price: 'Rs. 220.00', size: '1 KG', image: 'https://source.unsplash.com/500x320/?pomegranate-fruit' },
-  { name: 'Hydroponic Lettuce', price: 'Rs. 90.00', size: '300 GM', image: 'https://source.unsplash.com/500x320/?lettuce' },
-  { name: 'Organic Banana Pack', price: 'Rs. 60.00', size: '1 DOZEN', image: 'https://source.unsplash.com/500x320/?banana-bunch' },
-  { name: 'Crisp Green Beans', price: 'Rs. 58.00', size: '500 GM', image: 'https://source.unsplash.com/500x320/?green-beans,vegetable' },
+  { name: 'Premium Alphonso Mango', price: 'Rs. 320.00', size: '1 KG', image: 'https://unsplash.com/photos/vxtBBfMTMZ0/download?force=true' },
+  { name: 'Organic Baby Spinach', price: 'Rs. 65.00', size: '250 GM', image: 'https://unsplash.com/photos/4VMqrwYfmDw/download?force=true' },
+  { name: 'Fresh Pomegranate Pack', price: 'Rs. 220.00', size: '1 KG', image: 'https://unsplash.com/photos/T-MTH8Xlt98/download?force=true' },
+  { name: 'Hydroponic Lettuce', price: 'Rs. 90.00', size: '300 GM', image: 'https://unsplash.com/photos/1qnIDA6gZ1g/download?force=true' },
+  { name: 'Organic Banana Pack', price: 'Rs. 60.00', size: '1 DOZEN', image: 'https://unsplash.com/photos/lTNAB9vmUMM/download?force=true' },
+  { name: 'Crisp Green Beans', price: 'Rs. 58.00', size: '500 GM', image: 'https://unsplash.com/photos/Iu-N3KHx5NM/download?force=true' },
 ]
 
 const featureDishes = [
@@ -96,8 +81,8 @@ const featureDishes = [
 
 const topCategories = [
   { name: 'Strawberries [250g]', image: 'https://source.unsplash.com/700x700/?strawberries,dessert' },
-  { name: 'Spinach', image: 'https://source.unsplash.com/700x700/?spinach,pasta' },
-  { name: 'Kale', image: 'https://source.unsplash.com/700x700/?kale,salad' },
+  { name: 'Spinach', image: 'https://unsplash.com/photos/doeWwiscUPI/download?force=true' },
+  { name: 'Kale', image: 'https://unsplash.com/photos/B-DrrO3tSbo/download?force=true' },
   { name: 'Nectarines', image: 'https://source.unsplash.com/700x700/?nectarine,fruit' },
   { name: 'Broccoli', image: 'https://source.unsplash.com/700x700/?broccoli,vegetable' },
   { name: 'Avocado', image: 'https://source.unsplash.com/700x700/?avocado,healthy-food' },
@@ -202,51 +187,7 @@ export default function Home() {
         </div>
       </div>
 
-      <header className="topHeader">
-        <div className="logoWrap">
-          <img src="/logo.png" alt="Orgpick" />
-          <span className="brandName">
-            <span>Sewa</span>
-            <span>Bazaar</span>
-          </span>
-        </div>
-
-        <div className="searchWrap">
-          <input type="text" placeholder="Go organic" aria-label="Search products" />
-          <button type="button" className="searchBtn">Search</button>
-        </div>
-
-        <div className="topActions">
-          <div className="headerInfo">
-            <div className="headerInfoRow">
-              <span className="infoIcon" aria-hidden>◷</span>
-              <span>Mon-Fri 8:00 AM - 20:00 PM Saturday Closed</span>
-            </div>
-            <div className="headerInfoRow">
-              <span className="infoIcon" aria-hidden>☎</span>
-              <span>(+800) 111 2020, (+700) 353 44 555</span>
-            </div>
-          </div>
-
-          <button className="cartBtn" type="button" aria-label="Cart">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M3 4h2l2.2 9.2a1 1 0 0 0 1 .8h8.8a1 1 0 0 0 1-.8L20 7H7.1" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-              <circle cx="10" cy="19" r="1.5" fill="currentColor" />
-              <circle cx="17" cy="19" r="1.5" fill="currentColor" />
-            </svg>
-            <span className="cartCount">0</span>
-          </button>
-        </div>
-      </header>
-
-      <nav className="mainNav">
-        <ul>
-          {navItems.map(i => (
-            <li key={i}><button type="button">{i}</button></li>
-          ))}
-        </ul>
-        <button className="accountBtn" type="button">Account</button>
-      </nav>
+      <SiteHeader />
 
       <section className="heroAnimationSection">
         <div className="topAnimationBar" aria-hidden="true">
@@ -351,7 +292,7 @@ export default function Home() {
                 {getSectionItems(newArrivals, arrivalPage, 6).map(({ item, index }) => (
                 <article className="productCard" key={item.name}>
                   <div className="productImageWrap">
-                    <img src={item.image} alt={item.name} loading="lazy" />
+                    <img className={item.name && item.name.includes('Potato') ? 'forceCover' : ''} src={item.image} alt={item.name} loading="lazy" />
                   </div>
                   <p className="productName">{item.name}</p>
                   <p className="productPrice">{formatRupees(parseRupees(item.price) * arrivalQty[index])}</p>
