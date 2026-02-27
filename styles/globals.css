@@ -195,7 +195,7 @@ body, input, button, textarea, select, h1, h2, h3, h4, h5, h6 {
 	margin:0;
 	padding:0 6px; /* small side padding inside the rail */
 	overflow-x:auto;
-	overflow-y:hidden;
+	overflow-y: visible; /* allow dropdown to peek out */
 	flex-wrap:nowrap;
 	white-space:nowrap;
 	-webkit-overflow-scrolling: touch;
@@ -206,7 +206,96 @@ body, input, button, textarea, select, h1, h2, h3, h4, h5, h6 {
 .mainNav ul::-webkit-scrollbar { display: none; }
 .mainNav { -ms-overflow-style: none; }
 
-.mainNav li { flex: 0 0 auto; display: flex; align-items: center; }
+.mainNav li { flex: 0 0 auto; display: flex; align-items: center; position: relative; }
+
+.mainNav li:hover > .veg-dropdown,
+.mainNav li > .veg-dropdown:hover {
+    display: block;
+}
+
+/* mobile nav styles (initially hidden, then slide in from top) */
+.mobileNav {
+	position:fixed;
+	top:0;
+	left:0;
+	right:0;
+	bottom:0;
+	background:rgba(255,255,255,0.98);
+	color:#111;
+	display:none;
+	flex-direction:column;
+	overflow-y:auto;
+	z-index:1000;
+	animation: slideDown .4s ease-out forwards;
+}
+
+.mobileNav.open {
+	display:flex;
+}
+
+.mobileNavClose {
+	position:absolute;
+	top:16px;
+	right:16px;
+	width:36px;
+	height:36px;
+	display:flex;
+	align-items:center;
+	justify-content:center;
+	cursor:pointer;
+}
+
+.mobileNav ul {
+	display:flex;
+	flex-direction:column;
+	gap:0;
+	list-style:none;
+	margin:0;
+	padding:0;
+}
+
+.mobileNav li {
+	display:flex;
+	flex-direction:column;
+	gap:0;
+}
+
+.mobileNav a {
+	padding:16px 24px;
+	color:#111;
+	text-decoration:none;
+	display:block;
+	transition: background .2s ease;
+}
+
+.mobileNav a:hover {
+	background:rgba(0,0,0,0.05);
+}
+
+.mobileNav .veg-dropdown {
+	position:relative;
+}
+
+.mobileNav .veg-dropdown ul {
+	display:none;
+	flex-direction:column;
+	position:absolute;
+	top:100%;
+	left:0;
+	right:0;
+	background:#fff;
+	box-shadow:0 4px 8px rgba(0,0,0,0.1);
+	z-index:100;
+}
+
+.mobileNav .veg-dropdown:hover ul {
+	display:flex;
+}
+
+@keyframes slideDown {
+	from { transform: translateY(-100%); }
+	to { transform: translateY(0); }
+}
 
 .mainNav li button,
 .mainNav li a,
@@ -1483,6 +1572,20 @@ main > section {
 	}
 }
 
+/* Ensure dropdown is hidden by default and always shown when parent is hovered/focused */
+.veg-dropdown { display: none; }
+.mainNav li:hover > .veg-dropdown,
+.mainNav li > .veg-dropdown:hover,
+.mainNav li a:hover + .veg-dropdown,
+.mainNav li a:focus + .veg-dropdown,
+.mainNav li:focus-within > .veg-dropdown {
+    display: block !important;
+}
+
+.mainNav li.veg-open > .veg-dropdown {
+    display: block !important;
+}
+
 .siteFooter {
 	position:relative;
 	margin-top:auto;
@@ -1698,6 +1801,14 @@ main > section {
 		padding-top:6px;
 		font-size:12px;
 	}
+}
+
+/* ensure hovering the visible nav control (anchor or button with .navLink) reveals the veg dropdown */
+.navLink:hover + .veg-dropdown,
+.navLink:focus + .veg-dropdown,
+button.navLink:hover + .veg-dropdown,
+button.navLink:focus + .veg-dropdown {
+    display: block !important;
 }
 
 

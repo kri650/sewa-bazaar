@@ -1,7 +1,24 @@
 
-export default function VegetablesDropdown() {
-  return (
-    <div className="veg-dropdown">
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
+
+export default function VegetablesDropdown({ isOpen = false, anchorRef = null }) {
+  const [pos, setPos] = useState({ left: 0, top: 0, width: 180 })
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => setMounted(true), [])
+
+  useEffect(() => {
+    if (!mounted) return
+    if (!anchorRef || !anchorRef.current) return
+    const rect = anchorRef.current.getBoundingClientRect()
+    setPos({ left: rect.left + window.scrollX, top: rect.bottom + window.scrollY, width: Math.max(180, rect.width) })
+  }, [anchorRef, isOpen, mounted])
+
+  if (!mounted) return null
+
+  return createPortal(
+    <div className="veg-dropdown" style={{ display: isOpen ? 'block' : 'none', position: 'absolute', left: pos.left + 'px', top: pos.top + 'px', minWidth: pos.width + 'px' }}>
       <ul className="veg-dropdown-list">
         <li>
           <a href="/vegetables/leafy-vegetables" style={{ color: 'inherit', textDecoration: 'none', display: 'block' }}>
@@ -37,7 +54,6 @@ export default function VegetablesDropdown() {
           left: 0;
           z-index: 9999;
           background: #fff;
-          display: none;
           max-width: 240px;
           min-width: 180px;
           box-shadow: 0 8px 32px rgba(40,60,20,0.13);
@@ -67,6 +83,7 @@ export default function VegetablesDropdown() {
           color: #4f8525;
         }
       `}</style>
-    </div>
-  );
+    </div>,
+    document.body
+  )
 }

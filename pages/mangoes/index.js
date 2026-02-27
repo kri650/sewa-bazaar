@@ -52,7 +52,6 @@ export default function MangoesPage() {
   return (
     <ShopLayout>
       <main className="mangoPage">
-
       <section className="mangoGridSection">
         <div className="mangoGridHeader">
           <h2>Fruits — Mangoes</h2>

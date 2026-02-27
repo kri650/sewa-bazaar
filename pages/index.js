@@ -189,13 +189,6 @@ export default function Home() {
 
       <SiteHeader />
 
-      <style jsx global>{`
-        /* Show dropdown on hover */
-        .mainNav li:hover > .veg-dropdown {
-          display: block;
-        }
-      `}</style>
-
       <section className="heroAnimationSection">
         <div className="topAnimationBar" aria-hidden="true">
           <div className="barGradient" />

@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import { useState, useEffect, useRef } from 'react'
+import VegetablesDropdown from '../../components/VegetablesDropdown'
 
 const navItems = [
   'VEGETABLES',
@@ -27,17 +29,38 @@ const routeMap = {
 }
 
 export default function SiteHeader() {
+  const [vegOpen, setVegOpen] = useState(false)
+  useEffect(() => {
+    // Attach pointer events as a fallback to ensure hover works across browsers
+    const el = document.getElementById('nav-vegetables')
+    if (!el) return undefined
+
+    const onEnter = () => el.classList.add('veg-open')
+    const onLeave = () => el.classList.remove('veg-open')
+
+    el.addEventListener('pointerenter', onEnter)
+    el.addEventListener('pointerleave', onLeave)
+
+    return () => {
+      el.removeEventListener('pointerenter', onEnter)
+      el.removeEventListener('pointerleave', onLeave)
+    }
+  }, [])
+
+  const vegBtnRef = useRef(null)
+
   return (
     <>
-      <header className="topHeader">
+      <div className="siteHeaderWrap">
+        <header className="topHeader">
         <Link href="/" aria-label="Sewa Bazaar home" className="logoWrap">
-          <>
+          <div className="logoInner">
             <img src="/logo.png" alt="Sewa Bazaar" />
             <span className="brandName">
               <span>Sewa</span>
               <span>Bazaar</span>
             </span>
-          </>
+          </div>
         </Link>
 
         <div className="searchWrap">
@@ -69,8 +92,30 @@ export default function SiteHeader() {
       <nav className="mainNav">
         <ul>
           {navItems.map((label) => (
-            <li key={label}>
-              {routeMap[label] ? (
+            <li
+              key={label}
+              id={label === 'VEGETABLES' ? 'nav-vegetables' : undefined}
+              className={label === 'VEGETABLES' ? (vegOpen ? 'veg-open' : '') : undefined}
+              onMouseEnter={label === 'VEGETABLES' ? () => setVegOpen(true) : undefined}
+              onMouseLeave={label === 'VEGETABLES' ? () => setVegOpen(false) : undefined}
+              onFocus={label === 'VEGETABLES' ? () => setVegOpen(true) : undefined}
+              onBlur={label === 'VEGETABLES' ? () => setVegOpen(false) : undefined}
+            >
+              {label === 'VEGETABLES' ? (
+                <>
+                  <button
+                    type="button"
+                    className="navLink"
+                    aria-haspopup="true"
+                    aria-expanded={vegOpen}
+                    onClick={() => setVegOpen((v) => !v)}
+                    ref={vegBtnRef}
+                  >
+                    {label}
+                  </button>
+                  <VegetablesDropdown isOpen={vegOpen} anchorRef={vegBtnRef} />
+                </>
+              ) : routeMap[label] ? (
                 <Link href={routeMap[label]} className="navLink">{label}</Link>
               ) : (
                 <button type="button">{label}</button>
@@ -79,7 +124,26 @@ export default function SiteHeader() {
           ))}
         </ul>
         <button className="accountBtn" type="button">Account</button>
-      </nav>
+        </nav>
+      </div>
+
+      <style jsx>{`
+        .siteHeaderWrap { position: sticky; top: 0; z-index: 1200; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        /* Ensure header contents don't overlap page content when sticky */
+        :global(body) { --site-header-height: 112px; }
+        .logoWrap { display: inline-flex; align-items: center; text-decoration: none; }
+        .logoInner { display: flex; align-items: center; gap: 10px; }
+        .logoInner img { width: 56px; height: 56px; object-fit: contain; display: block; }
+  .brandName { display: flex; flex-direction: column; line-height: 1; color: #000; font-weight: 800; }
+  .brandName span { color: #000; font-weight: 800; font-size: 18px; }
+  .brandName span + span { margin-top: 2px; }
+
+        /* Small screens: slightly smaller logo and text */
+        @media (max-width: 520px) {
+          .logoInner img { width: 44px; height: 44px; }
+          .brandName span { font-size: 16px; }
+        }
+      `}</style>
     </>
   )
 }
