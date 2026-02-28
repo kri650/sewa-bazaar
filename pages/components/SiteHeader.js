@@ -123,7 +123,7 @@ export default function SiteHeader() {
             </li>
           ))}
         </ul>
-        <button className="accountBtn" type="button">Account</button>
+        <Link href="/account" className="accountBtn">Account</Link>
         </nav>
       </div>
 

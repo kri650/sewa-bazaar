@@ -1,28 +1,28 @@
 import useSWR from 'swr'
 import axios from 'axios'
-import SiteHeader from '../components/SiteHeader'
+import ShopLayout from '../components/ShopLayout'
 
 const fetcher = (url) => axios.get(url).then((r) => r.data)
 
 const featuredItems = [
-  { name: 'Black Beans', price: '$20.00', image: '🍌', active: false },
-  { name: 'Jungle Food', price: '$20.00', image: '🍒', active: true },
-  { name: 'Kidney Beans', price: '$18.00', image: '🥝', active: false },
-  { name: 'Carne Asada', price: '$45.00', image: '🍇', active: false, badge: 'Hot' },
+  { name: 'Crisp Cucumber', price: '$12.00', image: 'https://unsplash.com/photos/L8GbxVUQ-f0/download?force=true', active: false },
+  { name: 'Fresh Cherries', price: '$20.00', image: 'https://unsplash.com/photos/ERwyquOsnNE/download?force=true', active: true },
+  { name: 'Sweet Strawberries', price: '$16.00', image: 'https://unsplash.com/photos/I497Uc8xWXQ/download?force=true', active: false },
+  { name: 'Garden Broccoli', price: '$14.00', image: 'https://unsplash.com/photos/4fTaeH37eH0/download?force=true', active: false, badge: 'Hot' },
 ]
 
 export default function Products() {
   const { data, error } = useSWR('/api/products', fetcher)
 
   return (
-    <main className="latestArrivalsPage pageShell">
-      <SiteHeader />
-      <header className="productsHeroHeader" aria-label="Products header">
-        <div className="productsHeroOverlay">
-          <p>Farm Fresh Everyday</p>
-          <h1>Organic Fruits &amp; Vegetables</h1>
-        </div>
-      </header>
+    <ShopLayout>
+      <main className="latestArrivalsPage pageShell">
+        <header className="productsHeroHeader" aria-label="Products header">
+          <div className="productsHeroOverlay">
+            <p>Farm Fresh Everyday</p>
+            <h1>Organic Fruits &amp; Vegetables</h1>
+          </div>
+        </header>
 
       <section className="latestArrivalsSection" aria-label="Latest arrivals">
         <div className="latestHead">
@@ -38,7 +38,9 @@ export default function Products() {
           <div className="latestGrid">
             {featuredItems.map((item) => (
               <article key={item.name} className={`arrivalCard ${item.active ? 'active' : ''}`}>
-                <div className="arrivalImage" aria-hidden="true">{item.image}</div>
+                <div className="arrivalImage">
+                  <img src={item.image} alt={item.name} loading="lazy" />
+                </div>
                 <div className="arrivalInfo">
                   {item.badge ? <span className="hotBadge">{item.badge}</span> : null}
                   <h3>{item.name}</h3>
@@ -49,12 +51,14 @@ export default function Products() {
             ))}
           </div>
 
-          <aside className="offerCard" aria-label="Apple juice offer">
-            <div className="offerImage" aria-hidden="true">🍎</div>
-            <div className="offerClosed">Offer closed</div>
+          <aside className="offerCard" aria-label="Mango offer">
+            <div className="offerImage">
+              <img src="https://unsplash.com/photos/7iLlgS5o09c/download?force=true" alt="Fresh mango" loading="lazy" />
+            </div>
+            <div className="offerClosed">Offer open</div>
             <div className="offerBody">
-              <h3>Apple Juice</h3>
-              <p>$11.05</p>
+              <h3>Fresh Mango</h3>
+              <p>$9.50</p>
               <div className="stars" aria-label="Rated 5 out of 5">★★★★★</div>
             </div>
           </aside>
@@ -95,7 +99,9 @@ export default function Products() {
           <div className="latestGrid">
             {featuredItems.map((item) => (
               <article key={`after-banner-${item.name}`} className={`arrivalCard ${item.active ? 'active' : ''}`}>
-                <div className="arrivalImage" aria-hidden="true">{item.image}</div>
+                <div className="arrivalImage">
+                  <img src={item.image} alt={item.name} loading="lazy" />
+                </div>
                 <div className="arrivalInfo">
                   {item.badge ? <span className="hotBadge">{item.badge}</span> : null}
                   <h3>{item.name}</h3>
@@ -106,12 +112,14 @@ export default function Products() {
             ))}
           </div>
 
-          <aside className="offerCard" aria-label="Apple juice offer">
-            <div className="offerImage" aria-hidden="true">🍎</div>
-            <div className="offerClosed">Offer closed</div>
+          <aside className="offerCard" aria-label="Mango offer">
+            <div className="offerImage">
+              <img src="https://unsplash.com/photos/7iLlgS5o09c/download?force=true" alt="Fresh mango" loading="lazy" />
+            </div>
+            <div className="offerClosed">Offer open</div>
             <div className="offerBody">
-              <h3>Apple Juice</h3>
-              <p>$11.05</p>
+              <h3>Fresh Mango</h3>
+              <p>$9.50</p>
               <div className="stars" aria-label="Rated 5 out of 5">★★★★★</div>
             </div>
           </aside>
@@ -123,61 +131,7 @@ export default function Products() {
         {!data ? <p>Loading products...</p> : <p>Loaded {data.length} products from API.</p>}
       </section>
 
-      <footer className="siteFooter" aria-label="Footer">
-        <div className="siteFooterInner">
-          <div className="footerContent">
-            <section className="footerColumns" aria-label="Footer links and contact">
-              <article className="footerCol">
-                <h4>Contact Us</h4>
-                <p>6 Fifth Avenue 5501, Broadway, New York, NY 10012</p>
-                <ul>
-                  <li>foodano@email.com</li>
-                  <li>+1 (123) 4567 8900</li>
-                </ul>
-              </article>
-
-              <article className="footerCol">
-                <h4>Useful Links</h4>
-                <ul>
-                  <li>Shop</li>
-                  <li>Blog</li>
-                  <li>Contact Us</li>
-                  <li>FAQ Page</li>
-                  <li>Services</li>
-                </ul>
-              </article>
-
-              <article className="footerCol">
-                <h4>Follow Us Now</h4>
-                <ul>
-                  <li>Facebook</li>
-                  <li>Twitter</li>
-                  <li>Dribbble</li>
-                  <li>Pinterest</li>
-                  <li>LinkedIn</li>
-                </ul>
-              </article>
-
-              <article className="footerCol">
-                <h4>Get Direction</h4>
-                <div className="footerMap">
-                  <iframe
-                    title="Map to New York"
-                    src="https://www.openstreetmap.org/export/embed.html?bbox=-74.20%2C40.55%2C-73.70%2C40.95&amp;layer=mapnik"
-                    loading="lazy"
-                  />
-                </div>
-              </article>
-            </section>
-
-            <div className="footerBottom">
-              © {new Date().getFullYear()} Sewa Bazaar. All rights reserved.
-            </div>
-          </div>
-        </div>
-      </footer>
-
-      <style jsx>{`
+  <style jsx>{`
         .latestArrivalsPage {
           background: #fff;
           min-height: 100vh;
@@ -310,8 +264,15 @@ export default function Products() {
           display: grid;
           place-items: center;
           background: #fff !important;
-          font-size: 54px;
-          line-height: 1;
+          overflow: hidden;
+          padding: 8px;
+        }
+
+        .arrivalImage img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          border-radius: 8px;
         }
 
         .arrivalInfo {
@@ -374,7 +335,14 @@ export default function Products() {
           display: grid;
           place-items: center;
           min-height: 250px;
-          font-size: 90px;
+          overflow: hidden;
+          border-radius: 12px;
+        }
+
+        .offerImage img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
         }
 
         .offerClosed {
@@ -462,7 +430,7 @@ export default function Products() {
           }
 
           .arrivalImage {
-            font-size: 52px;
+            padding: 6px;
           }
 
           .arrivalInfo h3 {
@@ -487,6 +455,7 @@ export default function Products() {
 
         }
       `}</style>
-    </main>
+      </main>
+    </ShopLayout>
   )
 }

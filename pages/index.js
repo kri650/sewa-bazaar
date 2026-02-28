@@ -7,13 +7,13 @@ const organicRangeItems = [
   { title: 'Cruciferous', image: 'https://unsplash.com/photos/9nzQserYaN8/download?force=true' },
   { title: 'Alliums', image: 'https://unsplash.com/photos/FK1m_uWmqs4/download?force=true' },
   { title: 'Tomatoes', image: 'https://unsplash.com/photos/tYJfQ1sSMbY/download?force=true' },
-  { title: 'Cucumbers', image: 'https://source.unsplash.com/700x700/?cucumber' },
-  { title: 'Citrus Fruits', image: 'https://source.unsplash.com/700x700/?citrus,orange,lemon' },
-  { title: 'Tropical Fruits', image: 'https://source.unsplash.com/700x700/?tropical-fruits' },
-  { title: 'Berries', image: 'https://source.unsplash.com/700x700/?berries' },
-  { title: 'Stone Fruits', image: 'https://source.unsplash.com/700x700/?peach,plum' },
-  { title: 'Melons', image: 'https://source.unsplash.com/700x700/?watermelon,melon' },
-  { title: 'Exotic Picks', image: 'https://source.unsplash.com/700x700/?dragon-fruit,kiwi' },
+  { title: 'Cucumbers', image: 'https://unsplash.com/photos/L8GbxVUQ-f0/download?force=true' },
+  { title: 'Citrus Fruits', image: 'https://unsplash.com/photos/YSA1IRkGAsg/download?force=true' },
+  { title: 'Tropical Fruits', image: 'https://unsplash.com/photos/qPBKEyJbyS8/download?force=true' },
+  { title: 'Berries', image: 'https://unsplash.com/photos/LHLPeIGVUBw/download?force=true' },
+  { title: 'Stone Fruits', image: 'https://unsplash.com/photos/ERwyquOsnNE/download?force=true' },
+  { title: 'Melons', image: 'https://unsplash.com/photos/XzSlxVsSEfc/download?force=true' },
+  { title: 'Exotic Picks', image: 'https://unsplash.com/photos/ta0b_NDxi6k/download?force=true' },
 ]
 
 const newArrivals = [
@@ -63,7 +63,7 @@ const pantryPicks = [
 
 const bestSellers = [
   { name: 'Organic Apple Box', price: 'Rs. 399.00', size: '2 KG', image: 'https://unsplash.com/photos/kbi-wnPrOMI/download?force=true' },
-  { name: 'Farm Fresh Tomato', price: 'Rs. 32.00', size: '500 GM', image: 'https://source.unsplash.com/500x320/?fresh-tomato' },
+  { name: 'Farm Fresh Tomato', price: 'Rs. 32.00', size: '500 GM', image: 'https://unsplash.com/photos/AvvdZlhDowA/download?force=true' },
   { name: 'Premium Alphonso Mango', price: 'Rs. 320.00', size: '1 KG', image: 'https://unsplash.com/photos/vxtBBfMTMZ0/download?force=true' },
   { name: 'Organic Baby Spinach', price: 'Rs. 65.00', size: '250 GM', image: 'https://unsplash.com/photos/4VMqrwYfmDw/download?force=true' },
   { name: 'Fresh Pomegranate Pack', price: 'Rs. 220.00', size: '1 KG', image: 'https://unsplash.com/photos/T-MTH8Xlt98/download?force=true' },
@@ -73,19 +73,19 @@ const bestSellers = [
 ]
 
 const featureDishes = [
-  { name: 'Black Beans', price: '$20.00', image: '🍌', active: false },
-  { name: 'Jungle Food', price: '$20.00', image: '🍒', active: true },
-  { name: 'Kidney Beans', price: '$18.00', image: '🥝', active: false },
-  { name: 'Carne Asada', price: '$45.00', image: '🍇', active: false, badge: 'Hot' },
+  { name: 'Crisp Cucumber', price: '$12.00', image: 'https://unsplash.com/photos/L8GbxVUQ-f0/download?force=true', active: false },
+  { name: 'Fresh Cherries', price: '$20.00', image: 'https://unsplash.com/photos/ERwyquOsnNE/download?force=true', active: true },
+  { name: 'Sweet Strawberries', price: '$16.00', image: 'https://unsplash.com/photos/I497Uc8xWXQ/download?force=true', active: false },
+  { name: 'Garden Broccoli', price: '$14.00', image: 'https://unsplash.com/photos/4fTaeH37eH0/download?force=true', active: false, badge: 'Hot' },
 ]
 
 const topCategories = [
-  { name: 'Strawberries [250g]', image: 'https://source.unsplash.com/700x700/?strawberries,dessert' },
+  { name: 'Strawberries [250g]', image: 'https://unsplash.com/photos/I497Uc8xWXQ/download?force=true' },
   { name: 'Spinach', image: 'https://unsplash.com/photos/doeWwiscUPI/download?force=true' },
   { name: 'Kale', image: 'https://unsplash.com/photos/B-DrrO3tSbo/download?force=true' },
-  { name: 'Nectarines', image: 'https://source.unsplash.com/700x700/?nectarine,fruit' },
-  { name: 'Broccoli', image: 'https://source.unsplash.com/700x700/?broccoli,vegetable' },
-  { name: 'Avocado', image: 'https://source.unsplash.com/700x700/?avocado,healthy-food' },
+  { name: 'Nectarines', image: 'https://unsplash.com/photos/-P2YUqgo1Qs/download?force=true' },
+  { name: 'Broccoli', image: 'https://unsplash.com/photos/4fTaeH37eH0/download?force=true' },
+  { name: 'Avocado', image: 'https://unsplash.com/photos/Utnc4nbYFKo/download?force=true' },
 ]
 
 
@@ -463,7 +463,9 @@ export default function Home() {
           <div className="homeFeatureArrivalGrid">
             {featureDishes.map((item) => (
               <article key={item.name} className={`homeFeatureCard ${item.active ? 'active' : ''}`}>
-                <div className="homeFeatureImage" aria-hidden="true">{item.image}</div>
+                <div className="homeFeatureImage">
+                  <img src={item.image} alt={item.name} loading="lazy" />
+                </div>
                 <div className="homeFeatureInfo">
                   {item.badge ? <span className="homeFeatureBadge">{item.badge}</span> : null}
                   <h3>{item.name}</h3>
@@ -474,12 +476,14 @@ export default function Home() {
             ))}
           </div>
 
-          <aside className="homeFeatureOfferCard" aria-label="Apple juice offer">
-            <div className="homeFeatureOfferImage" aria-hidden="true">🍎</div>
-            <div className="homeFeatureOfferClosed">Offer closed</div>
+          <aside className="homeFeatureOfferCard" aria-label="Mango offer">
+            <div className="homeFeatureOfferImage">
+              <img src="https://unsplash.com/photos/7iLlgS5o09c/download?force=true" alt="Fresh mango" loading="lazy" />
+            </div>
+            <div className="homeFeatureOfferClosed">Offer open</div>
             <div className="homeFeatureOfferBody">
-              <h3>Apple Juice</h3>
-              <p>$11.05</p>
+              <h3>Fresh Mango</h3>
+              <p>$9.50</p>
               <div className="homeFeatureStars" aria-label="Rated 5 out of 5">★★★★★</div>
             </div>
           </aside>

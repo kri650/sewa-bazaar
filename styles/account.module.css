@@ -1,0 +1,232 @@
+.accountPage {
+  min-height: 100vh;
+  background: radial-gradient(circle at top left, rgba(123, 184, 75, 0.18), transparent 55%),
+    radial-gradient(circle at 70% 20%, rgba(255, 206, 86, 0.22), transparent 45%),
+    #f7f6f1;
+  color: #0f1a12;
+  font-family: 'Manrope', sans-serif;
+}
+
+.accountHero {
+  padding: 70px 0 90px;
+}
+
+.accountHeroInner {
+  width: min(1160px, calc(100% - 48px));
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 48px;
+  align-items: start;
+}
+
+.accountIntro {
+  padding: 12px 0;
+  animation: accountRise 0.9s ease both;
+}
+
+.accountKicker {
+  margin: 0 0 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 12px;
+  font-weight: 700;
+  color: #4c7a2f;
+}
+
+.accountIntro h1 {
+  margin: 0 0 16px;
+  font-size: clamp(36px, 4vw, 54px);
+  line-height: 1.05;
+  font-family: 'Playfair Display', serif;
+}
+
+.accountSubhead {
+  margin: 0 0 28px;
+  font-size: 17px;
+  line-height: 1.6;
+  color: #3a4a3b;
+  max-width: 520px;
+}
+
+.accountHighlights {
+  display: grid;
+  gap: 16px;
+}
+
+.accountHighlight {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 12px;
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 14px 18px;
+  box-shadow: 0 18px 30px rgba(0, 0, 0, 0.06);
+}
+
+.accountHighlight span {
+  display: inline-grid;
+  place-items: center;
+  height: 34px;
+  width: 34px;
+  border-radius: 999px;
+  background: #111;
+  color: #fff;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.accountHighlight strong {
+  display: block;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.accountHighlight p {
+  margin: 0;
+  color: #56625b;
+  font-size: 13px;
+}
+
+.accountPanel {
+  display: grid;
+  gap: 22px;
+}
+
+.accountCard {
+  background: #fff;
+  border-radius: 18px;
+  padding: 26px 26px 28px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.09);
+  border: 1px solid rgba(30, 30, 30, 0.08);
+  animation: accountFade 0.9s ease both;
+}
+
+.accountCard h2 {
+  margin: 0 0 8px;
+  font-size: 24px;
+  font-family: 'Playfair Display', serif;
+}
+
+.accountNote {
+  margin: 0 0 20px;
+  color: #6a756c;
+  font-size: 14px;
+}
+
+.accountForm {
+  display: grid;
+  gap: 14px;
+}
+
+.accountForm label {
+  display: grid;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #39453d;
+  letter-spacing: 0.03em;
+}
+
+.accountForm input {
+  border-radius: 10px;
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  padding: 11px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  background: #fffaf0;
+}
+
+.accountForm input:focus {
+  border-color: #7bb84b;
+  box-shadow: 0 0 0 3px rgba(123, 184, 75, 0.25);
+}
+
+.accountRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.accountCheckbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #5a655d;
+}
+
+.accountCheckbox input {
+  width: 14px;
+  height: 14px;
+}
+
+.accountLink {
+  background: none;
+  border: none;
+  color: #3a6d2a;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.accountPrimary,
+.accountSecondary {
+  border: none;
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.accountPrimary {
+  background: #7bb84b;
+  color: #fff;
+  box-shadow: 0 10px 20px rgba(123, 184, 75, 0.28);
+}
+
+.accountPrimary:hover {
+  transform: translateY(-1px);
+}
+
+.accountMeta {
+  margin: 18px 0 0;
+  font-size: 12px;
+  color: #5f6a62;
+}
+
+@keyframes accountRise {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes accountFade {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 980px) {
+  .accountHeroInner {
+    grid-template-columns: 1fr;
+  }
+
+  .accountSubhead {
+    max-width: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .accountHero {
+    padding: 50px 0 70px;
+  }
+
+  .accountRow {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
