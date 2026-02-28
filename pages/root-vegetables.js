@@ -29,7 +29,7 @@ export default function RootVegetablesPage() {
     <div className="root-page-layout">
       {/* 🟢 Centered Header Area */}
       <div className="header-section">
-        <h1 className="header-title">Certified Fresh Organic Produce</h1>
+        <h1 className="header-title">Root Vegetables</h1>
         <p className="header-subtitle">Fresh, nutrient-dense root and tuber varieties delivered from the farm.</p>
       </div>
 

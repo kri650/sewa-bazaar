@@ -29,7 +29,7 @@ export default function SeasonalSpecialPage() {
     <div className="category-container">
       {/* 🟢 Centered Header Section */}
       <div className="page-header">
-        <h1 className="main-title">Seasonal Special</h1>
+        <h1 className="main-title">Seasonal Specials</h1>
         <p className="sub-title">Pick the best of the season—fresh, nutrient-dense, and farm-direct.</p>
       </div>
 
