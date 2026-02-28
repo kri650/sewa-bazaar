@@ -29,7 +29,7 @@ export default function GourdsAndPumpkinPage() {
     <ShopLayout showHeader={true}>
       <div className="category-container">
       <div className="page-header">
-        <h1 className="main-title">Certified Fresh Organic Produce</h1>
+        <h1 className="main-title">Gourds And Pumpkin</h1>
         <p className="sub-title">Fresh, nutrient-rich, and farm-direct gourd and pumpkin varieties.</p>
       </div>
 

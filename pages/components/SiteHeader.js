@@ -1,35 +1,40 @@
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
 import VegetablesDropdown from '../../components/VegetablesDropdown'
+import FarmFreshDropdown from '../../components/FarmFreshDropdown'
 
 const navItems = [
   'VEGETABLES',
   'HYDROPONIC VEGGIES',
   'FRUITS',
   'SEASONAL SPECIALS',
-  'LEAFY GREENS',
+  // 'LEAFY GREENS',
   'ROOT VEGETABLES',
   'EXOTIC FRUITS',
   'FARM FRESH PICKS',
   'ORGANIC SPECIALS',
-  'VALUE COMBOS',
+  // 'VALUE COMBOS',
   'FRUIT BASKETS',
   'IMPORTED FRUITS',
   // 'MANGOES' removed per request
 ]
 
 const routeMap = {
-  'FRUITS': '/mangoes',
+  'FRUITS': '/fruits',
   'EXOTIC FRUITS': '/exotic-fruits',
   'ORGANIC SPECIALS': '/organic-specials',
   'VALUE COMBOS': '/value-combos',
   'FRUIT BASKETS': '/fruit-baskets',
   'IMPORTED FRUITS': '/imported-fruits',
   'FARM FRESH PICKS': '/farm-fresh-picks',
+  'SEASONAL SPECIALS': '/seasonal-special',
+  'ROOT VEGETABLES': '/root-vegetables',
+  'HYDROPONIC VEGGIES': '/hydroponic-vegetables',
 }
 
 export default function SiteHeader() {
   const [vegOpen, setVegOpen] = useState(false)
+  const [farmOpen, setFarmOpen] = useState(false)
   useEffect(() => {
     // Attach pointer events as a fallback to ensure hover works across browsers
     const el = document.getElementById('nav-vegetables')
@@ -48,6 +53,7 @@ export default function SiteHeader() {
   }, [])
 
   const vegBtnRef = useRef(null)
+  const farmBtnRef = useRef(null)
 
   return (
     <>
@@ -91,18 +97,18 @@ export default function SiteHeader() {
 
       <nav className="mainNav">
         <ul>
-          {navItems.map((label) => (
-            <li
-              key={label}
-              id={label === 'VEGETABLES' ? 'nav-vegetables' : undefined}
-              className={label === 'VEGETABLES' ? (vegOpen ? 'veg-open' : '') : undefined}
-              onMouseEnter={label === 'VEGETABLES' ? () => setVegOpen(true) : undefined}
-              onMouseLeave={label === 'VEGETABLES' ? () => setVegOpen(false) : undefined}
-              onFocus={label === 'VEGETABLES' ? () => setVegOpen(true) : undefined}
-              onBlur={label === 'VEGETABLES' ? () => setVegOpen(false) : undefined}
-            >
-              {label === 'VEGETABLES' ? (
-                <>
+          {navItems.map((label) => {
+            if (label === 'VEGETABLES') {
+              return (
+                <li
+                  key={label}
+                  id="nav-vegetables"
+                  className={vegOpen ? 'veg-open' : ''}
+                  onMouseEnter={() => setVegOpen(true)}
+                  onMouseLeave={() => setVegOpen(false)}
+                  onFocus={() => setVegOpen(true)}
+                  onBlur={() => setVegOpen(false)}
+                >
                   <button
                     type="button"
                     className="navLink"
@@ -114,14 +120,46 @@ export default function SiteHeader() {
                     {label}
                   </button>
                   <VegetablesDropdown isOpen={vegOpen} anchorRef={vegBtnRef} />
-                </>
-              ) : routeMap[label] ? (
-                <Link href={routeMap[label]} className="navLink">{label}</Link>
-              ) : (
-                <button type="button">{label}</button>
-              )}
-            </li>
-          ))}
+                </li>
+              )
+            } else if (label === 'FARM FRESH PICKS') {
+              return (
+                <li
+                  key={label}
+                  id="nav-farmfresh"
+                  className={farmOpen ? 'farm-open' : ''}
+                  onMouseEnter={() => setFarmOpen(true)}
+                  onMouseLeave={() => setFarmOpen(false)}
+                  onFocus={() => setFarmOpen(true)}
+                  onBlur={() => setFarmOpen(false)}
+                >
+                  <button
+                    type="button"
+                    className="navLink"
+                    aria-haspopup="true"
+                    aria-expanded={farmOpen}
+                    onClick={() => setFarmOpen((v) => !v)}
+                    ref={farmBtnRef}
+                  >
+                    {label}
+                  </button>
+                  <FarmFreshDropdown isOpen={farmOpen} anchorRef={farmBtnRef} />
+                </li>
+              )
+            } else if (routeMap[label]) {
+              return (
+                <li key={label}>
+                  <Link href={routeMap[label]} className="navLink">{label}</Link>
+                </li>
+              )
+            } else {
+              return (
+                <li key={label}>
+                  <button type="button">{label}</button>
+                </li>
+              )
+            }
+          })}
         </ul>
         <Link href="/account" className="accountBtn">Account</Link>
         </nav>
