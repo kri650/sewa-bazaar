@@ -7,7 +7,7 @@ const navItems = [
   'HYDROPONIC VEGGIES',
   'FRUITS',
   'SEASONAL SPECIALS',
-  'LEAFY GREENS',
+  // 'LEAFY GREENS',
   'ROOT VEGETABLES',
   'EXOTIC FRUITS',
   'FARM FRESH PICKS',
@@ -26,6 +26,8 @@ const routeMap = {
   'FRUIT BASKETS': '/fruit-baskets',
   'IMPORTED FRUITS': '/imported-fruits',
   'FARM FRESH PICKS': '/farm-fresh-picks',
+  'SEASONAL SPECIALS': '/seasonal-special',
+  'ROOT VEGETABLES': '/root-vegetables',
 }
 
 export default function SiteHeader() {
