@@ -81,12 +81,12 @@ const featureDishes = [
 ]
 
 const topCategories = [
-  { name: 'Strawberries [250g]', image: 'https://unsplash.com/photos/I497Uc8xWXQ/download?force=true' },
-  { name: 'Spinach', image: 'https://unsplash.com/photos/doeWwiscUPI/download?force=true' },
-  { name: 'Kale', image: 'https://unsplash.com/photos/B-DrrO3tSbo/download?force=true' },
-  { name: 'Nectarines', image: 'https://unsplash.com/photos/-P2YUqgo1Qs/download?force=true' },
-  { name: 'Broccoli', image: 'https://unsplash.com/photos/4fTaeH37eH0/download?force=true' },
-  { name: 'Avocado', image: 'https://unsplash.com/photos/Utnc4nbYFKo/download?force=true' },
+  { name: 'Strawberries [250g]', image: 'https://unsplash.com/photos/I497Uc8xWXQ/download?force=true', href: '/fruits' },
+  { name: 'Spinach', image: 'https://unsplash.com/photos/doeWwiscUPI/download?force=true', href: '/vegetables/leafy-vegetables' },
+  { name: 'Kale', image: 'https://unsplash.com/photos/B-DrrO3tSbo/download?force=true', href: '/vegetables/leafy-vegetables' },
+  { name: 'Nectarines', image: 'https://unsplash.com/photos/-P2YUqgo1Qs/download?force=true', href: '/fruits' },
+  { name: 'Broccoli', image: 'https://unsplash.com/photos/4fTaeH37eH0/download?force=true', href: '/vegetables/regular-vegetables' },
+  { name: 'Avocado', image: 'https://unsplash.com/photos/Utnc4nbYFKo/download?force=true', href: '/exotic-fruits' },
 ]
 
 
@@ -531,12 +531,14 @@ export default function Home() {
         <div className="shopCategoriesRail">
           <div className="shopCategoriesTrack">
             {[...topCategories, ...topCategories].map((item, idx) => (
-              <article className="shopCategoryCard" key={`${item.name}-${idx}`}>
-                <div className="shopCategoryImgWrap">
-                  <img src={item.image} alt={item.name} loading="lazy" />
-                </div>
-                <p>{item.name}</p>
-              </article>
+              <Link href={item.href} key={`${item.name}-${idx}`}>
+                <article className="shopCategoryCard">
+                  <div className="shopCategoryImgWrap">
+                    <img src={item.image} alt={item.name} loading="lazy" />
+                  </div>
+                  <p>{item.name}</p>
+                </article>
+              </Link>
             ))}
           </div>
         </div>
