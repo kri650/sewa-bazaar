@@ -1,0 +1,145 @@
+.createPage {
+  min-height: 100vh;
+  background: radial-gradient(circle at top right, rgba(123, 184, 75, 0.18), transparent 55%),
+    radial-gradient(circle at 20% 20%, rgba(255, 206, 86, 0.2), transparent 45%),
+    #f7f6f1;
+  color: #0f1a12;
+  font-family: 'Manrope', sans-serif;
+}
+
+.createHero {
+  padding: 70px 0 90px;
+}
+
+.createInner {
+  width: min(980px, calc(100% - 48px));
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  align-items: start;
+}
+
+.createIntro {
+  padding-top: 10px;
+  animation: createRise 0.8s ease both;
+}
+
+.kicker {
+  margin: 0 0 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 12px;
+  font-weight: 700;
+  color: #4c7a2f;
+}
+
+.createIntro h1 {
+  margin: 0 0 16px;
+  font-size: clamp(34px, 4vw, 50px);
+  line-height: 1.05;
+  font-family: 'Playfair Display', serif;
+}
+
+.subhead {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #3a4a3b;
+}
+
+.createCard {
+  background: #111;
+  color: #f8f5ee;
+  border-radius: 20px;
+  padding: 28px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+  animation: createFade 0.8s ease both;
+}
+
+.createCard h2 {
+  margin: 0 0 8px;
+  font-size: 24px;
+  font-family: 'Playfair Display', serif;
+}
+
+.note {
+  margin: 0 0 18px;
+  color: #d6d0c8;
+  font-size: 13px;
+}
+
+.form {
+  display: grid;
+  gap: 14px;
+}
+
+.form label {
+  display: grid;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #dcd6cc;
+  letter-spacing: 0.03em;
+}
+
+.form input {
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  padding: 11px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  background: #1a1a1a;
+  color: #fff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form input:focus {
+  border-color: #f5c04f;
+  box-shadow: 0 0 0 3px rgba(245, 192, 79, 0.25);
+}
+
+.primary {
+  border: none;
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  background: #f5c04f;
+  color: #1a1205;
+  transition: transform 0.2s ease;
+}
+
+.primary:hover {
+  transform: translateY(-1px);
+}
+
+.meta {
+  margin: 18px 0 0;
+  font-size: 12px;
+  color: #c9c3b9;
+}
+
+.link {
+  color: #f5c04f;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+@keyframes createRise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes createFade {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 900px) {
+  .createInner {
+    grid-template-columns: 1fr;
+  }
+}
