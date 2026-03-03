@@ -1,9 +1,9 @@
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
-import VegetablesDropdown from '../../components/VegetablesDropdown'
-import FarmFreshDropdown from '../../components/FarmFreshDropdown'
-import { useCart } from '../../contexts/CartContext'
+import VegetablesDropdown from './VegetablesDropdown'
+import FarmFreshDropdown from './FarmFreshDropdown'
+import { useCart } from '../contexts/CartContext'
 
 const navItems = [
   'VEGETABLES',

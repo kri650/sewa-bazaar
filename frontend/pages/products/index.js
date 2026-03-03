@@ -1,4 +1,4 @@
-import ShopLayout from '../components/ShopLayout'
+import ShopLayout from '../../components/ShopLayout'
 
 const featuredItems = [
   { name: 'Crisp Cucumber', price: '$12.00', image: 'https://unsplash.com/photos/L8GbxVUQ-f0/download?force=true', active: false },

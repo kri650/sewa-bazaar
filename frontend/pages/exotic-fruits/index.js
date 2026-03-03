@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { useRouter } from "next/router";
-import ShopLayout from '../components/ShopLayout';
+import ShopLayout from '../../components/ShopLayout';
 import { useCart } from '../../contexts/CartContext';
 
 const exoticProducts = [

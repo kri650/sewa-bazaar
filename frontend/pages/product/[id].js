@@ -1,7 +1,7 @@
 "use client";
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
-import ShopLayout from '../components/ShopLayout';
+import ShopLayout from '../../components/ShopLayout';
 import { useCart } from '../../contexts/CartContext';
 
 // All product data from homepage

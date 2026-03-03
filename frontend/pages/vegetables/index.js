@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import ShopLayout from '../components/ShopLayout'
+import ShopLayout from '../../components/ShopLayout'
 
 export default function VegetablesIndex() {
   const categories = [

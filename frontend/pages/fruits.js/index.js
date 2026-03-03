@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/router";
 import { useCart } from '../../contexts/CartContext';
-import ShopLayout from '../components/ShopLayout';
+import ShopLayout from '../../components/ShopLayout';
 
 const fruitProducts = [
   {

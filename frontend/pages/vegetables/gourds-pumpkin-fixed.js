@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/router";
 import { useCart } from '../../contexts/CartContext';
-import ShopLayout from '../components/ShopLayout';
+import ShopLayout from '../../components/ShopLayout';
 
 const products = [
   { id: 1, name: "Bottle Gourd", price: 40.00, unit: "1 PC" },
