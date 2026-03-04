@@ -1,0 +1,7 @@
+[
+  { "id": 1, "name": "Organic Apple", "price": 120, "size": "1 KG", "image": "https://source.unsplash.com/800x800/?apple" },
+  { "id": 2, "name": "Fresh Tomato", "price": 32, "size": "500 GM", "image": "https://source.unsplash.com/800x800/?tomato" },
+  { "id": 3, "name": "Crisp Cucumber", "price": 36, "size": "500 GM", "image": "https://source.unsplash.com/800x800/?cucumber" },
+  { "id": 4, "name": "Organic Potato", "price": 50, "size": "1 KG", "image": "https://source.unsplash.com/800x800/?potato" },
+  { "id": 5, "name": "Green Capsicum", "price": 42, "size": "500 GM", "image": "https://source.unsplash.com/800x800/?capsicum" }
+]
