@@ -57,6 +57,19 @@ export default function SearchPage() {
     }))
   }
 
+  const handleProductClick = (product) => {
+    router.push({
+      pathname: `/product/${product.id}`,
+      query: {
+        name: product.name,
+        price: product.price,
+        size: product.unit,
+        image: product.image,
+        category: product.category,
+      },
+    })
+  }
+
   return (
     <ShopLayout showHeader={true}>
       <div className="searchPage">
@@ -91,7 +104,7 @@ export default function SearchPage() {
 
               return (
                 <div key={product.id} className="productCard">
-                  <div className="productImage">
+                  <div className="productImage" onClick={() => handleProductClick(product)} style={{ cursor: 'pointer' }}>
                     <div className="imagePlaceholder">
                       <span>Fresh Organic</span>
                     </div>
@@ -99,7 +112,7 @@ export default function SearchPage() {
                   
                   <div className="productInfo">
                     <span className="productCategory">{product.category}</span>
-                    <h3 className="productName">{product.name}</h3>
+                    <h3 className="productName" onClick={() => handleProductClick(product)} style={{ cursor: 'pointer' }}>{product.name}</h3>
                     <div className="productPrice">₹{totalAmount}</div>
                     <div className="productUnit">{product.unit}</div>
 

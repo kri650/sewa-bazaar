@@ -18,7 +18,19 @@ const products = [
 export default function ExoticVegetablesPage() {
   const router = useRouter();
   const { addToCart } = useCart();
-  const handleProductClick = (id) => router.push(`/product/${id}`);
+  const handleProductClick = (product) => {
+    const productId = `exotic-veg-${product.id}`;
+    router.push({
+      pathname: `/product/${productId}`,
+      query: {
+        name: product.name,
+        price: String(product.price),
+        size: product.unit,
+        image: product.image,
+        category: 'Exotic Vegetables',
+      },
+    });
+  };
 
   const [quantities, setQuantities] = useState(
     products.reduce((acc, product) => ({ ...acc, [product.id]: 1 }), {})
@@ -50,7 +62,7 @@ export default function ExoticVegetablesPage() {
             <div className="product-item" key={p.id}>
               <div 
                 className="img-holder"
-                onClick={() => handleProductClick(p.id)}
+                onClick={() => handleProductClick(p)}
                 style={{ cursor: 'pointer' }}
               >
                 <img src={p.image} alt={p.name} />
@@ -58,7 +70,7 @@ export default function ExoticVegetablesPage() {
               
               <h4 
                 className="p-title"
-                onClick={() => handleProductClick(p.id)}
+                onClick={() => handleProductClick(p)}
                 style={{ cursor: 'pointer' }}
               >
                 {p.name}

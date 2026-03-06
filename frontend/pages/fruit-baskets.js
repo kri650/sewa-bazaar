@@ -16,6 +16,20 @@ const fruitBaskets = [
 export default function FruitBaskets() {
   const router = useRouter();
   const { addToCart } = useCart();
+
+  const handleProductClick = (product) => {
+    const productId = `fruit-basket-${product.id}`;
+    router.push({
+      pathname: `/product/${productId}`,
+      query: {
+        name: product.name,
+        price: String(product.price),
+        size: product.size || product.unit || '',
+        image: product.image,
+        category: 'Fruit Baskets',
+      },
+    });
+  };
   
   // Independent quantity state for each product
   const [quantities, setQuantities] = useState(
@@ -47,11 +61,11 @@ export default function FruitBaskets() {
 
             return (
               <div className="product-card" key={item.id}>
-                <div className="img-holder">
+                <div className="img-holder" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
                   <img src={item.image} alt={item.name} />
                 </div>
                 
-                <h4 className="p-title">{item.name}</h4>
+                <h4 className="p-title" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>{item.name}</h4>
                 <div className="p-amount">Rs. {totalAmount}</div>
                 <div className="p-unit-badge">{item.size}</div>
 

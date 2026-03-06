@@ -19,7 +19,19 @@ const products = [
 export default function SaladVegetablesPage() {
   const router = useRouter();
   const { addToCart } = useCart();
-  const handleProductClick = (id) => router.push(`/product/${id}`);
+  const handleProductClick = (product) => {
+    const productId = `salad-${product.id}`;
+    router.push({
+      pathname: `/product/${productId}`,
+      query: {
+        name: product.name,
+        price: String(product.price),
+        size: product.unit,
+        image: product.image,
+        category: 'Salad Vegetables',
+      },
+    });
+  };
 
   const [quantities, setQuantities] = useState(
     products.reduce((acc, product) => ({ ...acc, [product.id]: 1 }), {})
@@ -50,7 +62,7 @@ export default function SaladVegetablesPage() {
             <div className="product-item" key={p.id}>
               <div 
                 className="image-wrapper" 
-                onClick={() => handleProductClick(p.id)} 
+                onClick={() => handleProductClick(p)} 
                 style={{ cursor: 'pointer' }}
               >
                 <img src={p.image} alt={p.name} />
@@ -58,7 +70,7 @@ export default function SaladVegetablesPage() {
               
               <h4 
                 className="item-name" 
-                onClick={() => handleProductClick(p.id)} 
+                onClick={() => handleProductClick(p)} 
                 style={{ cursor: 'pointer' }}
               >
                 {p.name}

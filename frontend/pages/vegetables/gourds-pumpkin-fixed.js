@@ -29,8 +29,18 @@ export default function GourdsAndPumpkinPage() {
     }));
   };
 
-  const handleProductClick = (id) => {
-    router.push(`/product/${id}`);
+  const handleProductClick = (product) => {
+    const productId = `gourd-${product.id}`;
+    router.push({
+      pathname: `/product/${productId}`,
+      query: {
+        name: product.name,
+        price: String(product.price),
+        size: product.unit,
+        image: product.image,
+        category: 'Gourds And Pumpkin',
+      },
+    });
   };
 
   return (
@@ -44,11 +54,11 @@ export default function GourdsAndPumpkinPage() {
         <div className="product-grid">
           {products.map(p => (
             <div key={p.id} className="product-item">
-              <div className="image-wrapper" onClick={() => handleProductClick(p.id)} style={{ cursor: 'pointer' }}>
+              <div className="image-wrapper" onClick={() => handleProductClick(p)} style={{ cursor: 'pointer' }}>
                 <div className="placeholder-image">{p.name}</div>
               </div>
               <div className="product-info">
-                <h4 className="item-name" onClick={() => handleProductClick(p.id)} style={{ cursor: 'pointer' }}>{p.name}</h4>
+                <h4 className="item-name" onClick={() => handleProductClick(p)} style={{ cursor: 'pointer' }}>{p.name}</h4>
                 <p className="item-unit">{p.unit}</p>
                 <p className="item-price">₹ {p.price.toFixed(2)}</p>
                 <div className="quantity-controls">

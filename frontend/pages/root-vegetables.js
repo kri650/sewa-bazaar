@@ -31,6 +31,20 @@ export default function RootVegetablesPage() {
     }));
   };
 
+  const handleProductClick = (product) => {
+    const productId = `root-${product.id}`;
+    router.push({
+      pathname: `/product/${productId}`,
+      query: {
+        name: product.name,
+        price: String(product.price),
+        size: product.unit,
+        image: product.image,
+        category: 'Root Vegetables',
+      },
+    });
+  };
+
   return (
     <ShopLayout>
       <div className="root-page-layout">
@@ -48,11 +62,11 @@ export default function RootVegetablesPage() {
 
           return (
             <div className="root-card" key={p.id}>
-              <div className="image-holder">
+              <div className="image-holder" onClick={() => handleProductClick(p)} style={{ cursor: 'pointer' }}>
                 <img src={p.image} alt={p.name} />
               </div>
               
-              <h4 className="p-title">{p.name}</h4>
+              <h4 className="p-title" onClick={() => handleProductClick(p)} style={{ cursor: 'pointer' }}>{p.name}</h4>
               <div className="p-price">Rs. {calculatedPrice}</div>
               <div className="p-unit-tag">{p.unit}</div>
 

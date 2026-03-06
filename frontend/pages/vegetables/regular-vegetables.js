@@ -31,8 +31,18 @@ export default function RegularVegetablesPage() {
     }));
   };
 
-  const handleProductClick = (productId) => {
-    router.push(`/product/${productId}`);
+  const handleProductClick = (product) => {
+    const productId = `regular-${product.id}`;
+    router.push({
+      pathname: `/product/${productId}`,
+      query: {
+        name: product.name,
+        price: String(product.price),
+        size: product.unit,
+        image: product.image,
+        category: 'Regular Vegetables',
+      },
+    });
   };
 
   return (
@@ -52,11 +62,11 @@ export default function RegularVegetablesPage() {
 
           return (
             <div className="product-item" key={p.id}>
-              <div className="img-holder" onClick={() => handleProductClick(p.id)} style={{ cursor: 'pointer' }}>
+              <div className="img-holder" onClick={() => handleProductClick(p)} style={{ cursor: 'pointer' }}>
                 <img src={p.image} alt={p.name} />
               </div>
               
-              <h4 className="p-title" onClick={() => handleProductClick(p.id)} style={{ cursor: 'pointer' }}>
+              <h4 className="p-title" onClick={() => handleProductClick(p)} style={{ cursor: 'pointer' }}>
                 {p.name}
               </h4>
               <div className="p-amount">Rs. {totalAmount}</div>

@@ -68,20 +68,39 @@ export default function ProductDetailPage() {
   const [activeTab, setActiveTab] = useState('description');
 
   useEffect(() => {
-    if (id) {
-      const found = allProducts.find(p => p.id === id);
-      if (found) {
-        setProduct({
-          ...found,
-          inStock: true,
-          reviews: sampleReviews,
-          rating: 4.8,
-          totalReviews: sampleReviews.length
-        });
-      }
-      setLoading(false);
+    if (!id) return;
+
+    const idValue = Array.isArray(id) ? id[0] : id;
+    const queryData = router.query || {};
+    const found = allProducts.find((p) => p.id === idValue);
+
+    let normalized = found || null;
+    if (!normalized && queryData.name) {
+      const parsedPrice = Number(queryData.price);
+      normalized = {
+        id: idValue,
+        name: String(queryData.name),
+        price: Number.isFinite(parsedPrice) ? parsedPrice : 0,
+        size: String(queryData.size || '1 Unit'),
+        image: String(queryData.image || ''),
+        category: String(queryData.category || 'Products'),
+        description: `Fresh ${String(queryData.name)} from our collection.`,
+      };
     }
-  }, [id]);
+
+    if (normalized) {
+      setProduct({
+        ...normalized,
+        inStock: true,
+        reviews: sampleReviews,
+        rating: 4.8,
+        totalReviews: sampleReviews.length,
+      });
+    } else {
+      setProduct(null);
+    }
+    setLoading(false);
+  }, [id, router.query]);
 
   const updateQty = (delta) => {
     setQuantity(prev => Math.max(1, prev + delta));

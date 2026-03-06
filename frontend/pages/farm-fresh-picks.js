@@ -29,6 +29,20 @@ export default function FarmFreshPicks() {
     }));
   };
 
+  const handleProductClick = (product) => {
+    const productId = `farm-fresh-pick-${product.id}`;
+    router.push({
+      pathname: `/product/${productId}`,
+      query: {
+        name: product.name,
+        price: product.price,
+        size: product.size || product.unit,
+        image: product.image,
+        category: 'Farm Fresh Picks',
+      },
+    });
+  };
+
   return (
     <ShopLayout>
       <div className="farm-fresh-container">
@@ -50,11 +64,11 @@ export default function FarmFreshPicks() {
 
             return (
               <div className="product-card" key={p.id}>
-                <div className="img-holder">
+                <div className="img-holder" onClick={() => handleProductClick(p)} style={{ cursor: 'pointer' }}>
                   <img src={p.image} alt={p.name} />
                 </div>
                 
-                <h4 className="p-title">{p.name}</h4>
+                <h4 className="p-title" onClick={() => handleProductClick(p)} style={{ cursor: 'pointer' }}>{p.name}</h4>
                 <div className="p-amount">Rs. {totalAmount}</div>
                 <div className="p-unit-badge">{p.size || p.unit}</div>
 

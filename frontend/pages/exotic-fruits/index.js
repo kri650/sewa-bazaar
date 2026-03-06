@@ -29,8 +29,18 @@ export default function ExoticFruits() {
     }));
   };
 
-  const handleProductClick = (productId) => {
-    router.push(`/product/${productId}`);
+  const handleProductClick = (product) => {
+    const productId = `exotic-fruit-${product.id}`;
+    router.push({
+      pathname: `/product/${productId}`,
+      query: {
+        name: product.name,
+        price: String(product.price),
+        size: product.size,
+        image: product.image,
+        category: 'Exotic Fruits',
+      },
+    });
   };
 
   return (
@@ -51,11 +61,11 @@ export default function ExoticFruits() {
 
             return (
               <div className="product-card" key={item.id}>
-                <div className="img-holder" onClick={() => router.push(`/product/${item.id}`)} style={{ cursor: 'pointer' }}>
+                <div className="img-holder" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
                   <img src={item.image} alt={item.name} />
                 </div>
                 
-                <h4 className="p-title" onClick={() => router.push(`/product/${item.id}`)} style={{ cursor: 'pointer' }}>
+                <h4 className="p-title" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
                   {item.name}
                 </h4>
                 <div className="p-amount">Rs. {totalAmount}</div>

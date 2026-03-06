@@ -31,6 +31,20 @@ export default function SeasonalSpecialPage() {
     }));
   };
 
+  const handleProductClick = (product) => {
+    const productId = `seasonal-special-${product.id}`;
+    router.push({
+      pathname: `/product/${productId}`,
+      query: {
+        name: product.name,
+        price: product.price,
+        size: product.unit,
+        image: product.image,
+        category: 'Seasonal Specials',
+      },
+    });
+  };
+
   return (
     <ShopLayout>
       <div className="category-container">
@@ -48,11 +62,11 @@ export default function SeasonalSpecialPage() {
 
           return (
             <div className="product-card" key={p.id}>
-              <div className="image-wrapper">
+              <div className="image-wrapper" onClick={() => handleProductClick(p)} style={{ cursor: 'pointer' }}>
                 <img src={p.image} alt={p.name} />
               </div>
               
-              <h4 className="item-name">{p.name}</h4>
+              <h4 className="item-name" onClick={() => handleProductClick(p)} style={{ cursor: 'pointer' }}>{p.name}</h4>
               <div className="item-price">Rs. {totalAmount}</div>
               <div className="unit-badge">{p.unit}</div>
 

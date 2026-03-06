@@ -19,8 +19,18 @@ export default function LeafyVegetablesPage() {
   const router = useRouter();
   const { addToCart } = useCart();
   
-  const handleProductClick = (productId) => {
-    router.push(`/product/${productId}`);
+  const handleProductClick = (product) => {
+    const productId = `leafy-${product.id}`;
+    router.push({
+      pathname: `/product/${productId}`,
+      query: {
+        name: product.name,
+        price: String(product.price),
+        size: product.unit,
+        image: product.image,
+        category: 'Leafy Vegetables',
+      },
+    });
   };
 
   // Independent state for quantities
@@ -54,7 +64,7 @@ export default function LeafyVegetablesPage() {
             <div className="product-item" key={p.id}>
               <div 
                 className="img-holder"
-                onClick={() => handleProductClick(p.id)}
+                onClick={() => handleProductClick(p)}
                 style={{ cursor: 'pointer' }}
               >
                 <img src={p.image} alt={p.name} />
@@ -62,7 +72,7 @@ export default function LeafyVegetablesPage() {
               
               <h4 
                 className="p-title"
-                onClick={() => handleProductClick(p.id)}
+                onClick={() => handleProductClick(p)}
                 style={{ cursor: 'pointer' }}
               >{p.name}</h4>
               <div className="p-amount">Rs. {totalAmount}</div>

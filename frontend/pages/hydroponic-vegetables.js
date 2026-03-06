@@ -16,6 +16,8 @@ const products = [
 ];
 
 export default function HydroponicVegetables() {
+  const router = useRouter();
+
   // Har product ki quantity independently manage karne ke liye state
   const [quantities, setQuantities] = useState(
     products.reduce((acc, product) => ({ ...acc, [product.id]: 1 }), {})
@@ -29,6 +31,20 @@ export default function HydroponicVegetables() {
       ...prev,
       [id]: Math.max(1, prev[id] + delta)
     }));
+  };
+
+  const handleProductClick = (product) => {
+    const productId = `hydroponic-vegetable-${product.id}`;
+    router.push({
+      pathname: `/product/${productId}`,
+      query: {
+        name: product.name,
+        price: product.price,
+        size: product.unit,
+        image: product.image,
+        category: 'Hydroponic Vegetables',
+      },
+    });
   };
 
   return (
@@ -48,11 +64,11 @@ export default function HydroponicVegetables() {
 
           return (
             <div className="product-card" key={p.id}>
-              <div className="img-container">
+              <div className="img-container" onClick={() => handleProductClick(p)} style={{ cursor: 'pointer' }}>
                 <img src={p.image} alt={p.name} />
               </div>
               
-              <h4 className="p-title">{p.name}</h4>
+              <h4 className="p-title" onClick={() => handleProductClick(p)} style={{ cursor: 'pointer' }}>{p.name}</h4>
               <div className="p-price">Rs. {totalAmount}</div>
               <div className="p-unit">{p.unit}</div>
 

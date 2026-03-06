@@ -62,7 +62,7 @@ body, input, button, textarea, select, h1, h2, h3, h4, h5, h6 {
 .promoStripInner {
 	max-width: 1280px;
 	margin: 0 auto;
-	padding: 6px 14px;
+	padding: 6px 0;
 	text-align: center;
 	position: relative;
 	z-index: 1;
@@ -87,7 +87,7 @@ body, input, button, textarea, select, h1, h2, h3, h4, h5, h6 {
 .utilityBarInner {
 	max-width: 1280px;
 	margin: 0 auto;
-	padding: 8px 14px;
+	padding: 8px 0;
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -141,7 +141,7 @@ body, input, button, textarea, select, h1, h2, h3, h4, h5, h6 {
 	grid-template-columns: max-content 1fr max-content;
 	align-items: center;
 	gap: 18px;
-	padding: 12px 18px;
+	padding: 12px 0;
 	background: #fff;
 	border-bottom: 1px solid #e6e6e6;
 	min-height: 64px;
@@ -182,7 +182,7 @@ body, input, button, textarea, select, h1, h2, h3, h4, h5, h6 {
 	align-items:center;
 	justify-content:space-between;
 	background:var(--theme-green);
-	padding:8px 12px;
+	padding:8px 0;
 	color:#fff;
 	min-height:48px;
 }
@@ -373,14 +373,14 @@ body, input, button, textarea, select, h1, h2, h3, h4, h5, h6 {
 
 /* hero */
 .heroPanel { background:#fff; margin-top:8px; border-bottom:1px solid #e6e6e6 }
-.skyBand { padding:12px 22px; background:linear-gradient(180deg,#d8eefb,#e8f4fc) }
+.skyBand { padding:12px 0; background:linear-gradient(180deg,#d8eefb,#e8f4fc) }
 .ribbon { display:inline-block; background:#754923; color:#fff; padding:8px 12px; font-weight:700 }
 .heroAnimationSection { background:#fff; margin-top:0; border-bottom:1px solid #e6e6e6; padding-top:0 }
-.heroAnimationSection .skyBand { padding:12px 22px; background:linear-gradient(180deg,#d8eefb,#e8f4fc) }
+.heroAnimationSection .skyBand { padding:12px 0; background:linear-gradient(180deg,#d8eefb,#e8f4fc) }
 .heroAnimationSection .ribbon { display:inline-block; background:#754923; color:#fff; padding:8px 12px; font-weight:700 }
 .animationContainer { display:block; padding:0; width:100%; margin:0; background:transparent }
 .animationContainer .heroCarousel { width:100%; max-width:none; border-radius:0 }
-.heroBody { display:grid; grid-template-columns:48% 52%; gap:18px; align-items:center; padding:26px }
+.heroBody { display:grid; grid-template-columns:48% 52%; gap:18px; align-items:center; padding:26px 0 }
 .heroArt img { width:100%; max-width:500px; display:block }
 /* thin animated bar above the animation section */
 .topAnimationBar { width:100%; height:0; display:none; align-items:center; }
@@ -453,7 +453,7 @@ body, input, button, textarea, select, h1, h2, h3, h4, h5, h6 {
 	align-items:center;
 	justify-content:space-between;
 	gap:22px;
-	padding:14px 18px;
+	padding:14px 0;
 	overflow:hidden;
 }
 .trustLeft { display:flex; align-items:center; gap:10px }
@@ -567,12 +567,12 @@ main > section {
 
 .organicRangeSection {
 	background: #f6f6f6;
-	padding: 36px 12px;
+	padding: 36px 0;
 }
 .organicRangeSection .container {
 	max-width: 1100px;
 	margin: 0 auto;
-	padding: 0 12px;
+	padding: 0;
 }
 .organicRangeSection h2 {
 	margin: 0 0 18px;
@@ -622,7 +622,7 @@ main > section {
 .organicRangeCard p { margin:0; font-size:12px; color:#222; font-weight:700 }
 
 @media (max-width: 900px) {
-	.organicRangeSection { padding: 20px 8px }
+	.organicRangeSection { padding: 20px 0 }
 	.organicRangeSection h2 { font-size:20px }
 	.organicRangeGrid { gap:18px }
 	.organicRangeCard { width:110px }
@@ -635,7 +635,7 @@ main > section {
 
 .productShelfSection {
 	background:#fff;
-	padding:28px 12px 34px;
+	padding:28px 0 34px;
 }
 .productShelfSection .container {
 	max-width:1280px;
@@ -864,7 +864,7 @@ main > section {
 
 .wellnessStorySection {
 	background:#f6f7f5;
-	padding:46px 14px 54px;
+	padding:46px 0 54px;
 }
 .wellnessStoryWrap {
 	max-width:1280px;
@@ -951,7 +951,7 @@ main > section {
 }
 
 @media (max-width: 980px) {
-	.wellnessStorySection { padding:24px 12px 30px; }
+	.wellnessStorySection { padding:24px 0 30px; }
 	.wellnessStoryWrap { grid-template-columns:1fr; gap:12px; }
 	.wellnessTag { font-size:14px; }
 	.wellnessText h2 { font-size:34px; }
@@ -961,7 +961,7 @@ main > section {
 	.wellnessPrimary { width:88%; right:0; top:-4px; }
 	.wellnessSecondary { width:54%; right:90px; bottom:-82px; }
 	
-	.bestSellersSection { padding:24px 10px 30px; }
+	.bestSellersSection { padding:24px 0 30px; }
 	.bestSellersHeader h2 { font-size:34px; }
 	.bestSellersHeader p { font-size:12px; }
 	
@@ -986,7 +986,7 @@ main > section {
 
 .bestSellersSection {
 	background:#fff;
-	padding:38px 12px 50px;
+	padding:38px 0 50px;
 }
 .bestSellersSection .container {
 	max-width:1280px;
@@ -1020,7 +1020,7 @@ main > section {
 
 .dualPromoSection {
 	background:#fff;
-	padding:0 14px 20px;
+	padding:0 0 20px;
 }
 .dualPromoGrid {
 	width:100%;
@@ -1083,12 +1083,12 @@ main > section {
 
 .homeFeatureArrivalSection {
 	background:#fff;
-	padding:52px 14px 62px;
+	padding:52px 0 62px;
 	position:relative;
 }
 .homeFeatureArrivalHead,
 .homeFeatureArrivalWrap {
-	width:min(1000px, calc(100% - 12px));
+	width:min(1000px, 100%);
 	margin:0 auto;
 }
 .homeFeatureArrivalHead h2 {
@@ -1278,7 +1278,7 @@ main > section {
 	overflow:hidden;
 }
 .shopCategoriesHead {
-	width:min(1200px, calc(100% - 32px));
+	width:min(1200px, 100%);
 	margin:0 auto;
 	text-align:center;
 	padding:8px 0 0;
@@ -1322,7 +1322,7 @@ main > section {
 	filter:drop-shadow(0 8px 14px rgba(0,0,0,.12));
 }
 .shopCategoriesRail {
-	width:min(1240px, calc(100% - 22px));
+	width:min(1240px, 100%);
 	margin:34px auto 0;
 	overflow:hidden;
 	background:inherit;
@@ -1397,7 +1397,7 @@ main > section {
 	padding:32px 0 8px;
 }
 .clientSayInner {
-	width:min(1200px, calc(100% - 32px));
+	width:min(1200px, 100%);
 	margin:0 auto;
 	text-align:center;
 }
@@ -1528,7 +1528,7 @@ main > section {
 
 @media (max-width: 860px) {
 	.homeFeatureArrivalSection {
-		padding:34px 12px 38px;
+		padding:34px 0 38px;
 	}
 	.homeFeatureTopDecor {
 		display:none;
@@ -1628,7 +1628,7 @@ main > section {
 	min-height:clamp(360px, 50vw, 960px);
 }
 .siteFooterInner {
-	width:min(1400px, calc(100% - 34px));
+	width:min(1400px, 100%);
 	margin:0 auto;
 	min-height:calc(clamp(360px, 50vw, 960px) - 32px);
 	position:relative;
@@ -1839,4 +1839,66 @@ main > section {
 button.navLink:hover + .veg-dropdown,
 button.navLink:focus + .veg-dropdown {
     display: block !important;
+}
+
+/* Mobile responsiveness - remove all horizontal padding on small screens */
+@media (max-width: 768px) {
+	body {
+		padding: 0;
+		margin: 0;
+	}
+	
+	.promoStripInner,
+	.utilityBarInner,
+	.topHeader,
+	.mainNav,
+	.heroBody,
+	.trustRibbonInner,
+	.organicRangeSection,
+	.organicRangeSection .container,
+	.productShelfSection,
+	.productShelfSection .container,
+	.wellnessStorySection,
+	.wellnessStoryWrap,
+	.bestSellersSection,
+	.bestSellersSection .container,
+	.dualPromoSection,
+	.homeFeatureArrivalSection,
+	.homeFeatureArrivalHead,
+	.homeFeatureArrivalWrap,
+	.shopCategoriesHead,
+	.shopCategoriesRail,
+	.clientSayInner,
+	.siteFooterInner,
+	.footerContent {
+		padding-left: 0 !important;
+		padding-right: 0 !important;
+	}
+	
+	/* Ensure containers take full width on mobile */
+	.promoStripInner,
+	.utilityBarInner,
+	.organicRangeSection .container,
+	.productShelfSection .container,
+	.bestSellersSection .container,
+	.wellnessStoryWrap,
+	.homeFeatureArrivalHead,
+	.homeFeatureArrivalWrap,
+	.shopCategoriesHead,
+	.shopCategoriesRail,
+	.clientSayInner,
+	.siteFooterInner {
+		width: 100% !important;
+		max-width: 100% !important;
+	}
+	
+	/* Remove margins that might cause horizontal scroll */
+	* {
+		max-width: 100vw;
+	}
+	
+	html, body {
+		overflow-x: hidden;
+		width: 100%;
+	}
 }

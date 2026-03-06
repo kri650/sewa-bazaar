@@ -79,6 +79,20 @@ export default function FreshFruitsPage() {
     }));
   };
 
+  const handleProductClick = (product) => {
+    const productId = `fruit-${product.id}`;
+    router.push({
+      pathname: `/product/${productId}`,
+      query: {
+        name: product.name,
+        price: String(product.price),
+        size: product.size,
+        image: product.image,
+        category: 'Fruits',
+      },
+    });
+  };
+
   return (
     <ShopLayout>
       <div className="category-page-container">
@@ -97,11 +111,11 @@ export default function FreshFruitsPage() {
 
             return (
               <div className="product-card" key={item.id}>
-                <div className="img-holder" onClick={() => router.push(`/product/${item.id}`)} style={{ cursor: 'pointer' }}>
+                <div className="img-holder" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
                   <img src={item.image} alt={item.name} />
                 </div>
                 
-                <h4 className="p-title" onClick={() => router.push(`/product/${item.id}`)} style={{ cursor: 'pointer' }}>{item.name}</h4>
+                <h4 className="p-title" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>{item.name}</h4>
                 <div className="p-amount">Rs. {totalAmount}</div>
                 <div className="p-unit-badge">{item.size}</div>
 

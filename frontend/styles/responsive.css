@@ -1,60 +1,163 @@
 /* Global responsive overrides (media queries only) */
 
-@media (max-width: 1100px) {
+@media (max-width: 1180px) {
   .topHeader {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
     justify-items: center;
     gap: 12px;
-    padding: 12px;
+    padding: 12px 14px !important;
   }
 
   .searchWrap {
-    width: 100%;
+    width: min(760px, 100%);
   }
 
   .searchWrap input {
-    width: min(520px, 100%);
+    width: 100% !important;
   }
 
   .topActions {
     width: 100%;
-    justify-content: center;
-    padding-right: 0;
-    gap: 18px;
+    justify-content: center !important;
+    padding-right: 0 !important;
+    gap: 16px !important;
     flex-wrap: wrap;
   }
 
   .headerInfo {
-    display: none;
+    display: none !important;
   }
 
   .mainNav {
-    padding: 8px;
+    padding: 8px !important;
+  }
+}
+
+@media (max-width: 1320px) {
+  /* Remove homepage side gutters for laptop/tablet widths like 1280px */
+  .promoStripInner,
+  .utilityBarInner,
+  .topHeader,
+  .mainNav,
+  .trustRibbonInner,
+  .organicRangeSection .container,
+  .productShelfSection .container,
+  .wellnessStoryWrap,
+  .bestSellersSection .container,
+  .homeFeatureArrivalHead,
+  .homeFeatureArrivalWrap,
+  .shopCategoriesHead,
+  .shopCategoriesRail,
+  .clientSayInner,
+  .siteFooterInner {
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  /* Prevent basket/wellness overflow on tablet widths like 912px */
+  .wellnessStorySection {
+    padding: 28px 12px 28px !important;
   }
 
-  .mainNav ul {
-    padding: 0 4px;
+  .wellnessStoryWrap {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+    align-items: start !important;
+  }
+
+  .wellnessVisualArea {
+    height: auto !important;
+    min-height: 0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .wellnessPrimary,
+  .wellnessSecondary {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    transform: none !important;
+    opacity: 1 !important;
+    animation: none !important;
+  }
+
+  .wellnessPrimary {
+    width: min(360px, 82vw) !important;
+  }
+
+  .wellnessSecondary {
+    display: none !important;
   }
 }
 
 @media (max-width: 900px) {
   .mainNav {
-    flex-direction: column;
-    align-items: stretch;
     gap: 8px;
   }
 
   .mainNav ul {
     width: 100%;
+    padding-inline: 4px !important;
   }
 
   .accountBtn {
+    margin-left: 0 !important;
     align-self: flex-end;
+  }
+
+  /* Basket / wellness must also be controlled on tablet widths */
+  .wellnessStorySection {
+    padding: 26px 12px 26px !important;
+  }
+
+  .wellnessStoryWrap {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+    align-items: start !important;
+  }
+
+  .wellnessVisualArea {
+    height: auto !important;
+    min-height: 0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .wellnessPrimary,
+  .wellnessSecondary {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    transform: none !important;
+    opacity: 1 !important;
+    animation: none !important;
+  }
+
+  .wellnessPrimary {
+    width: min(360px, 78vw) !important;
+  }
+
+  .wellnessSecondary {
+    display: none !important;
   }
 }
 
 @media (max-width: 768px) {
-  :root,
+  html,
   body,
   #__next {
     width: 100%;
@@ -68,11 +171,42 @@
 
   .pageShell,
   .container,
+  .category-container,
+  .category-page-container,
   .leafy-page-container,
-  .category-container {
-    padding-left: 16px !important;
-    padding-right: 16px !important;
+  .product-detail-page,
+  .cartPageWrap {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
     max-width: 100% !important;
+  }
+
+  /* Homepage should be edge-to-edge on mobile */
+  .pageShell,
+  .promoStripInner,
+  .utilityBarInner,
+  .heroAnimationSection,
+  .trustRibbonSection,
+  .trustRibbonInner,
+  .organicRangeSection,
+  .organicRangeSection .container,
+  .productShelfSection,
+  .productShelfSection .container,
+  .wellnessStorySection,
+  .wellnessStoryWrap,
+  .bestSellersSection,
+  .bestSellersSection .container,
+  .dualPromoSection,
+  .homeFeatureArrivalSection,
+  .homeFeatureArrivalHead,
+  .homeFeatureArrivalWrap,
+  .shopCategoriesSection,
+  .shopCategoriesHead,
+  .shopCategoriesRail,
+  .clientSaySection,
+  .clientSayInner {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
   }
 
   .siteHeaderWrap,
@@ -80,7 +214,6 @@
   .mainNav,
   .heroSection,
   .homeFeatureArrivalSection,
-  .latestArrivalsSection,
   .shopCategoriesSection,
   .trustRibbonSection,
   .productShelfSection,
@@ -90,61 +223,279 @@
   .createPage {
     width: 100%;
     max-width: 100%;
-    margin-left: 0;
-    margin-right: 0;
-  }
-
-  .productsHeroHeader,
-  .heroSection,
-  .homeFeatureArrivalSection {
-    padding-left: 0;
-    padding-right: 0;
-  }
-
-  .searchWrap {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .searchBtn {
-    width: 100%;
+    margin-inline: 0;
   }
 
   .topHeader {
-    padding: 10px 12px;
+    grid-template-columns: max-content 1fr !important;
+    grid-template-areas:
+      "logo search"
+      "actions actions";
+    justify-items: stretch;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px !important;
+  }
+
+  .logoWrap {
+    grid-area: logo;
+    justify-self: start;
+    margin-left: 0 !important;
+  }
+
+  .searchWrap {
+    grid-area: search;
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+    gap: 8px;
+  }
+
+  .searchWrap input {
+    min-width: 0;
+  }
+
+  .searchBtn {
+    width: auto;
+    white-space: nowrap;
+    padding: 8px 12px;
+  }
+
+  .topActions {
+    grid-area: actions;
+    width: 100%;
+    justify-content: center !important;
   }
 
   .mainNav ul {
-    padding-left: 8px;
-    padding-right: 8px;
+    padding-inline: 6px !important;
+  }
+
+  /* Latest arrivals / product shelves */
+  .productShelfSection {
+    padding: 20px 12px 28px !important;
+  }
+
+  .productShelfSection .container {
+    padding: 0 !important;
+  }
+
+  .shelfHeader {
+    margin-bottom: 12px !important;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .shelfHeader h3 {
+    font-size: 20px !important;
+  }
+
+  .productSliderWrap {
+    padding: 0 !important;
+  }
+
+  .productGrid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+    overflow: visible !important;
+    padding-bottom: 0 !important;
+  }
+
+  .productCard {
+    min-width: 0 !important;
+    padding: 10px !important;
+  }
+
+  .productImageWrap {
+    height: 110px !important;
+  }
+
+  .productName {
+    min-height: 32px !important;
+    font-size: 12px !important;
+  }
+
+  .qtyRow {
+    grid-template-columns: 32px 1fr 32px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .pickNowBtn {
+    height: 36px !important;
+    margin-top: 8px !important;
+    font-size: 12px !important;
+  }
+
+  .productNav {
+    display: none !important;
+  }
+
+  /* Basket / wellness block */
+  .wellnessStorySection {
+    padding: 24px 12px 24px !important;
+  }
+
+  .wellnessStoryWrap {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+    align-items: start !important;
+  }
+
+  .wellnessVisualArea {
+    height: auto !important;
+    min-height: 0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .wellnessPrimary,
+  .wellnessSecondary {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    transform: none !important;
+    opacity: 1 !important;
+    animation: none !important;
+  }
+
+  .wellnessPrimary {
+    width: min(310px, 88vw) !important;
+  }
+
+  .wellnessSecondary {
+    display: none !important;
+  }
+
+  /* Shared category/listing page blocks used by newly added pages */
+  .category-container,
+  .category-page-container {
+    padding-top: 28px !important;
+    padding-bottom: 28px !important;
+  }
+
+  .page-header {
+    margin-bottom: 26px !important;
+  }
+
+  .main-heading {
+    font-size: 28px !important;
+    line-height: 1.15;
+  }
+
+  .sub-heading {
+    font-size: 14px !important;
+    max-width: 100% !important;
+    line-height: 1.5;
+  }
+
+  .product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 14px !important;
+  }
+
+  .product-card {
+    padding: 14px !important;
+    border-radius: 10px !important;
+  }
+
+  .img-holder {
+    height: 150px !important;
+    margin-bottom: 10px !important;
+  }
+
+  .p-title {
+    font-size: 14px !important;
+    height: auto !important;
+    min-height: 34px;
+    margin: 4px 0 !important;
+  }
+
+  .p-amount {
+    font-size: 16px !important;
+  }
+
+  .p-unit-badge {
+    margin-bottom: 12px !important;
+  }
+
+  .qty-picker {
+    width: 100%;
+    max-width: 170px;
+    justify-content: center;
+  }
+
+  .qty-picker button {
+    padding-inline: 12px !important;
+    font-size: 16px !important;
+  }
+
+  .add-to-cart-btn {
+    width: 100%;
+    padding: 10px 12px !important;
+    font-size: 13px !important;
+  }
+
+  /* Footer containment */
+  .siteFooter {
+    background-size: cover !important;
+    background-position: center bottom !important;
+    min-height: auto !important;
+    padding: 18px 12px 12px !important;
+  }
+
+  .siteFooterInner {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: auto !important;
+  }
+
+  .footerContent {
+    position: static !important;
+    padding: 8px 0 0 !important;
+    gap: 12px !important;
+  }
+
+  .footerColumns {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+    margin-top: 0 !important;
+  }
+
+  .footerCol,
+  .footerMap {
+    max-width: 100% !important;
+  }
+
+  .footerMap {
+    height: 150px !important;
+  }
+
+  .footerBottom {
+    padding-top: 8px !important;
   }
 }
 
 @media (max-width: 600px) {
   .mainNav li button,
-  .mainNav li a {
-    font-size: 12px;
-    padding: 6px 8px;
-  }
-
-  .mainNav li:nth-child(10),
-  .mainNav li:nth-child(11),
-  .mainNav li:nth-child(12) {
-    display: none;
-  }
-
+  .mainNav li a,
   .accountBtn {
-    font-size: 12px;
-    padding: 6px 10px;
+    font-size: 12px !important;
+    padding: 6px 8px !important;
   }
 
   .logoWrap img {
-    width: 48px;
-    height: 48px;
+    width: 48px !important;
+    height: 48px !important;
   }
 
   .brandName span {
-    font-size: 14px;
+    font-size: 14px !important;
   }
 
   .cartBtn {
@@ -165,6 +516,28 @@
   .mainNav {
     width: 100%;
   }
+
+  .productGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .product-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .product-card {
+    padding: 12px !important;
+  }
+
+  .img-holder {
+    height: 140px !important;
+  }
+
+  .qty-picker {
+    max-width: 160px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -174,5 +547,24 @@
 
   .searchBtn {
     padding: 8px 12px;
+  }
+
+  .topHeader {
+    gap: 10px;
+  }
+
+  .main-heading {
+    font-size: 24px !important;
+  }
+
+  .sub-heading {
+    font-size: 13px !important;
+  }
+
+  .mainNav li button,
+  .mainNav li a,
+  .accountBtn {
+    font-size: 11px !important;
+    padding: 5px 7px !important;
   }
 }

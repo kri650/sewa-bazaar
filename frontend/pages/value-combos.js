@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import { useRouter } from "next/router";
 import ShopLayout from '../components/ShopLayout';
 import { addToCart } from '../components/cartStore';
 
@@ -13,6 +14,8 @@ const valueCombos = [
 ];
 
 export default function ValueCombos() {
+  const router = useRouter();
+
   // Independent quantity state for each combo pack
   const [quantities, setQuantities] = useState(
     valueCombos.reduce((acc, product) => ({ ...acc, [product.id]: 1 }), {})
@@ -23,6 +26,20 @@ export default function ValueCombos() {
       ...prev,
       [id]: Math.max(1, prev[id] + delta)
     }));
+  };
+
+  const handleProductClick = (product) => {
+    const productId = `value-combo-${product.id}`;
+    router.push({
+      pathname: `/product/${productId}`,
+      query: {
+        name: product.name,
+        price: product.price,
+        size: product.size,
+        image: product.image,
+        category: 'Value Combos',
+      },
+    });
   };
 
   return (
@@ -43,11 +60,11 @@ export default function ValueCombos() {
 
             return (
               <div className="product-card" key={item.id}>
-                <div className="img-holder">
+                <div className="img-holder" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
                   <img src={item.image} alt={item.name} />
                 </div>
                 
-                <h4 className="p-title">{item.name}</h4>
+                <h4 className="p-title" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>{item.name}</h4>
                 <div className="p-amount">Rs. {totalAmount}</div>
                 <div className="p-unit-badge">{item.size}</div>
 

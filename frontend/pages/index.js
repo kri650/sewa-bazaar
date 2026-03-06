@@ -152,8 +152,23 @@ export default function Home() {
     }))
   }
 
-  const handleProductClick = (productId) => {
-    router.push(`/product/${productId}`)
+  const handleProductClick = (productOrId) => {
+    if (!productOrId || typeof productOrId === 'string') {
+      router.push(`/product/${productOrId}`)
+      return
+    }
+
+    const normalizedPrice = parseRupees(productOrId.price)
+    router.push({
+      pathname: `/product/${productOrId.id}`,
+      query: {
+        name: productOrId.name || '',
+        price: String(normalizedPrice),
+        size: productOrId.size || productOrId.unit || '',
+        image: productOrId.image || '',
+        category: productOrId.category || 'Products',
+      },
+    })
   }
 
   useEffect(() => {
@@ -312,10 +327,10 @@ export default function Home() {
               <div className="productGrid">
                 {getSectionItems(newArrivals, arrivalPage, 6).map(({ item, index }) => (
                 <article className="productCard" key={item.name}>
-                  <div className="productImageWrap" onClick={() => router.push(`/product/${item.id}`)} style={{ cursor: 'pointer' }}>
+                  <div className="productImageWrap" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
                     <img className={item.name && item.name.includes('Potato') ? 'forceCover' : ''} src={item.image} alt={item.name} loading="lazy" />
                   </div>
-                  <p className="productName" onClick={() => router.push(`/product/${item.id}`)} style={{ cursor: 'pointer' }}>{item.name}</p>
+                  <p className="productName" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>{item.name}</p>
                   <p className="productPrice">{formatRupees(parseRupees(item.price) * arrivalQty[index])}</p>
                   <span className="productSize">{item.size}</span>
                   <div className="qtyRow">
@@ -349,10 +364,10 @@ export default function Home() {
               <div className="productGrid">
                 {getSectionItems(vegetableDeals, vegPage, 6).map(({ item, index }) => (
                 <article className="productCard" key={item.name}>
-                  <div className="productImageWrap" onClick={() => router.push(`/product/${item.id}`)} style={{ cursor: 'pointer' }}>
+                  <div className="productImageWrap" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
                     <img src={item.image} alt={item.name} loading="lazy" />
                   </div>
-                  <p className="productName" onClick={() => router.push(`/product/${item.id}`)} style={{ cursor: 'pointer' }}>{item.name}</p>
+                  <p className="productName" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>{item.name}</p>
                   <p className="productPrice">{formatRupees(parseRupees(item.price) * vegQty[index])}</p>
                   <span className="productSize">{item.size}</span>
                   <div className="qtyRow">
@@ -386,10 +401,10 @@ export default function Home() {
               <div className="productGrid">
                 {getSectionItems(pantryPicks, pantryPage, 6).map(({ item, index }) => (
                 <article className="productCard" key={item.name}>
-                  <div className="productImageWrap" onClick={() => router.push(`/product/${item.id}`)} style={{ cursor: 'pointer' }}>
+                  <div className="productImageWrap" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
                     <img src={item.image} alt={item.name} loading="lazy" />
                   </div>
-                  <p className="productName" onClick={() => router.push(`/product/${item.id}`)} style={{ cursor: 'pointer' }}>{item.name}</p>
+                  <p className="productName" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>{item.name}</p>
                   <p className="productPrice">{formatRupees(parseRupees(item.price) * pantryQty[index])}</p>
                   <span className="productSize">{item.size}</span>
                   <div className="qtyRow">
@@ -454,10 +469,10 @@ export default function Home() {
             <div className="productGrid bestSellersGrid">
               {getSectionItems(bestSellers, bestPage, 4).map(({ item, index }) => (
               <article className="productCard" key={item.name}>
-                <div className="productImageWrap" onClick={() => router.push(`/product/${item.id}`)} style={{ cursor: 'pointer' }}>
+                <div className="productImageWrap" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
                   <img src={item.image} alt={item.name} loading="lazy" />
                 </div>
-                <p className="productName" onClick={() => router.push(`/product/${item.id}`)} style={{ cursor: 'pointer' }}>{item.name}</p>
+                <p className="productName" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>{item.name}</p>
                 <p className="productPrice">{formatRupees(parseRupees(item.price) * bestQty[index])}</p>
                 <span className="productSize">{item.size}</span>
                 <div className="qtyRow">

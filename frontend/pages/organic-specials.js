@@ -27,6 +27,20 @@ export default function OrganicSpecials() {
     }));
   };
 
+  const handleProductClick = (product) => {
+    const productId = `organic-special-${product.id}`;
+    router.push({
+      pathname: `/product/${productId}`,
+      query: {
+        name: product.name,
+        price: product.price,
+        size: product.size,
+        image: product.image,
+        category: 'Organic Specials',
+      },
+    });
+  };
+
   return (
     <ShopLayout>
       <div className="category-page-container">
@@ -45,11 +59,11 @@ export default function OrganicSpecials() {
 
             return (
               <div className="product-card" key={item.id}>
-                <div className="img-holder">
+                <div className="img-holder" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
                   <img src={item.image} alt={item.description || item.name} />
                 </div>
                 
-                <h4 className="p-title">{item.name}</h4>
+                <h4 className="p-title" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>{item.name}</h4>
                 <p className="p-description">{item.description}</p>
                 <div className="p-amount">Rs. {totalAmount}</div>
                 <div className="p-unit-badge">{item.size}</div>
