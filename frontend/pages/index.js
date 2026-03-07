@@ -206,17 +206,6 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="utilityBar">
-        <div className="utilityBarInner">
-          <div className="utilityLeft" />
-          <div className="utilityRight">
-            <a href="#" className="utilityItem">Track Your Order</a>
-            <a href="#" className="utilityItem">Contact Us</a>
-            <a href="#" className="utilityItem">FAQ&apos;s</a>
-          </div>
-        </div>
-      </div>
-
       <SiteHeader />
 
       <section className="heroAnimationSection">

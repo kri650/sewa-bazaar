@@ -3,6 +3,7 @@ import '../styles/responsive.css'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import { CartProvider } from '../contexts/CartContext'
+import { LocationProvider } from '../contexts/LocationContext'
 
 const SITE_NAME = 'Sewa Bazaar'
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://sewabazaar.in'
@@ -168,6 +169,12 @@ const ROUTE_META = {
     keywords:
       'create grocery account, register sewa bazaar',
   },
+  '/admin': {
+    title: 'Admin Dashboard - Sewa Bazaar',
+    description: 'Manage products, users, orders, and delivery operations for Sewa Bazaar.',
+    keywords:
+      'sewa bazaar admin, ecommerce admin dashboard, manage products orders users',
+  },
   '/product/[id]': {
     title: 'Product Details - Sewa Bazaar',
     description: 'View product details, pricing, and quantity options before checkout.',
@@ -216,6 +223,7 @@ export default function App({ Component, pageProps }) {
 
   return (
     <CartProvider>
+      <LocationProvider>
       <Head>
         <title>{seo.title}</title>
         <meta name="description" content={seo.description} />
@@ -243,6 +251,7 @@ export default function App({ Component, pageProps }) {
         />
       </Head>
       <Component {...pageProps} />
+      </LocationProvider>
     </CartProvider>
   )
 }

@@ -4,7 +4,7 @@ import { useRouter } from "next/router";
 import { useCart } from '../../contexts/CartContext';
 import ShopLayout from '../../components/ShopLayout';
 
-const fruitProducts = [
+export const fruitProducts = [
   {
     id: 1,
     name: 'Premium Alphonso Mango',

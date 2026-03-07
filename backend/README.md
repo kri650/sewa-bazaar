@@ -5,6 +5,7 @@ Express backend for Organic e-commerce.
 Scripts:
 - npm run dev: start dev server with nodemon on port 4000
 - npm run start: start production server
+- npm run db:check: test MySQL connectivity from env values
 
 ## DB Integration (MySQL)
 
@@ -19,9 +20,9 @@ Scripts:
 
 ## New API Endpoints
 
-- `POST /users/register`
-- `POST /users/login`
-- `GET /users/me` (Bearer token)
+- `POST /api/auth/signup`
+- `POST /api/auth/login`
+- `GET /api/auth/me` (Bearer token)
 - `GET /products`
 - `GET /products/:id`
 - `GET /wishlist` (Bearer token)
@@ -32,3 +33,10 @@ Scripts:
 - `PATCH /cart/items/:productId` (Bearer token)
 - `DELETE /cart/items/:productId` (Bearer token)
 - `POST /orders` (supports guest or logged-in user)
+
+### Auth request payloads
+
+- `POST /api/auth/signup`
+  - required fields: `name`, `email`, `phone`, `password`, `latitude`, `longitude`
+- `POST /api/auth/login`
+  - required fields: `email`, `password`
