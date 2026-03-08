@@ -4,7 +4,7 @@ import { useRouter } from "next/router";
 import { useCart } from '../contexts/CartContext';
 import ShopLayout from '../components/ShopLayout';
 
-const farmFreshProducts = [
+export const farmFreshProducts = [
   { id: 1, name: 'Farm Fresh Veg Combo', price: 199.00, size: '2 KG', image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=600', description: 'Seasonal vegetable combo with the freshest picks.' },
   { id: 2, name: 'Organic Greens Box', price: 149.00, size: '500 GM', image: 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=600', description: 'Baby spinach, lettuce and herbs for salads.' },
   { id: 3, name: 'Local Radish Pack', price: 69.00, size: '500 GM', image: 'https://images.unsplash.com/photo-1584306670957-99e1e9c3f64f?w=600', description: 'Crisp radishes with a peppery bite.' },

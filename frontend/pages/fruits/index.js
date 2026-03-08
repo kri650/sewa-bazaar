@@ -2,7 +2,7 @@
 import ShopLayout from '../../components/ShopLayout';
 import CategoryPage from '../../components/CategoryPage';
 
-const fruitProducts = [
+export const fruitProducts = [
   {
     id: 1,
     name: 'Premium Alphonso Mango',
