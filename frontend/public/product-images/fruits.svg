@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600" role="img" aria-label="Fruits">
+  <rect width="800" height="600" rx="32" fill="#ffffff"/>
+  <g fill="none" stroke="#14774e" stroke-width="18" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="360" cy="300" r="120"/>
+    <path d="M360 180c0-40 20-70 60-90"/>
+    <path d="M420 90c20 10 40 30 50 55"/>
+    <path d="M470 145c-25 10-55 10-80-5"/>
+  </g>
+  <circle cx="505" cy="340" r="78" fill="none" stroke="#e0c952" stroke-width="18"/>
+  <text x="400" y="540" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="44" fill="#14774e" font-weight="700">Fruits</text>
+</svg>

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600" role="img" aria-label="Dairy">
+  <rect width="800" height="600" rx="32" fill="#ffffff"/>
+  <g fill="none" stroke="#14774e" stroke-width="18" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M320 170h160l30 60v240c0 30-24 54-54 54H344c-30 0-54-24-54-54V230l30-60z"/>
+    <path d="M350 170v60h100v-60"/>
+    <path d="M350 300h140"/>
+    <path d="M350 360h140"/>
+  </g>
+  <path d="M560 420c0 60-45 105-105 105s-105-45-105-105c0-50 35-85 70-135 35 50 70 85 70 135z" fill="none" stroke="#e0c952" stroke-width="18"/>

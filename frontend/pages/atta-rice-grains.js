@@ -1,0 +1,43 @@
+import ShopLayout from '../components/ShopLayout'
+import CategoryPage from '../components/CategoryPage'
+import { getProductsByCategory } from '../data/products'
+
+const products = getProductsByCategory('Atta, Rice & Grains')
+
+/* Original products for reference:
+const products_backup = [
+  { id: 'basmati-rice', name: 'Basmati Rice', price: 320.00, size: '5 KG', image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400&q=80' },
+  { id: 'brown-rice', name: 'Brown Rice', price: 180.00, size: '2 KG', image: 'https://images.unsplash.com/photo-1536304993881-ff6e9eefa2a6?w=400&q=80' },
+  { id: 'wheat-flour', name: 'Whole Wheat Flour', price: 280.00, size: '5 KG', image: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400&q=80' },
+  { id: 'multigrain-atta', name: 'Multigrain Atta', price: 340.00, size: '5 KG', image: 'https://images.unsplash.com/photo-1608797178974-15b35a64ede9?w=400&q=80' },
+  { id: 'maida', name: 'Maida (All Purpose Flour)', price: 60.00, size: '1 KG', image: 'https://images.unsplash.com/photo-1628618482937-c1633bef0007?w=400&q=80' },
+  { id: 'suji', name: 'Suji (Semolina)', price: 70.00, size: '1 KG', image: 'https://images.unsplash.com/photo-1607969021985-ab1e7a8aa5c4?w=400&q=80' },
+  { id: 'poha', name: 'Thick Poha', price: 85.00, size: '1 KG', image: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=400&q=80' },
+  { id: 'oats', name: 'Rolled Oats', price: 160.00, size: '1 KG', image: 'https://images.unsplash.com/photo-1574635162616-e3b0c2e8b9d9?w=400&q=80' },
+  { id: 'barley', name: 'Pearl Barley', price: 120.00, size: '1 KG', image: 'https://images.unsplash.com/photo-1608797178974-15b35a64ede9?w=400&q=80' },
+  { id: 'ragi-flour', name: 'Ragi Flour (Finger Millet)', price: 90.00, size: '1 KG', image: 'https://images.unsplash.com/photo-1607672632458-9eb56696346b?w=400&q=80' },
+  { id: 'corn-flour', name: 'Corn Flour', price: 75.00, size: '500 GM', image: 'https://images.unsplash.com/photo-1628618482937-c1633bef0007?w=400&q=80' },
+  { id: 'millet', name: 'Foxtail Millet', price: 95.00, size: '1 KG', image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400&q=80' },
+  { id: 'jowar-flour', name: 'Jowar Flour (Sorghum)', price: 80.00, size: '1 KG', image: 'https://images.unsplash.com/photo-1607672632458-9eb56696346b?w=400&q=80' },
+  { id: 'bajra-flour', name: 'Bajra Flour (Pearl Millet)', price: 85.00, size: '1 KG', image: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400&q=80' },
+  { id: 'broken-wheat', name: 'Broken Wheat (Dalia)', price: 70.00, size: '1 KG', image: 'https://images.unsplash.com/photo-1608797178974-15b35a64ede9?w=400&q=80' },
+  { id: 'quinoa', name: 'Organic Quinoa', price: 380.00, size: '500 GM', image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400&q=80' },
+  { id: 'semolina', name: 'Fine Semolina', price: 65.00, size: '1 KG', image: 'https://images.unsplash.com/photo-1607969021985-ab1e7a8aa5c4?w=400&q=80' },
+  { id: 'rice-flour', name: 'Rice Flour', price: 55.00, size: '1 KG', image: 'https://images.unsplash.com/photo-1536304993881-ff6e9eefa2a6?w=400&q=80' },
+  { id: 'gram-flour', name: 'Gram Flour (Besan)', price: 90.00, size: '1 KG', image: 'https://images.unsplash.com/photo-1607672632458-9eb56696346b?w=400&q=80' },
+  { id: 'dalia', name: 'Premium Dalia', price: 75.00, size: '1 KG', image: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=400&q=80' },
+]
+*/
+
+export default function AttaRiceGrains() {
+  return (
+    <ShopLayout>
+      <CategoryPage
+        title="Atta, Rice & Grains"
+        description="Premium quality atta, rice, and grains for your kitchen"
+        category="Atta, Rice & Grains"
+        products={products}
+      />
+    </ShopLayout>
+  )
+}

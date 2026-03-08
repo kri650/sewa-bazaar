@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600" role="img" aria-label="Value Combos">
+  <rect width="800" height="600" rx="32" fill="#ffffff"/>
+  <g fill="none" stroke="#14774e" stroke-width="18" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="250" y="190" width="300" height="260" rx="24"/>
+    <path d="M290 190v-20c0-35 28-64 64-64h92c36 0 64 29 64 64v20"/>
+    <path d="M250 300h300"/>
+    <path d="M340 350h120"/>
+  </g>
+  <path d="M560 420l40 40" fill="none" stroke="#e0c952" stroke-width="18" stroke-linecap="round"/>
+  <path d="M600 420l-40 40" fill="none" stroke="#e0c952" stroke-width="18" stroke-linecap="round"/>
+  <text x="400" y="540" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="44" fill="#14774e" font-weight="700">Combos</text>
+</svg>

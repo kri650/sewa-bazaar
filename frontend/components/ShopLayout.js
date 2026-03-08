@@ -1,10 +1,10 @@
 import SiteHeader from './SiteHeader'
 
 // showHeader: when true render the SiteHeader, otherwise omit it.
-export default function ShopLayout({ children }) {
+export default function ShopLayout({ children, showHeader = true, showTopHeader = true }) {
   return (
     <div className="shopLayout">
-      <SiteHeader />
+      {showHeader && <SiteHeader showTopHeader={showTopHeader} />}
       <div className="shopOutlet">{children}</div>
 
         <footer className="siteFooter" role="contentinfo">
