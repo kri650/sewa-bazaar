@@ -1,4 +1,5 @@
 import ShopLayout from '../../components/ShopLayout'
+import { DEFAULT_PRODUCT_IMAGE, resolveProductImage } from '../../lib/productImage'
 
 const featuredItems = [
   { name: 'Crisp Cucumber', price: '$12.00', image: 'https://unsplash.com/photos/L8GbxVUQ-f0/download?force=true', active: false },
@@ -33,7 +34,12 @@ export default function Products() {
             {featuredItems.map((item) => (
               <article key={item.name} className={`arrivalCard ${item.active ? 'active' : ''}`}>
                 <div className="arrivalImage">
-                  <img src={item.image} alt={item.name} loading="lazy" />
+                  <img
+                    src={resolveProductImage({ name: item.name, category: 'Latest Arrivals', image: item.image })}
+                    alt={item.name}
+                    loading="lazy"
+                    onError={(e) => { e.currentTarget.src = DEFAULT_PRODUCT_IMAGE }}
+                  />
                 </div>
                 <div className="arrivalInfo">
                   {item.badge ? <span className="hotBadge">{item.badge}</span> : null}
@@ -47,7 +53,12 @@ export default function Products() {
 
           <aside className="offerCard" aria-label="Mango offer">
             <div className="offerImage">
-              <img src="https://unsplash.com/photos/7iLlgS5o09c/download?force=true" alt="Fresh mango" loading="lazy" />
+              <img
+                src={resolveProductImage({ name: 'Fresh Mango', category: 'Fruits', image: 'https://unsplash.com/photos/7iLlgS5o09c/download?force=true' })}
+                alt="Fresh mango"
+                loading="lazy"
+                onError={(e) => { e.currentTarget.src = DEFAULT_PRODUCT_IMAGE }}
+              />
             </div>
             <div className="offerClosed">Offer open</div>
             <div className="offerBody">
@@ -94,7 +105,12 @@ export default function Products() {
             {featuredItems.map((item) => (
               <article key={`after-banner-${item.name}`} className={`arrivalCard ${item.active ? 'active' : ''}`}>
                 <div className="arrivalImage">
-                  <img src={item.image} alt={item.name} loading="lazy" />
+                  <img
+                    src={resolveProductImage({ name: item.name, category: 'Latest Arrivals', image: item.image })}
+                    alt={item.name}
+                    loading="lazy"
+                    onError={(e) => { e.currentTarget.src = DEFAULT_PRODUCT_IMAGE }}
+                  />
                 </div>
                 <div className="arrivalInfo">
                   {item.badge ? <span className="hotBadge">{item.badge}</span> : null}
@@ -108,7 +124,12 @@ export default function Products() {
 
           <aside className="offerCard" aria-label="Mango offer">
             <div className="offerImage">
-              <img src="https://unsplash.com/photos/7iLlgS5o09c/download?force=true" alt="Fresh mango" loading="lazy" />
+              <img
+                src={resolveProductImage({ name: 'Fresh Mango', category: 'Fruits', image: 'https://unsplash.com/photos/7iLlgS5o09c/download?force=true' })}
+                alt="Fresh mango"
+                loading="lazy"
+                onError={(e) => { e.currentTarget.src = DEFAULT_PRODUCT_IMAGE }}
+              />
             </div>
             <div className="offerClosed">Offer open</div>
             <div className="offerBody">
