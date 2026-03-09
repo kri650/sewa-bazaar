@@ -101,13 +101,12 @@ export default function ExoticVegetablesPage() {
       </div>
 
       <style jsx global>{`
-        body { margin: 0; font-family: 'Inter', 'Segoe UI', Tahoma, sans-serif; background: #ffffff; }
+        body { margin: 0; font-family: 'Inter', sans-serif; background: #fff; }
 
         .leafy-page-container { 
           max-width: 1400px; 
           margin: 0 auto; 
-          padding: 60px 5%;
-          background-color: #ffffff;
+          padding: 60px 5%; 
         }
 
         .page-header { 
@@ -115,17 +114,14 @@ export default function ExoticVegetablesPage() {
           margin-bottom: 50px; 
         }
         .main-heading { 
-          font-size: 42px; 
-          font-weight: 700; 
-          color: #1a1a1a; 
-          margin-bottom: 12px;
-          letter-spacing: -0.5px;
+          font-size: 38px; 
+          font-weight: 800; 
+          color: #333; 
+          margin-bottom: 8px; 
         }
         .sub-heading {
-          font-size: 16px;
-          color: #666666;
-          font-weight: 400;
-          line-height: 1.6;
+          font-size: 14px;
+          color: #777;
         }
 
         .product-grid { 
@@ -135,21 +131,19 @@ export default function ExoticVegetablesPage() {
         }
 
         .product-item { 
-          border: 1px solid #e8e8e8; 
-          border-radius: 8px; 
-          padding: 24px; 
+          border: 1px solid #f2f2f2; 
+          border-radius: 12px; 
+          padding: 20px; 
           text-align: center; 
           display: flex; 
           flex-direction: column; 
           transition: all 0.3s ease;
-          background: #ffffff;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+          background: #fff;
         }
 
         .product-item:hover { 
-          transform: translateY(-4px); 
-          box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-          border-color: #d0d0d0;
+          transform: translateY(-5px); 
+          box-shadow: 0 12px 30px rgba(0,0,0,0.07); 
         }
 
         .img-holder { 
@@ -161,85 +155,76 @@ export default function ExoticVegetablesPage() {
         }
         .img-holder img { max-height: 100%; max-width: 100%; object-fit: contain; }
 
-        .p-title { 
-          font-size: 16px; 
-          font-weight: 600; 
-          color: #2c3e50; 
-          height: 44px; 
-          margin: 8px 0; 
-          line-height: 1.4;
-        }
-        .p-amount { 
-          font-size: 20px; 
-          font-weight: 700; 
-          color: #1a1a1a; 
-          margin-bottom: 8px; 
-        }
+        .p-title { font-size: 15px; font-weight: 600; color: #444; height: 40px; margin: 5px 0; }
+        .p-amount { font-size: 18px; font-weight: 700; color: #111; margin-bottom: 6px; }
 
         .p-unit-badge { 
-          font-size: 12px; 
-          background: #f5f5f5;
-          color: #666666;
-          padding: 6px 14px;
+          font-size: 11px; 
+          background: #f8f8f8;
+          color: #888;
+          padding: 4px 12px;
           border-radius: 4px;
           display: inline-block;
           align-self: center;
           margin-bottom: 20px;
-          font-weight: 500;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
+          font-weight: bold;
         }
 
         .qty-picker { 
           display: flex; 
-          border: 1px solid #d0d0d0; 
+          border: 1px solid #e0e0e0; 
           border-radius: 6px; 
           overflow: hidden; 
           align-self: center; 
-          margin-bottom: 16px; 
+          margin-bottom: 15px;
+          height: 38px;
+          width: 120px;
         }
         .qty-picker button { 
-          background: #f8f8f8; 
+          background: #fff; 
           border: none; 
-          padding: 10px 16px; 
+          padding: 0;
           cursor: pointer; 
           font-size: 18px;
-          transition: background 0.2s;
-          color: #333333;
-        }
-        .qty-picker button:hover {
-          background: #e8e8e8;
+          font-weight: 600;
+          width: 38px;
+          height: 38px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
         }
         .qty-picker input { 
-          width: 50px; 
+          width: 44px; 
+          height: 38px;
           text-align: center; 
-          border-left: 1px solid #d0d0d0; 
-          border-right: 1px solid #d0d0d0; 
+          border-left: 1px solid #e0e0e0; 
+          border-right: 1px solid #e0e0e0; 
           border-top: none; 
           border-bottom: none; 
           font-weight: 600;
-          color: #1a1a1a;
           font-size: 16px;
+          flex-shrink: 0;
         }
 
         .add-to-cart-btn { 
-          background: #28a745; 
-          color: #ffffff; 
+          background: #6aa333; 
+          color: #fff; 
           border: none; 
-          padding: 12px 24px; 
-          border-radius: 6px; 
-          font-weight: 600; 
+          padding: 12px 16px; 
+          border-radius: 8px; 
+          font-weight: 700; 
           font-size: 14px; 
           cursor: pointer; 
           margin-top: auto; 
-          transition: all 0.2s ease;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
+          transition: background 0.2s;
+          height: 44px;
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
-        .add-to-cart-btn:hover { 
-          background: #218838;
-          box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
-        }
+        .add-to-cart-btn:hover { background: #5a8d2a; }
       `}</style>
       </div>
     </ShopLayout>
