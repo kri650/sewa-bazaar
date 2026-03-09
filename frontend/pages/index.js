@@ -859,16 +859,13 @@ export default function Home() {
 
       <section className="dualPromoSection" aria-label="Promotional banners">
         <div className="dualPromoGrid">
-          <article className="promoCard promoLeft">
+          <article className="promoCard promoLeft" style={{backgroundImage: 'url(/hero/Orange%20and%20White%20Illustrated%20Meal%20Prep%20YouTube%20Thumbnail%20%282%29.jpg)', backgroundSize: 'cover', backgroundPosition: 'center'}}>
             <div className="promoContent">
               <h3>Fresh Groceries for Everyday Needs</h3>
               <p>Shop fruits, pantry staples, dairy, snacks and more</p>
-              <Link href="/products">
+              <Link href="#categories">
                 <button type="button">Shop Now</button>
               </Link>
-            </div>
-            <div className="promoImage">
-              <img src="/hero/grocery-1.png" alt="Fresh groceries banner" />
             </div>
           </article>
 
@@ -877,7 +874,7 @@ export default function Home() {
             <div className="promoOverlay">
               <h3>Daily Grocery Deals</h3>
               <p>Fresh products at great prices</p>
-              <Link href="/products">
+              <Link href="#categories">
                 <button type="button">Shop Now</button>
               </Link>
             </div>
@@ -931,7 +928,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="shopCategoriesSection" aria-label="Shop by categories">
+      <section className="shopCategoriesSection" aria-label="Shop by categories" id="categories">
         <div className="shopCategoriesHead">
           <h2>Shop By Categories</h2>
           <p>Top Categories</p>
