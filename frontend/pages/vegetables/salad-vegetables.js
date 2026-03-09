@@ -19,6 +19,12 @@ const products = [
 export default function SaladVegetablesPage() {
   const router = useRouter();
   const { addToCart } = useCart();
+  
+  // 1. Initialize state properly
+  const [quantities, setQuantities] = useState(
+    products.reduce((acc, product) => ({ ...acc, [product.id]: 1 }), {})
+  );
+
   const handleProductClick = (product) => {
     const productId = `salad-${product.id}`;
     router.push({
@@ -33,10 +39,6 @@ export default function SaladVegetablesPage() {
     });
   };
 
-  const [quantities, setQuantities] = useState(
-    products.reduce((acc, product) => ({ ...acc, [product.id]: 1 }), {})
-  );
-
   const updateQty = (id, delta) => {
     setQuantities(prev => ({
       ...prev,
@@ -46,264 +48,75 @@ export default function SaladVegetablesPage() {
 
   return (
     <ShopLayout showHeader={true}>
-      <div className="salad-container">
-      {/* 🟢 Centered Heading based on screenshot */}
-      <div className="page-header">
-        <h1 className="main-heading">Salad Vegetables</h1>
-        <p className="sub-heading">Fresh, juicy, and farm-direct vegetables for your salads.</p>
-      </div>
+      <div className="leafy-page-container">
+        <div className="page-header">
+          <h1 className="main-heading">Salad Vegetables</h1>
+          <p className="sub-heading">Fresh, juicy, and farm-direct vegetables for your salads.</p>
+        </div>
 
-      <div className="product-grid">
-        {products.map((p) => {
-          const currentQty = quantities[p.id];
-          const totalAmount = (p.price * currentQty).toFixed(2);
+        <div className="product-grid">
+          {products.map((p) => {
+            const currentQty = quantities[p.id] || 1;
+            const totalAmount = (p.price * currentQty).toFixed(2);
 
-          return (
-            <div className="product-item" key={p.id}>
-              <div 
-                className="image-wrapper" 
-                onClick={() => handleProductClick(p)} 
-                style={{ cursor: 'pointer' }}
-              >
-                <img src={p.image} alt={p.name} />
-              </div>
-              
-              <h4 
-                className="item-name" 
-                onClick={() => handleProductClick(p)} 
-                style={{ cursor: 'pointer' }}
-              >
-                {p.name}
-              </h4>
-
-              <div className="item-controls">
-                <div className="qty-section">
-                  <label>Qty:</label>
-                  <div className="qty-controls">
-                    <button 
-                      className="qty-btn" 
-                      onClick={(e) => { e.stopPropagation(); updateQty(p.id, -1); }}
-                    >
-                      -
-                    </button>
-                    <input type="text" readOnly value={currentQty} className="qty-input" />
-                    <button 
-                      className="qty-btn" 
-                      onClick={(e) => { e.stopPropagation(); updateQty(p.id, 1); }}
-                    >
-                      +
-                    </button>
-                  </div>
+            return (
+              <div className="product-item" key={p.id}>
+                <div 
+                  className="img-holder"
+                  onClick={() => handleProductClick(p)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <img src={p.image} alt={p.name} />
                 </div>
-                <div className="price-section">
-                  <div className="unit-info">{p.unit}</div>
-                  <div className="unit-price">₹ {p.price.toFixed(2)}</div>
-                </div>
-              </div>
+                
+                <h4 
+                  className="p-title"
+                  onClick={() => handleProductClick(p)}
+                  style={{ cursor: 'pointer' }}
+                >{p.name}</h4>
+                
+                <div className="p-amount">Rs. {totalAmount}</div>
+                <div className="p-unit-badge">{p.unit}</div>
 
-              <div className="cart-row">
-                <div className="total-amount">₹ {totalAmount}</div>
+                <div className="qty-picker">
+                  <button onClick={(e) => { e.stopPropagation(); updateQty(p.id, -1); }}>-</button>
+                  <input type="text" value={currentQty} readOnly />
+                  <button onClick={(e) => { e.stopPropagation(); updateQty(p.id, 1); }}>+</button>
+                </div>
+                
                 <button
-                  className="cart-btn"
+                  className="add-to-cart-btn"
                   onClick={(e) => {
                     e.stopPropagation();
-                    addToCart({
-                      id: p.id,
-                      name: p.name,
-                      price: p.price,
-                      unit: p.unit,
-                      image: p.image,
-                      quantity: currentQty,
-                    });
-                    alert(`Added ${currentQty} x ${p.name} to cart!`);
+                    addToCart(p, currentQty);
                   }}
                 >
                   Add to Cart
                 </button>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
 
-      <style jsx global>{`
-        body { margin: 0; font-family: 'Inter', sans-serif; background: #fff; }
-        
-        .salad-container { 
-          max-width: 1400px; 
-          margin: 0 auto; 
-          padding: 60px 5%; 
-        }
-
-        .page-header { 
-          text-align: center; 
-          margin-bottom: 50px; 
-        }
-
-        .main-heading { 
-          font-size: 38px; 
-          font-weight: 800; 
-          color: #333; 
-          margin-bottom: 8px; 
-        }
-
-        .sub-heading { 
-          font-size: 14px; 
-          color: #777; 
-        }
-
-        .product-grid { 
-          display: grid; 
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
-          gap: 25px; 
-        }
-
-        .product-item { 
-          background: white;
-          border: 1px solid #e0e0e0;
-          border-radius: 12px;
-          padding: 15px;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-          transition: all 0.3s ease;
-        }
-
-        .product-item:hover {
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-          transform: translateY(-3px);
-        }
-
-        .image-wrapper {
-          width: 100%;
-          height: 220px;
-          overflow: hidden;
-          border-radius: 8px;
-          margin-bottom: 12px;
-          background-color: #f9f9f9;
-        }
-
-        .image-wrapper img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        .item-name {
-          font-size: 1.1rem;
-          font-weight: 600;
-          color: #333;
-          margin: 10px 0;
-          min-height: 50px;
-        }
-
-        .item-controls {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin: 15px 0;
-          gap: 10px;
-        }
-
-        .qty-section label {
-          font-size: 0.9rem;
-          color: #666;
-          margin-right: 8px;
-        }
-
-        .qty-controls {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .qty-btn {
-          width: 30px;
-          height: 30px;
-          border: 1px solid #4caf50;
-          background-color: white;
-          color: #4caf50;
-          font-size: 18px;
-          cursor: pointer;
-          border-radius: 5px;
-          transition: all 0.2s;
-        }
-
-        .qty-btn:hover {
-          background-color: #4caf50;
-          color: white;
-        }
-
-        .qty-input {
-          width: 45px;
-          text-align: center;
-          border: 1px solid #ddd;
-          border-radius: 5px;
-          padding: 6px;
-          font-size: 14px;
-        }
-
-        .price-section {
-          text-align: right;
-        }
-
-        .unit-info {
-          font-size: 0.85rem;
-          color: #888;
-          margin-bottom: 3px;
-        }
-
-        .unit-price {
-          font-size: 1.1rem;
-          font-weight: 700;
-          color: #2d5f2e;
-        }
-
-        .cart-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-top: 15px;
-          padding-top: 15px;
-          border-top: 1px solid #eee;
-        }
-
-        .total-amount {
-          font-size: 1.3rem;
-          font-weight: bold;
-          color: #2d5f2e;
-        }
-
-        .cart-btn {
-          background-color: #4caf50;
-          color: white;
-          border: none;
-          padding: 10px 20px;
-          border-radius: 6px;
-          cursor: pointer;
-          font-size: 0.95rem;
-          font-weight: 600;
-          transition: all 0.3s ease;
-        }
-
-        .cart-btn:hover {
-          background-color: #45a049;
-          transform: scale(1.05);
-        }
-
-        @media (max-width: 768px) {
-          .product-grid {
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 15px;
-          }
-
-          .main-heading {
-            font-size: 2rem;
-          }
-
-          .sub-heading {
-            font-size: 1rem;
-          }
-        }
-      `}</style>
+        <style jsx global>{`
+          .leafy-page-container { max-width: 1400px; margin: 0 auto; padding: 60px 5%; }
+          .page-header { text-align: center; margin-bottom: 50px; }
+          .main-heading { font-size: 38px; font-weight: 800; color: #333; margin-bottom: 8px; }
+          .sub-heading { font-size: 14px; color: #777; }
+          .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 30px; }
+          .product-item { border: 1px solid #f2f2f2; border-radius: 12px; padding: 20px; text-align: center; display: flex; flex-direction: column; transition: all 0.3s ease; background: #fff; }
+          .product-item:hover { transform: translateY(-5px); box-shadow: 0 12px 30px rgba(0,0,0,0.07); }
+          .img-holder { height: 180px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; }
+          .img-holder img { max-height: 100%; max-width: 100%; object-fit: contain; }
+          .p-title { font-size: 15px; font-weight: 600; color: #444; height: 40px; margin: 5px 0; }
+          .p-amount { font-size: 18px; font-weight: 700; color: #111; margin-bottom: 6px; }
+          .p-unit-badge { font-size: 11px; background: #f8f8f8; color: #888; padding: 4px 12px; border-radius: 4px; display: inline-block; align-self: center; margin-bottom: 20px; font-weight: bold; }
+          .qty-picker { display: flex; border: 1px solid #e0e0e0; border-radius: 6px; overflow: hidden; align-self: center; margin-bottom: 15px; }
+          .qty-picker button { background: #fff; border: none; padding: 8px 15px; cursor: pointer; font-size: 18px; }
+          .qty-picker input { width: 40px; text-align: center; border-left: 1px solid #e0e0e0; border-right: 1px solid #e0e0e0; border-top: none; border-bottom: none; font-weight: 600; }
+          .add-to-cart-btn { background: #6aa333; color: #fff; border: none; padding: 12px; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer; margin-top: auto; transition: background 0.2s; }
+          .add-to-cart-btn:hover { background: #5a8d2a; }
+        `}</style>
       </div>
     </ShopLayout>
   );

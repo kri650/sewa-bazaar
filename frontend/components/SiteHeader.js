@@ -37,9 +37,11 @@ const routeMap = {
 export default function SiteHeader({ showTopHeader = true }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [isFvOpen, setIsFvOpen] = useState(false)
+  const [isVegSubOpen, setIsVegSubOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const fvTriggerRef = useRef(null)
   const closeTimerRef = useRef(null)
+  const vegSubCloseTimerRef = useRef(null)
   const [fvPos, setFvPos] = useState({ left: 0, top: 0, minWidth: 180 })
   const router = useRouter()
   const { getCartCount } = useCart()
@@ -49,6 +51,7 @@ export default function SiteHeader({ showTopHeader = true }) {
     setMounted(true)
     return () => {
       if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current)
+      if (vegSubCloseTimerRef.current) window.clearTimeout(vegSubCloseTimerRef.current)
     }
   }, [])
 
@@ -90,7 +93,23 @@ export default function SiteHeader({ showTopHeader = true }) {
 
   const scheduleCloseFv = () => {
     if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current)
-    closeTimerRef.current = window.setTimeout(() => setIsFvOpen(false), 140)
+    closeTimerRef.current = window.setTimeout(() => {
+      setIsFvOpen(false)
+      setIsVegSubOpen(false)
+    }, 140)
+  }
+
+  const openVegSub = () => {
+    if (vegSubCloseTimerRef.current) {
+      window.clearTimeout(vegSubCloseTimerRef.current)
+      vegSubCloseTimerRef.current = null
+    }
+    setIsVegSubOpen(true)
+  }
+
+  const scheduleCloseVegSub = () => {
+    if (vegSubCloseTimerRef.current) window.clearTimeout(vegSubCloseTimerRef.current)
+    vegSubCloseTimerRef.current = window.setTimeout(() => setIsVegSubOpen(false), 140)
   }
 
   const handleSearch = (e) => {
@@ -228,9 +247,40 @@ export default function SiteHeader({ showTopHeader = true }) {
             <Link href="/fruits" className="dropdownItem" role="menuitem" onClick={() => setIsFvOpen(false)}>
               Fruits
             </Link>
-            <Link href="/vegetables" className="dropdownItem" role="menuitem" onClick={() => setIsFvOpen(false)}>
-              Vegetables
-            </Link>
+            <div 
+              className="dropdownItem dropdownItemWithSub"
+              onMouseEnter={openVegSub}
+              onMouseLeave={scheduleCloseVegSub}
+            >
+              <span>Vegetables</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginLeft: 'auto' }}>
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+              <div 
+                className="subMenu"
+                style={{
+                  display: isVegSubOpen ? 'flex' : 'none',
+                }}
+                onMouseEnter={openVegSub}
+                onMouseLeave={scheduleCloseVegSub}
+              >
+                <Link href="/vegetables/leafy-vegetables" className="subMenuItem" role="menuitem" onClick={() => { setIsFvOpen(false); setIsVegSubOpen(false); }}>
+                  Leafy Vegetables
+                </Link>
+                <Link href="/vegetables/regular-vegetables" className="subMenuItem" role="menuitem" onClick={() => { setIsFvOpen(false); setIsVegSubOpen(false); }}>
+                  Regular Vegetables
+                </Link>
+                <Link href="/vegetables/exotic-vegetables" className="subMenuItem" role="menuitem" onClick={() => { setIsFvOpen(false); setIsVegSubOpen(false); }}>
+                  Exotic Vegetables
+                </Link>
+                <Link href="/vegetables/gourds-and-pumpkin" className="subMenuItem" role="menuitem" onClick={() => { setIsFvOpen(false); setIsVegSubOpen(false); }}>
+                  Gourds & Pumpkin
+                </Link>
+                <Link href="/vegetables/salad-vegetables" className="subMenuItem" role="menuitem" onClick={() => { setIsFvOpen(false); setIsVegSubOpen(false); }}>
+                  Salad Vegetables
+                </Link>
+              </div>
+            </div>
           </div>,
           document.body
         )}
