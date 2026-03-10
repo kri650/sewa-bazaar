@@ -1,50 +1,58 @@
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
-import VegetablesDropdown from './VegetablesDropdown'
-import FarmFreshDropdown from './FarmFreshDropdown'
+import { createPortal } from 'react-dom'
 import { useCart } from '../contexts/CartContext'
 import { useLocation } from '../contexts/LocationContext'
+import { useDelivery } from '../contexts/DeliveryContext'
 import LocationPicker from './LocationPicker'
 import allProducts from '../data/products'
 
 const navItems = [
-  'VEGETABLES',
-  'HYDROPONIC VEGGIES',
+  'BEST DEAL',
   'FRUITS',
-  'SEASONAL SPECIALS',
-  // 'LEAFY GREENS',
-  'ROOT VEGETABLES',
-  'EXOTIC FRUITS',
-  'FARM FRESH PICKS',
-  'ORGANIC SPECIALS',
-  // 'VALUE COMBOS',
-  'FRUIT BASKETS',
-  'IMPORTED FRUITS',
-  // 'MANGOES' removed per request
+  'VEGETABLES',
+  'ATTA, RICE & GRAINS',
+  'OIL & GHEE',
+  'MILK & DAIRY',
+  'CHIPS & BISCUITS',
+  'BATH & BODY',
+  'SOAP & DETERGENTS',
+  'BABY CARE',
+  'POOJA ESSENTIALS',
+  'BEVERAGES',
+  'DRY FRUITS & NUTS',
 ]
 
 const routeMap = {
+  'BEST DEAL': '/best-deal',
   'FRUITS': '/fruits',
-  'EXOTIC FRUITS': '/exotic-fruits',
-  'ORGANIC SPECIALS': '/organic-specials',
-  'VALUE COMBOS': '/value-combos',
-  'FRUIT BASKETS': '/fruit-baskets',
-  'IMPORTED FRUITS': '/imported-fruits',
-  'FARM FRESH PICKS': '/farm-fresh-picks',
-  'SEASONAL SPECIALS': '/seasonal-special',
-  'ROOT VEGETABLES': '/root-vegetables',
-  'HYDROPONIC VEGGIES': '/hydroponic-vegetables',
+  'ATTA, RICE & GRAINS': '/atta-rice-grains',
+  'OIL & GHEE': '/oil-ghee',
+  'MILK & DAIRY': '/milk-dairy',
+  'CHIPS & BISCUITS': '/chips-biscuits',
+  'BATH & BODY': '/bath-body',
+  'SOAP & DETERGENTS': '/soap-detergents',
+  'BABY CARE': '/baby-care',
+  'POOJA ESSENTIALS': '/pooja-essentials',
+  'BEVERAGES': '/beverages',
+  'DRY FRUITS & NUTS': '/dry-fruits-nuts',
 }
 
-export default function SiteHeader() {
-  const [vegOpen, setVegOpen] = useState(false)
-  const [farmOpen, setFarmOpen] = useState(false)
+export default function SiteHeader({ showTopHeader = true }) {
   const [searchQuery, setSearchQuery] = useState('')
+  const [isFvOpen, setIsFvOpen] = useState(false)
+  const [isVegSubOpen, setIsVegSubOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  const fvTriggerRef = useRef(null)
+  const closeTimerRef = useRef(null)
+  const vegSubCloseTimerRef = useRef(null)
+  const [fvPos, setFvPos] = useState({ left: 0, top: 0, minWidth: 180 })
   const router = useRouter()
   const { getCartCount } = useCart()
   const cartCount = getCartCount()
   const { location } = useLocation()
+  const { distanceKm, deliveryType, estimatedTime, detectUserLocation, userLocation, permissionDenied } = useDelivery()
   const [locationOpen, setLocationOpen] = useState(false)
   const [suggestions, setSuggestions] = useState([])
   const [activeSuggestion, setActiveSuggestion] = useState(-1)
@@ -119,24 +127,68 @@ export default function SiteHeader() {
     setActiveSuggestion(-1)
   }, [searchQuery])
   useEffect(() => {
-    // Attach pointer events as a fallback to ensure hover works across browsers
-    const el = document.getElementById('nav-vegetables')
-    if (!el) return undefined
-
-    const onEnter = () => el.classList.add('veg-open')
-    const onLeave = () => el.classList.remove('veg-open')
-
-    el.addEventListener('pointerenter', onEnter)
-    el.addEventListener('pointerleave', onLeave)
-
+    setMounted(true)
     return () => {
-      el.removeEventListener('pointerenter', onEnter)
-      el.removeEventListener('pointerleave', onLeave)
+      if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current)
+      if (vegSubCloseTimerRef.current) window.clearTimeout(vegSubCloseTimerRef.current)
     }
   }, [])
 
-  const vegBtnRef = useRef(null)
-  const farmBtnRef = useRef(null)
+  useEffect(() => {
+    if (!mounted) return
+    if (!isFvOpen) return
+    if (!fvTriggerRef.current) return
+
+    const updatePos = () => {
+      const rect = fvTriggerRef.current.getBoundingClientRect()
+      const minWidth = Math.max(180, rect.width)
+      let left = rect.left + window.scrollX
+      const top = rect.bottom + window.scrollY
+
+      const maxLeft = window.scrollX + window.innerWidth - minWidth - 8
+      if (left > maxLeft) left = Math.max(window.scrollX + 8, maxLeft)
+      if (left < window.scrollX + 8) left = window.scrollX + 8
+
+      setFvPos({ left, top, minWidth })
+    }
+
+    updatePos()
+    window.addEventListener('resize', updatePos)
+    window.addEventListener('scroll', updatePos, true)
+    return () => {
+      window.removeEventListener('resize', updatePos)
+      window.removeEventListener('scroll', updatePos, true)
+    }
+  }, [isFvOpen, mounted])
+
+  const openFv = () => {
+    if (closeTimerRef.current) {
+      window.clearTimeout(closeTimerRef.current)
+      closeTimerRef.current = null
+    }
+    setIsFvOpen(true)
+  }
+
+  const scheduleCloseFv = () => {
+    if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current)
+    closeTimerRef.current = window.setTimeout(() => {
+      setIsFvOpen(false)
+      setIsVegSubOpen(false)
+    }, 140)
+  }
+
+  const openVegSub = () => {
+    if (vegSubCloseTimerRef.current) {
+      window.clearTimeout(vegSubCloseTimerRef.current)
+      vegSubCloseTimerRef.current = null
+    }
+    setIsVegSubOpen(true)
+  }
+
+  const scheduleCloseVegSub = () => {
+    if (vegSubCloseTimerRef.current) window.clearTimeout(vegSubCloseTimerRef.current)
+    vegSubCloseTimerRef.current = window.setTimeout(() => setIsVegSubOpen(false), 140)
+  }
 
   // Auto-open picker on first visit (no saved location)
   useEffect(() => {
@@ -151,27 +203,32 @@ export default function SiteHeader() {
 
   return (
     <>
-      <div className="stickyShell">
-      {/* ── Black top banner ── */}
-      <div className="infoBanner">
-        <div className="bannerLeft">
-          <a href="#" className="bannerLink">Track Your Order</a>
-          <span className="sep">|</span>
-          <a href="#" className="bannerLink">Contact Us</a>
-          <span className="sep">|</span>
-          <a href="#" className="bannerLink">FAQ&apos;s</a>
+  <div className="headerShell">
+      {/* ── Black top banner (only on home page) ── */}
+      {(showTopHeader && (router.pathname === '/' || router.asPath === '/')) && (
+        <div className="infoBanner">
+          <div className="bannerLeft">
+            {deliveryType && estimatedTime && (
+              <span style={{ marginLeft: 12, fontWeight: 700, fontSize: 13 }}>
+                {deliveryType === 'fast'
+                  ? `Fast delivery in ${estimatedTime}`
+                  : `Delivery ${estimatedTime}`}
+                {distanceKm ? ` • ${distanceKm} km away` : ''}
+              </span>
+            )}
+          </div>
+          <button
+            className="bannerLocation"
+            onClick={() => setLocationOpen(true)}
+            aria-label="Set delivery location"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+            {location
+              ? (location.label.length > 22 ? location.label.slice(0, 22) + '…' : location.label)
+              : 'Add your address'}
+          </button>
         </div>
-        <button
-          className="bannerLocation"
-          onClick={() => setLocationOpen(true)}
-          aria-label="Set delivery location"
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
-          {location
-            ? (location.label.length > 22 ? location.label.slice(0, 22) + '…' : location.label)
-            : 'Add your address'}
-        </button>
-      </div>
+      )}
 
       <div className="siteHeaderWrap">
         <header className="topHeader">
@@ -234,55 +291,25 @@ export default function SiteHeader() {
       <nav className="mainNav">
         <ul>
           {navItems.map((label) => {
+            // Make the top-level Vegetables label open the Vegetables dropdown
             if (label === 'VEGETABLES') {
               return (
-                <li
-                  key={label}
-                  id="nav-vegetables"
-                  className={vegOpen ? 'veg-open' : ''}
-                  onMouseEnter={() => setVegOpen(true)}
-                  onMouseLeave={() => setVegOpen(false)}
-                  onFocus={() => setVegOpen(true)}
-                  onBlur={() => setVegOpen(false)}
-                >
-                  <Link href="/vegetables/leafy-vegetables" passHref legacyBehavior>
-                    <a
-                      className="navLink"
-                      aria-haspopup="true"
-                      aria-expanded={vegOpen}
-                      ref={vegBtnRef}
-                    >
-                      {label}
-                    </a>
-                  </Link>
-                  <VegetablesDropdown isOpen={vegOpen} anchorRef={vegBtnRef} />
+                <li key={label}>
+                  <button
+                    type="button"
+                    ref={fvTriggerRef}
+                    className="navLink navTrigger"
+                    onMouseEnter={openFv}
+                    onMouseLeave={scheduleCloseFv}
+                    onClick={() => setIsFvOpen((v) => !v)}
+                  >
+                    {label}
+                  </button>
                 </li>
               )
-            } else if (label === 'FARM FRESH PICKS') {
-              return (
-                <li
-                  key={label}
-                  id="nav-farmfresh"
-                  className={farmOpen ? 'farm-open' : ''}
-                  onMouseEnter={() => setFarmOpen(true)}
-                  onMouseLeave={() => setFarmOpen(false)}
-                  onFocus={() => setFarmOpen(true)}
-                  onBlur={() => setFarmOpen(false)}
-                >
-                  <Link href="/farm-fresh-picks/fruits" passHref legacyBehavior>
-                    <a
-                      className="navLink"
-                      aria-haspopup="true"
-                      aria-expanded={farmOpen}
-                      ref={farmBtnRef}
-                    >
-                      {label}
-                    </a>
-                  </Link>
-                  <FarmFreshDropdown isOpen={farmOpen} anchorRef={farmBtnRef} />
-                </li>
-              )
-            } else if (routeMap[label]) {
+            }
+
+            if (routeMap[label]) {
               return (
                 <li key={label}>
                   <Link href={routeMap[label]} className="navLink">{label}</Link>
@@ -300,11 +327,64 @@ export default function SiteHeader() {
         <Link href="/account" className="accountBtn">Account</Link>
         </nav>
       </div>
-      </div>{/* /stickyShell */}
+  </div>{/* /headerShell */}
+
+      {mounted &&
+        createPortal(
+          <div
+            className="dropdownMenu"
+            style={{
+              display: isFvOpen ? 'flex' : 'none',
+              position: 'absolute',
+              left: fvPos.left + 'px',
+              top: fvPos.top + 'px',
+              minWidth: fvPos.minWidth + 'px',
+            }}
+            role="menu"
+            onMouseEnter={openFv}
+            onMouseLeave={scheduleCloseFv}
+          >
+            <div
+              className="dropdownItem dropdownItemWithSub"
+              onMouseEnter={openVegSub}
+              onMouseLeave={scheduleCloseVegSub}
+            >
+              <span>Vegetables</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginLeft: 'auto' }}>
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+              <div
+                className="subMenu"
+                style={{
+                  display: isVegSubOpen ? 'flex' : 'none',
+                }}
+                onMouseEnter={openVegSub}
+                onMouseLeave={scheduleCloseVegSub}
+              >
+                <Link href="/vegetables/leafy-vegetables" className="subMenuItem" role="menuitem" onClick={() => { setIsFvOpen(false); setIsVegSubOpen(false); }}>
+                  Leafy Vegetables
+                </Link>
+                <Link href="/vegetables/regular-vegetables" className="subMenuItem" role="menuitem" onClick={() => { setIsFvOpen(false); setIsVegSubOpen(false); }}>
+                  Regular Vegetables
+                </Link>
+                <Link href="/vegetables/exotic-vegetables" className="subMenuItem" role="menuitem" onClick={() => { setIsFvOpen(false); setIsVegSubOpen(false); }}>
+                  Exotic Vegetables
+                </Link>
+                <Link href="/vegetables/gourds-and-pumpkin" className="subMenuItem" role="menuitem" onClick={() => { setIsFvOpen(false); setIsVegSubOpen(false); }}>
+                  Gourds &amp; Pumpkin
+                </Link>
+                <Link href="/vegetables/salad-vegetables" className="subMenuItem" role="menuitem" onClick={() => { setIsFvOpen(false); setIsVegSubOpen(false); }}>
+                  Salad Vegetables
+                </Link>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
 
       <style jsx>{`
-        /* ── Sticky outer shell (banner + header) ── */
-        .stickyShell { position: sticky; top: 0; z-index: 1200; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  /* ── Header outer shell (banner + header) — not sticky ── */
+  .headerShell { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
 
         /* ── Black info banner ── */
         .infoBanner { display: flex; align-items: center; justify-content: space-between; background: #1a1a1a; color: #d4d4d4; font-size: 12px; padding: 7px 24px; gap: 12px; }
@@ -344,8 +424,44 @@ export default function SiteHeader() {
         .headerInfo { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
         .headerInfoRow { font-size: 12px; color: #555; white-space: nowrap; }
         @media (max-width: 700px) { .headerInfo { display: none; } }
+        .navTrigger {
+          cursor: pointer;
+          background: transparent;
+          border: 0;
+          color: inherit;
+          font-weight: 600;
+          padding: 6px 10px; /* match .mainNav link spacing */
+          font-size: 13px; /* keep consistent size */
+          height: 30px;
+          display: inline-flex;
+          align-items: center;
+          white-space: nowrap;
+          text-decoration: none;
+          transition: color .15s ease, background .15s ease, transform .12s ease;
+        }
+        .navTrigger:focus-visible { box-shadow: 0 0 0 3px rgba(255,255,255,0.08); outline: none; border-radius: 6px; }
+  :global(.dropdownMenu) { flex-direction: column; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); z-index: 1500; min-width: 180px; overflow: visible; }
+        :global(.dropdownItem) { display: block; padding: 12px 20px; font-size: 14px; font-weight: 500; color: #333; text-decoration: none; transition: background 0.15s, color 0.15s; }
+        :global(.dropdownItem:hover) { background: #f3f9eb; color: #619233; }
+        :global(.dropdownItemWithSub) { position: relative; display: flex !important; align-items: center; cursor: pointer; }
+        :global(.dropdownItemWithSub span) { flex: 1; }
+        :global(.subMenu) { position: absolute; left: 100%; top: 0; background: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 4px; min-width: 180px; padding: 8px 0; z-index: 1600; flex-direction: column; margin-left: 4px; }
+        :global(.subMenuItem) { display: block !important; padding: 10px 20px !important; color: #333 !important; text-decoration: none !important; transition: background 0.2s; white-space: nowrap; height: auto !important; background: transparent !important; font-size: 14px !important; }
+        :global(.subMenuItem:hover) { background: #f5f5f5 !important; color: #619233 !important; transform: none !important; }
       `}</style>
       {locationOpen && <LocationPicker onClose={() => setLocationOpen(false)} />}
+      {permissionDenied && (
+        <div className="geoModal">
+          <div className="geoBox">
+            <h3>Location access needed</h3>
+            <p>To show accurate delivery estimates, please allow location access or set your address manually.</p>
+            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+              <button onClick={() => { setLocationOpen(true) }}>Set address manually</button>
+              <button onClick={() => { detectUserLocation().catch(() => {}) }}>Retry detection</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

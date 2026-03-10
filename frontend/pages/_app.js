@@ -4,6 +4,7 @@ import Head from 'next/head'
 import { useRouter } from 'next/router'
 import { CartProvider } from '../contexts/CartContext'
 import { LocationProvider } from '../contexts/LocationContext'
+import { DeliveryProvider } from '../contexts/DeliveryContext'
 
 const SITE_NAME = 'Sewa Bazaar'
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://sewabazaar.in'
@@ -175,6 +176,61 @@ const ROUTE_META = {
     keywords:
       'sewa bazaar admin, ecommerce admin dashboard, manage products orders users',
   },
+  '/best-deal': {
+    title: 'Best Deals on Groceries - Sewa Bazaar',
+    description: 'Grab the best deals on groceries, fruits, vegetables and daily essentials at Sewa Bazaar.',
+    keywords: 'best grocery deals, grocery discounts, cheap groceries online, sewa bazaar offers',
+  },
+  '/atta-rice-grains': {
+    title: 'Atta, Rice & Grains Online - Sewa Bazaar',
+    description: 'Buy premium atta, rice, and grains for your kitchen needs at Sewa Bazaar.',
+    keywords: 'atta rice grains online, basmati rice, wheat flour, buy grains online',
+  },
+  '/oil-ghee': {
+    title: 'Oil & Ghee Online - Sewa Bazaar',
+    description: 'Shop pure cooking oils and ghee at the best prices from Sewa Bazaar.',
+    keywords: 'cooking oil online, ghee online, mustard oil, sunflower oil, desi ghee',
+  },
+  '/milk-dairy': {
+    title: 'Milk & Dairy Products Online - Sewa Bazaar',
+    description: 'Order fresh milk, curd, paneer and other dairy products from Sewa Bazaar.',
+    keywords: 'milk online, dairy products, curd paneer online, fresh dairy delivery',
+  },
+  '/chips-biscuits': {
+    title: 'Chips & Biscuits Online - Sewa Bazaar',
+    description: 'Snack smart with a wide range of chips, biscuits and crackers from Sewa Bazaar.',
+    keywords: 'chips online, biscuits online, snacks grocery, crackers namkeen',
+  },
+  '/bath-body': {
+    title: 'Bath & Body Products - Sewa Bazaar',
+    description: 'Shop bath and body essentials including shampoo, lotion and more at Sewa Bazaar.',
+    keywords: 'bath body products online, shampoo conditioner, body lotion, personal care',
+  },
+  '/soap-detergents': {
+    title: 'Soap & Detergents Online - Sewa Bazaar',
+    description: 'Order household soaps and detergents for a clean home from Sewa Bazaar.',
+    keywords: 'detergent online, dish soap, laundry detergent, cleaning products online',
+  },
+  '/baby-care': {
+    title: 'Baby Care Products Online - Sewa Bazaar',
+    description: 'Shop trusted baby care products including diapers, wipes and essentials at Sewa Bazaar.',
+    keywords: 'baby care products, diapers online, baby wipes, baby essentials online',
+  },
+  '/pooja-essentials': {
+    title: 'Pooja Essentials Online - Sewa Bazaar',
+    description: 'Buy agarbatti, diyas, incense and all pooja essentials at Sewa Bazaar.',
+    keywords: 'pooja essentials online, agarbatti, diya, incense, puja items online',
+  },
+  '/beverages': {
+    title: 'Beverages Online - Sewa Bazaar',
+    description: 'Shop tea, coffee, juices and all beverages at the best prices from Sewa Bazaar.',
+    keywords: 'beverages online, tea coffee online, fruit juice, cold drinks online',
+  },
+  '/dry-fruits-nuts': {
+    title: 'Dry Fruits & Nuts Online - Sewa Bazaar',
+    description: 'Buy premium dry fruits and nuts including almonds, cashews, and raisins at Sewa Bazaar.',
+    keywords: 'dry fruits online, almonds cashews online, nuts online, dry fruits nuts',
+  },
   '/product/[id]': {
     title: 'Product Details - Sewa Bazaar',
     description: 'View product details, pricing, and quantity options before checkout.',
@@ -224,6 +280,7 @@ export default function App({ Component, pageProps }) {
   return (
     <CartProvider>
       <LocationProvider>
+    <DeliveryProvider>
       <Head>
         <title>{seo.title}</title>
         <meta name="description" content={seo.description} />
@@ -251,6 +308,7 @@ export default function App({ Component, pageProps }) {
         />
       </Head>
       <Component {...pageProps} />
+    </DeliveryProvider>
       </LocationProvider>
     </CartProvider>
   )

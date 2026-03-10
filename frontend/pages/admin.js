@@ -2,6 +2,75 @@ import { useEffect, useRef, useMemo, useState } from 'react'
 import { io } from 'socket.io-client'
 import styles from '../styles/admin.module.css'
 
+function DeliveryConfigEditor() {
+  const [cfg, setCfg] = useState({ warehouse_lat: 26.4499, warehouse_lng: 80.3319, fast_radius_km: 10 })
+  const [loading, setLoading] = useState(false)
+  const [msg, setMsg] = useState('')
+
+  useEffect(() => {
+    async function load() {
+      try {
+        // Use the Next.js API route (which resolves the correct file path server-side)
+        const r = await fetch('/api/delivery/get-config')
+        if (r.ok) {
+          const j = await r.json()
+          setCfg({ warehouse_lat: j.warehouse_lat, warehouse_lng: j.warehouse_lng, fast_radius_km: j.fast_radius_km })
+        }
+      } catch (e) {}
+    }
+    load()
+  }, [])
+
+  const save = async () => {
+    setLoading(true); setMsg('')
+    try {
+      const res = await fetch('/api/delivery/update-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          warehouse_lat: Number(cfg.warehouse_lat),
+          warehouse_lng: Number(cfg.warehouse_lng),
+          fast_radius_km: Number(cfg.fast_radius_km),
+        }),
+      })
+      const j = await res.json()
+      if (!res.ok) throw new Error(j?.error || 'Failed to save')
+      setMsg('✓ Saved successfully')
+    } catch (e) { setMsg('Error: ' + (e.message || 'Could not save')) }
+    setLoading(false)
+  }
+
+  // ETA preview so admin can see effect of radius change
+  const radius = Number(cfg.fast_radius_km) || 10
+  const etaPreview = `Within ${radius} km → Delivered in 20–40 min  |  Beyond ${radius} km → Estimated 1–3 hrs`
+
+  return (
+    <div>
+      <div style={{ display:'flex', gap:16, alignItems:'flex-end', flexWrap:'wrap' }}>
+        <label style={{ display:'flex', flexDirection:'column', gap:4, fontSize:13, fontWeight:600 }}>
+          Warehouse Lat
+          <input type="number" step="0.0001" value={cfg.warehouse_lat} onChange={e => setCfg(s => ({...s, warehouse_lat: e.target.value}))} style={{ padding:'6px 8px', border:'1px solid #ccc', borderRadius:6, width:130 }} />
+        </label>
+        <label style={{ display:'flex', flexDirection:'column', gap:4, fontSize:13, fontWeight:600 }}>
+          Warehouse Lng
+          <input type="number" step="0.0001" value={cfg.warehouse_lng} onChange={e => setCfg(s => ({...s, warehouse_lng: e.target.value}))} style={{ padding:'6px 8px', border:'1px solid #ccc', borderRadius:6, width:130 }} />
+        </label>
+        <label style={{ display:'flex', flexDirection:'column', gap:4, fontSize:13, fontWeight:600 }}>
+          Fast Radius (km)
+          <input type="number" step="0.5" min="1" value={cfg.fast_radius_km} onChange={e => setCfg(s => ({...s, fast_radius_km: e.target.value}))} style={{ padding:'6px 8px', border:'1px solid #ccc', borderRadius:6, width:100 }} />
+        </label>
+        <button onClick={save} disabled={loading} style={{ padding:'8px 20px', background:'#2563eb', color:'#fff', border:'none', borderRadius:6, fontWeight:600, cursor:'pointer', alignSelf:'flex-end' }}>
+          {loading ? 'Saving…' : 'Save'}
+        </button>
+      </div>
+      {msg && <div style={{ marginTop:8, color: msg.startsWith('✓') ? '#16a34a' : '#b91c1c', fontWeight:600, fontSize:13 }}>{msg}</div>}
+      <div style={{ marginTop:12, fontSize:13, color:'#2563eb', background:'#eff6ff', padding:'8px 12px', borderRadius:6, border:'1px solid #bfdbfe' }}>
+        <strong>ETA Preview:</strong> {etaPreview}
+      </div>
+    </div>
+  )
+}
+
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
 
 function formatDate(v) {
@@ -268,12 +337,12 @@ export default function AdminPage() {
 
   // ── TABS config ──────────────────────────────────────────────────────────────
   const tabs = [
-    { id: 'overview',      label: '📊 Overview' },
-    { id: 'orders',        label: `🛒 Orders (${orders.length})` },
-    { id: 'products',      label: `🌿 Products (${products.length})` },
-    { id: 'users',         label: `👥 Users (${users.length})` },
-    { id: 'delivery',      label: `🚴 Delivery Partners (${deliveryBoys.length})` },
-    { id: 'notifications', label: `🔔 Notifications${notifications.length > 0 ? ` (${notifications.length})` : ''}` },
+  { id: 'overview',      label: 'Overview' },
+  { id: 'orders',        label: `Orders (${orders.length})` },
+  { id: 'products',      label: `Products (${products.length})` },
+  { id: 'users',         label: `Users (${users.length})` },
+  { id: 'delivery',      label: `Delivery Partners (${deliveryBoys.length})` },
+  { id: 'notifications', label: `Notifications${notifications.length > 0 ? ` (${notifications.length})` : ''}` },
   ]
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -321,7 +390,7 @@ export default function AdminPage() {
             </button>
           ))}
         </nav>
-        <button className={styles.logoutBtn} onClick={logout}>🚪 Logout</button>
+  <button className={styles.logoutBtn} onClick={logout}>Logout</button>
       </aside>
 
       {/* Main content */}
@@ -329,7 +398,7 @@ export default function AdminPage() {
         {/* Top bar */}
         <div className={styles.topBar}>
           <h1 className={styles.pageTitle}>{tabs.find(t => t.id === activeTab)?.label}</h1>
-          <button className={styles.refreshBtn} onClick={loadData}>↻ Refresh</button>
+          <button className={styles.refreshBtn} onClick={loadData}>Refresh</button>
         </div>
 
         {error   && <div className={styles.alertErr}>{error}</div>}
@@ -337,7 +406,7 @@ export default function AdminPage() {
 
         {/* ── Live new-order toast ── */}
         {notifications.length > 0 && activeTab !== 'notifications' && (
-          <div
+            <div
             onClick={() => setActiveTab('notifications')}
             style={{
               cursor: 'pointer',
@@ -347,7 +416,7 @@ export default function AdminPage() {
               boxShadow: '0 2px 12px rgba(22,163,74,0.15)',
             }}
           >
-            <span style={{fontSize:24}}>🛒</span>
+            <span style={{fontSize:24}} aria-hidden="true"></span>
             <div style={{flex:1}}>
               <strong style={{color:'#15803d'}}>
                 {notifications.length} new order{notifications.length > 1 ? 's' : ''} received!
@@ -363,27 +432,27 @@ export default function AdminPage() {
           <div>
             <div className={styles.statsRow}>
               <div className={styles.statCard}>
-                <span className={styles.statIcon}>🛒</span>
+                <span className={styles.statIcon} aria-hidden="true"></span>
                 <div><div className={styles.statNum}>{orders.length}</div><div className={styles.statLabel}>Total Orders</div></div>
               </div>
               <div className={styles.statCard}>
-                <span className={styles.statIcon}>⏳</span>
+                <span className={styles.statIcon} aria-hidden="true"></span>
                 <div><div className={styles.statNum}>{pendingOrders}</div><div className={styles.statLabel}>Pending Orders</div></div>
               </div>
               <div className={styles.statCard}>
-                <span className={styles.statIcon}>✅</span>
+                <span className={styles.statIcon} aria-hidden="true"></span>
                 <div><div className={styles.statNum}>{deliveredOrders}</div><div className={styles.statLabel}>Delivered</div></div>
               </div>
               <div className={styles.statCard}>
-                <span className={styles.statIcon}>💰</span>
+                <span className={styles.statIcon} aria-hidden="true"></span>
                 <div><div className={styles.statNum}>₹{totalRevenue.toLocaleString('en-IN')}</div><div className={styles.statLabel}>Total Revenue</div></div>
               </div>
               <div className={styles.statCard}>
-                <span className={styles.statIcon}>👥</span>
+                <span className={styles.statIcon} aria-hidden="true"></span>
                 <div><div className={styles.statNum}>{users.length}</div><div className={styles.statLabel}>Registered Users</div></div>
               </div>
               <div className={styles.statCard}>
-                <span className={styles.statIcon}>🌿</span>
+                <span className={styles.statIcon} aria-hidden="true"></span>
                 <div><div className={styles.statNum}>{products.length}</div><div className={styles.statLabel}>Products</div></div>
               </div>
             </div>
@@ -406,6 +475,12 @@ export default function AdminPage() {
                   </tbody>
                 </table>
               </div>
+            </div>
+
+            {/* Delivery Config */}
+            <div className={styles.card} style={{ marginTop: 18 }}>
+              <h2 className={styles.cardTitle}>Delivery Configuration</h2>
+              <DeliveryConfigEditor />
             </div>
           </div>
         )}
@@ -459,7 +534,7 @@ export default function AdminPage() {
             {editingProduct && (
               <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.45)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}}>
                 <div style={{background:'#fff',borderRadius:12,padding:32,minWidth:340,maxWidth:480,width:'100%',boxShadow:'0 8px 40px rgba(0,0,0,0.18)'}}>
-                  <h2 style={{marginBottom:16}}>✏️ Edit Product</h2>
+                  <h2 style={{marginBottom:16}}>Edit Product</h2>
                   <form onSubmit={handleUpdateProduct} className={styles.productForm}>
                     <label>Name *<input value={editingProduct.name} onChange={e => setEditingProduct(p => ({...p, name: e.target.value}))} required /></label>
                     <label>Price (₹) *<input type="number" step="0.01" min="0" value={editingProduct.price} onChange={e => setEditingProduct(p => ({...p, price: e.target.value}))} required /></label>
@@ -468,7 +543,7 @@ export default function AdminPage() {
                     <label>Category ID<input value={editingProduct.categoryId || ''} onChange={e => setEditingProduct(p => ({...p, categoryId: e.target.value}))} /></label>
                     <label>Description<textarea value={editingProduct.description || ''} onChange={e => setEditingProduct(p => ({...p, description: e.target.value}))} /></label>
                     <div style={{display:'flex',gap:10,marginTop:8}}>
-                      <button type="submit" className={styles.addBtn} style={{flex:1}}>💾 Save Changes</button>
+                      <button type="submit" className={styles.addBtn} style={{flex:1}}>Save Changes</button>
                       <button type="button" onClick={() => setEditingProduct(null)} style={{flex:1,padding:'10px 0',borderRadius:8,border:'1px solid #ddd',background:'#f3f4f6',cursor:'pointer'}}>Cancel</button>
                     </div>
                   </form>
@@ -505,7 +580,7 @@ export default function AdminPage() {
                         <td>{p.name}</td>
                         <td>₹{Number(p.price||0).toLocaleString('en-IN')}</td>
                         <td>{p.unit || '—'}</td>
-                        <td>{p.isActive ? '✅' : '❌'}</td>
+                        <td>{p.isActive ? 'Active' : 'Inactive'}</td>
                         <td style={{display:'flex',gap:6}}>
                           <button className={styles.addBtn} style={{padding:'4px 12px',fontSize:12}} onClick={() => setEditingProduct({ id: p.id, name: p.name, price: p.price, unit: p.unit || '', image: p.image || '', description: p.description || '', categoryId: p.categoryId || '' })}>Edit</button>
                           <button className={styles.deleteBtn} onClick={() => handleDeleteProduct(p.id)}>Delete</button>
@@ -555,7 +630,7 @@ export default function AdminPage() {
           <div className={styles.productsLayout}>
             {/* Add Delivery Partner form */}
             <div className={styles.card}>
-              <h2 className={styles.cardTitle}>➕ Add Delivery Partner</h2>
+              <h2 className={styles.cardTitle}>Add Delivery Partner</h2>
               <form onSubmit={handleAddDeliveryPartner} className={styles.productForm}>
                 <label>Name *<input value={newPartner.name} onChange={e => setNewPartner(p => ({...p, name: e.target.value}))} placeholder="Full name" required /></label>
                 <label>Email *<input type="email" value={newPartner.email} onChange={e => setNewPartner(p => ({...p, email: e.target.value}))} placeholder="partner@email.com" required /></label>
@@ -589,21 +664,21 @@ export default function AdminPage() {
 
         {/* ── NOTIFICATIONS ── */}
         {activeTab === 'notifications' && (
-          <div className={styles.card}>
-            <div className={styles.cardHeader}>
-              <h2 className={styles.cardTitle}>🔔 Real-time Order Notifications</h2>
-              <button className={styles.refreshBtn} onClick={() => setNotifications([])}>Clear All</button>
-            </div>
-            {notifications.length === 0 ? (
-              <div style={{textAlign:'center',color:'#aaa',padding:48}}>
-                <div style={{fontSize:48}}>🔔</div>
-                <p>No notifications yet.<br/>New orders will appear here in real-time via WebSocket.</p>
+            <div className={styles.card}>
+              <div className={styles.cardHeader}>
+                <h2 className={styles.cardTitle}>Real-time Order Notifications</h2>
+                <button className={styles.refreshBtn} onClick={() => setNotifications([])}>Clear All</button>
               </div>
-            ) : (
+              {notifications.length === 0 ? (
+                <div style={{textAlign:'center',color:'#aaa',padding:48}}>
+                  <div style={{fontSize:48}} aria-hidden="true"></div>
+                  <p>No notifications yet.<br/>New orders will appear here in real-time via WebSocket.</p>
+                </div>
+              ) : (
               <div style={{display:'flex',flexDirection:'column',gap:12}}>
                 {notifications.map(n => (
                   <div key={n.id} style={{background:'#f0fdf4',border:'1px solid #86efac',borderRadius:10,padding:'14px 20px',display:'flex',alignItems:'center',gap:16}}>
-                    <span style={{fontSize:28}}>🛒</span>
+                    <span style={{fontSize:28}} aria-hidden="true"></span>
                     <div style={{flex:1}}>
                       <div style={{fontWeight:700,color:'#15803d',fontSize:15}}>New Order #{n.orderId}</div>
                       {n.customerName && <div style={{color:'#374151',fontSize:13}}>Customer: {n.customerName}</div>}

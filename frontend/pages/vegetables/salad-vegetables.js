@@ -1,8 +1,5 @@
-"use client";
 import React, { useState } from "react";
-import { useRouter } from "next/router";
-import { useCart } from '../../contexts/CartContext';
-import ShopLayout from '../../components/ShopLayout';
+import ShopLayout from '../components/ShopLayout';
 
 const products = [
   { id: 1, name: "Organic Cucumber White", price: 32.00, unit: "250 GM", image: "data:image/jpeg;base64,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" },
@@ -17,22 +14,6 @@ const products = [
 ];
 
 export default function SaladVegetablesPage() {
-  const router = useRouter();
-  const { addToCart } = useCart();
-  const handleProductClick = (product) => {
-    const productId = `salad-${product.id}`;
-    router.push({
-      pathname: `/product/${productId}`,
-      query: {
-        name: product.name,
-        price: String(product.price),
-        size: product.unit,
-        image: product.image,
-        category: 'Salad Vegetables',
-      },
-    });
-  };
-
   const [quantities, setQuantities] = useState(
     products.reduce((acc, product) => ({ ...acc, [product.id]: 1 }), {})
   );
@@ -60,67 +41,22 @@ export default function SaladVegetablesPage() {
 
           return (
             <div className="product-item" key={p.id}>
-              <div 
-                className="image-wrapper" 
-                onClick={() => handleProductClick(p)} 
-                style={{ cursor: 'pointer' }}
-              >
+              <div className="img-holder">
                 <img src={p.image} alt={p.name} />
               </div>
               
-              <h4 
-                className="item-name" 
-                onClick={() => handleProductClick(p)} 
-                style={{ cursor: 'pointer' }}
-              >
-                {p.name}
-              </h4>
+              <h4 className="p-title">{p.name}</h4>
+              <div className="p-amount">Rs. {totalAmount}</div>
+              <div className="p-unit-badge">{p.unit}</div>
 
-              <div className="item-controls">
-                <div className="qty-section">
-                  <label>Qty:</label>
-                  <div className="qty-controls">
-                    <button 
-                      className="qty-btn" 
-                      onClick={(e) => { e.stopPropagation(); updateQty(p.id, -1); }}
-                    >
-                      -
-                    </button>
-                    <input type="text" readOnly value={currentQty} className="qty-input" />
-                    <button 
-                      className="qty-btn" 
-                      onClick={(e) => { e.stopPropagation(); updateQty(p.id, 1); }}
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-                <div className="price-section">
-                  <div className="unit-info">{p.unit}</div>
-                  <div className="unit-price">₹ {p.price.toFixed(2)}</div>
-                </div>
+              <div className="qty-picker">
+                <button onClick={() => updateQty(p.id, -1)}>-</button>
+                <input type="text" value={currentQty} readOnly />
+                <button onClick={() => updateQty(p.id, 1)}>+</button>
               </div>
-
-              <div className="cart-row">
-                <div className="total-amount">₹ {totalAmount}</div>
-                <button
-                  className="cart-btn"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    addToCart({
-                      id: p.id,
-                      name: p.name,
-                      price: p.price,
-                      unit: p.unit,
-                      image: p.image,
-                      quantity: currentQty,
-                    });
-                    alert(`Added ${currentQty} x ${p.name} to cart!`);
-                  }}
-                >
-                  Add to Cart
-                </button>
-              </div>
+              
+              {/* Green Add to Cart Button as seen in your Mangoes screenshot */}
+              <button className="add-to-cart-btn">Add to Cart</button>
             </div>
           );
         })}
@@ -128,181 +64,23 @@ export default function SaladVegetablesPage() {
 
       <style jsx global>{`
         body { margin: 0; font-family: 'Inter', sans-serif; background: #fff; }
-        
-        .salad-container { 
-          max-width: 1400px; 
-          margin: 0 auto; 
-          padding: 60px 5%; 
-        }
-
-        .page-header { 
-          text-align: center; 
-          margin-bottom: 50px; 
-        }
-
-        .main-heading { 
-          font-size: 38px; 
-          font-weight: 800; 
-          color: #333; 
-          margin-bottom: 8px; 
-        }
-
-        .sub-heading { 
-          font-size: 14px; 
-          color: #777; 
-        }
-
-        .product-grid { 
-          display: grid; 
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
-          gap: 25px; 
-        }
-
-        .product-item { 
-          background: white;
-          border: 1px solid #e0e0e0;
-          border-radius: 12px;
-          padding: 15px;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-          transition: all 0.3s ease;
-        }
-
-        .product-item:hover {
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-          transform: translateY(-3px);
-        }
-
-        .image-wrapper {
-          width: 100%;
-          height: 220px;
-          overflow: hidden;
-          border-radius: 8px;
-          margin-bottom: 12px;
-          background-color: #f9f9f9;
-        }
-
-        .image-wrapper img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        .item-name {
-          font-size: 1.1rem;
-          font-weight: 600;
-          color: #333;
-          margin: 10px 0;
-          min-height: 50px;
-        }
-
-        .item-controls {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin: 15px 0;
-          gap: 10px;
-        }
-
-        .qty-section label {
-          font-size: 0.9rem;
-          color: #666;
-          margin-right: 8px;
-        }
-
-        .qty-controls {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .qty-btn {
-          width: 30px;
-          height: 30px;
-          border: 1px solid #4caf50;
-          background-color: white;
-          color: #4caf50;
-          font-size: 18px;
-          cursor: pointer;
-          border-radius: 5px;
-          transition: all 0.2s;
-        }
-
-        .qty-btn:hover {
-          background-color: #4caf50;
-          color: white;
-        }
-
-        .qty-input {
-          width: 45px;
-          text-align: center;
-          border: 1px solid #ddd;
-          border-radius: 5px;
-          padding: 6px;
-          font-size: 14px;
-        }
-
-        .price-section {
-          text-align: right;
-        }
-
-        .unit-info {
-          font-size: 0.85rem;
-          color: #888;
-          margin-bottom: 3px;
-        }
-
-        .unit-price {
-          font-size: 1.1rem;
-          font-weight: 700;
-          color: #2d5f2e;
-        }
-
-        .cart-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-top: 15px;
-          padding-top: 15px;
-          border-top: 1px solid #eee;
-        }
-
-        .total-amount {
-          font-size: 1.3rem;
-          font-weight: bold;
-          color: #2d5f2e;
-        }
-
-        .cart-btn {
-          background-color: #4caf50;
-          color: white;
-          border: none;
-          padding: 10px 20px;
-          border-radius: 6px;
-          cursor: pointer;
-          font-size: 0.95rem;
-          font-weight: 600;
-          transition: all 0.3s ease;
-        }
-
-        .cart-btn:hover {
-          background-color: #45a049;
-          transform: scale(1.05);
-        }
-
-        @media (max-width: 768px) {
-          .product-grid {
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 15px;
-          }
-
-          .main-heading {
-            font-size: 2rem;
-          }
-
-          .sub-heading {
-            font-size: 1rem;
-          }
-        }
+        .salad-container { max-width: 1400px; margin: 0 auto; padding: 60px 5%; }
+        .page-header { text-align: center; margin-bottom: 50px; }
+        .main-heading { font-size: 38px; font-weight: 800; color: #333; margin-bottom: 8px; }
+        .sub-heading { font-size: 14px; color: #777; }
+        .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 30px; }
+        .product-item { border: 1px solid #f2f2f2; border-radius: 12px; padding: 20px; text-align: center; display: flex; flex-direction: column; transition: all 0.3s ease; background: #fff; }
+        .product-item:hover { transform: translateY(-5px); box-shadow: 0 12px 30px rgba(0,0,0,0.07); }
+        .img-holder { height: 180px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; }
+        .img-holder img { max-height: 100%; max-width: 100%; object-fit: contain; }
+        .p-title { font-size: 15px; font-weight: 600; color: #444; height: 40px; margin: 5px 0; }
+        .p-amount { font-size: 18px; font-weight: 700; color: #111; margin-bottom: 6px; }
+        .p-unit-badge { font-size: 11px; background: #f8f8f8; color: #888; padding: 4px 12px; border-radius: 4px; display: inline-block; align-self: center; margin-bottom: 20px; font-weight: bold; }
+        .qty-picker { display: flex; border: 1px solid #e0e0e0; border-radius: 6px; overflow: hidden; align-self: center; margin-bottom: 15px; }
+        .qty-picker button { background: #fff; border: none; padding: 8px 15px; cursor: pointer; font-size: 18px; }
+        .qty-picker input { width: 40px; text-align: center; border-left: 1px solid #e0e0e0; border-right: 1px solid #e0e0e0; border-top: none; border-bottom: none; font-weight: 600; }
+        .add-to-cart-btn { background: #6aa333; color: #fff; border: none; padding: 12px; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer; margin-top: auto; transition: background 0.2s; }
+        .add-to-cart-btn:hover { background: #5a8d2a; }
       `}</style>
       </div>
     </ShopLayout>

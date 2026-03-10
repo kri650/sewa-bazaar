@@ -1,8 +1,5 @@
-"use client";
 import { useState } from 'react';
-import { useRouter } from "next/router";
-import { useCart } from '../../contexts/CartContext';
-import ShopLayout from '../../components/ShopLayout';
+import ShopLayout from '../components/ShopLayout';
 
 const fruitProducts = [
   { id: 1, name: 'Local Apples', price: 129, size: '1 KG', image: 'data:image/jpeg;base64,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', description: 'Crisp apples harvested from nearby orchards.' },
@@ -14,9 +11,6 @@ const fruitProducts = [
 ];
 
 export default function FarmFreshFruits() {
-  const router = useRouter();
-  const { addToCart } = useCart();
-  
   // Independent quantity state for each product
   const [quantities, setQuantities] = useState(
     fruitProducts.reduce((acc, product) => ({ ...acc, [product.id]: 1 }), {})
@@ -27,20 +21,6 @@ export default function FarmFreshFruits() {
       ...prev,
       [id]: Math.max(1, prev[id] + delta)
     }));
-  };
-
-  const handleProductClick = (product) => {
-    const productId = `farm-fresh-fruit-${product.id}`;
-    router.push({
-      pathname: `/product/${productId}`,
-      query: {
-        name: product.name,
-        price: product.price,
-        size: product.size,
-        image: product.image,
-        category: 'Farm Fresh Fruits',
-      },
-    });
   };
 
   return (
@@ -61,11 +41,11 @@ export default function FarmFreshFruits() {
 
             return (
               <div className="product-card" key={item.id}>
-                <div className="img-holder" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
+                <div className="img-holder">
                   <img src={item.image} alt={item.name} />
                 </div>
                 
-                <h4 className="p-title" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>{item.name}</h4>
+                <h4 className="p-title">{item.name}</h4>
                 <div className="p-amount">Rs. {totalAmount}</div>
                 <div className="p-unit-badge">{item.size}</div>
 
@@ -77,7 +57,7 @@ export default function FarmFreshFruits() {
                 </div>
                 
                 {/* Green Add to Cart Button */}
-                <button className="add-to-cart-btn" onClick={() => addToCart(item, currentQty)}>
+                <button className="add-to-cart-btn" onClick={() => console.log('Added:', item.name)}>
                   Add to Cart
                 </button>
               </div>

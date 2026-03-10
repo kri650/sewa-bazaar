@@ -1,26 +1,28 @@
 /* ─── Layout ─────────────────────────────────────────────── */
+
 .loginPage {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #f0f7ea 0%, #d6ebcc 100%);
+  background: #f7f8fa;
 }
 
 .loginCard {
-  background: #fff;
-  border-radius: 16px;
-  padding: 40px 36px;
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 36px;
   width: 100%;
   max-width: 420px;
-  box-shadow: 0 8px 32px rgba(97, 146, 51, 0.12);
+  box-shadow: 0 6px 18px rgba(30, 46, 18, 0.06);
+  border: 1px solid #ececec;
 }
 
 .loginLogo {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
 .loginLogo img {
@@ -30,21 +32,18 @@
 }
 
 .loginLogo span {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
-  color: #619233;
+  color: #2b2b2b;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  background: #f0f7ea;
-  padding: 3px 10px;
-  border-radius: 99px;
+  letter-spacing: 0.06em;
 }
 
 .loginCard h2 {
-  font-size: 22px;
-  font-weight: 800;
-  color: #1e2e12;
-  margin: 0 0 24px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 20px;
 }
 
 .loginCard label {
@@ -58,47 +57,48 @@
 }
 
 .loginCard input {
-  padding: 10px 14px;
-  border: 1.5px solid #d4e8bb;
-  border-radius: 8px;
+  padding: 10px 12px;
+  border: 1px solid #e6e6e6;
+  border-radius: 6px;
   font-size: 14px;
   outline: none;
-  transition: border-color 0.2s;
+  transition: border-color 0.15s;
 }
 
 .loginCard input:focus {
-  border-color: #619233;
+  border-color: #9aa4af;
 }
 
 .loginBtn {
   width: 100%;
-  padding: 12px;
-  background: #619233;
+  padding: 10px 12px;
+  background: #1f2937;
   color: #fff;
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   margin-top: 8px;
-  transition: background 0.2s, transform 0.1s;
+  transition: background 0.12s, transform 0.08s;
 }
 
-.loginBtn:hover { background: #4e7629; }
-.loginBtn:active { transform: scale(0.98); }
-.loginBtn:disabled { background: #aac585; cursor: not-allowed; }
+.loginBtn:hover { background: #111827; }
+.loginBtn:active { transform: translateY(1px); }
+.loginBtn:disabled { background: #a0a4a8; cursor: not-allowed; }
 
 /* ─── Dashboard layout ───────────────────────────────────── */
+
 .dashPage {
   display: flex;
   min-height: 100vh;
-  background: #f5f8f2;
+  background: #f7f8fa;
 }
 
 .sidebar {
-  width: 230px;
-  min-width: 230px;
-  background: #1e2e12;
+  width: 220px;
+  min-width: 220px;
+  background: #ffffff;
   display: flex;
   flex-direction: column;
   padding: 0;
@@ -106,36 +106,36 @@
   top: 0;
   height: 100vh;
   overflow-y: auto;
+  border-right: 1px solid #ececec;
 }
 
 .sidebarLogo {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 20px 18px;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding: 18px;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .sidebarLogo img {
   width: 36px;
   height: 36px;
   object-fit: contain;
-  border-radius: 8px;
 }
 
 .sidebarLogo strong {
   display: block;
   font-size: 14px;
-  font-weight: 800;
-  color: #fff;
+  font-weight: 700;
+  color: #1f2937;
   line-height: 1.2;
 }
 
 .sidebarLogo span {
   font-size: 11px;
-  color: #98c25e;
+  color: #6b7280;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
 }
 
 .sidebarNav {
@@ -149,49 +149,49 @@
   display: block;
   width: 100%;
   text-align: left;
-  padding: 11px 18px;
+  padding: 10px 16px;
   background: none;
   border: none;
   font-size: 14px;
   font-weight: 500;
-  color: #b8d29a;
+  color: #374151;
   cursor: pointer;
   border-left: 3px solid transparent;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
 }
 
 .sidebarNav button:hover {
-  background: rgba(97,146,51,0.12);
-  color: #fff;
+  background: #f5f7fb;
+  color: #111827;
 }
 
 .sidebarActive {
-  background: rgba(97,146,51,0.2) !important;
-  color: #fff !important;
-  border-left-color: #98c25e !important;
+  background: #eef2f6 !important;
+  color: #111827 !important;
+  border-left-color: #111827 !important;
   font-weight: 700 !important;
 }
 
 .logoutBtn {
   margin: 12px 14px 20px;
   padding: 10px 12px;
-  background: rgba(255,255,255,0.05);
-  color: #f9a8a8;
-  border: 1px solid rgba(255,120,120,0.25);
-  border-radius: 8px;
+  background: #ffffff;
+  color: #1f2937;
+  border: 1px solid #e6e6e6;
+  border-radius: 6px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   text-align: left;
-  transition: background 0.15s;
+  transition: background 0.12s;
 }
 
-.logoutBtn:hover { background: rgba(220,60,60,0.15); }
+.logoutBtn:hover { background: #f6f7f9; }
 
 /* ─── Main area ──────────────────────────────────────────── */
 .dashMain {
   flex: 1;
-  padding: 24px 28px;
+  padding: 28px;
   min-width: 0;
 }
 
@@ -203,47 +203,47 @@
 }
 
 .pageTitle {
-  font-size: 20px;
-  font-weight: 800;
-  color: #1e2e12;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
   margin: 0;
 }
 
 .refreshBtn {
-  padding: 8px 16px;
-  background: #fff;
-  border: 1.5px solid #d4e8bb;
-  color: #619233;
+  padding: 8px 14px;
+  background: #ffffff;
+  border: 1px solid #e6e6e6;
+  color: #111827;
   font-size: 13px;
-  font-weight: 700;
-  border-radius: 8px;
+  font-weight: 600;
+  border-radius: 6px;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.12s;
 }
 
-.refreshBtn:hover { background: #f0f7ea; }
+.refreshBtn:hover { background: #f5f7fb; }
 
 /* ─── Alerts ─────────────────────────────────────────────── */
 .alertErr {
-  background: #fff0f0;
-  color: #b91c1c;
-  border: 1px solid #fca5a5;
-  padding: 10px 16px;
-  border-radius: 8px;
-  font-size: 14px;
+  background: #fff7f7;
+  color: #9b2c2c;
+  border: 1px solid #f1c1c1;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 13px;
   font-weight: 600;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 .alertOk {
-  background: #f0fdf4;
-  color: #15803d;
-  border: 1px solid #86efac;
-  padding: 10px 16px;
-  border-radius: 8px;
-  font-size: 14px;
+  background: #f7fff7;
+  color: #096a30;
+  border: 1px solid #c8f3d0;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 13px;
   font-weight: 600;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 .errorMsg {
@@ -267,13 +267,13 @@
 
 .statCard {
   background: #fff;
-  border-radius: 12px;
-  padding: 18px 16px;
+  border-radius: 10px;
+  padding: 14px 14px;
   display: flex;
   align-items: center;
-  gap: 14px;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.06);
-  border: 1px solid #eef5e6;
+  gap: 12px;
+  box-shadow: 0 1px 6px rgba(16,24,40,0.04);
+  border: 1px solid #f0f0f0;
 }
 
 .statIcon {
@@ -297,19 +297,19 @@
 
 /* ─── Card ───────────────────────────────────────────────── */
 .card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.06);
-  border: 1px solid #eef5e6;
-  margin-bottom: 20px;
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 1px 6px rgba(16,24,40,0.04);
+  border: 1px solid #f0f0f0;
+  margin-bottom: 18px;
 }
 
 .cardTitle {
-  font-size: 16px;
-  font-weight: 800;
-  color: #1e2e12;
-  margin: 0 0 16px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 12px;
 }
 
 .cardHeader {
@@ -334,15 +334,15 @@
 }
 
 .tableWrap th {
-  background: #f5f8f2;
-  color: #555;
+  background: #fafbfc;
+  color: #6b7280;
   font-size: 11.5px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   padding: 8px 12px;
   text-align: left;
-  border-bottom: 2px solid #e8f0e0;
+  border-bottom: 2px solid #f0f0f0;
 }
 
 .tableWrap td {
@@ -352,7 +352,7 @@
   vertical-align: middle;
 }
 
-.tableWrap tr:hover td { background: #fafef5; }
+.tableWrap tr:hover td { background: #fbfdff; }
 
 /* ─── Search input ───────────────────────────────────────── */
 .searchInput {

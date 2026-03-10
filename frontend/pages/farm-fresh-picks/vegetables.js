@@ -1,8 +1,5 @@
-"use client";
 import { useState } from 'react';
-import { useRouter } from "next/router";
-import { useCart } from '../../contexts/CartContext';
-import ShopLayout from '../../components/ShopLayout';
+import ShopLayout from '../components/ShopLayout';
 
 const vegProducts = [
   { id: 1, name: 'Fresh Carrots (Local)', price: 59.00, size: '500 GM', image: 'data:image/jpeg;base64,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', description: 'Crunchy, farm-harvested carrots full of beta-carotene.' },
@@ -14,9 +11,6 @@ const vegProducts = [
 ];
 
 export default function FarmFreshVegetables() {
-  const router = useRouter();
-  const { addToCart } = useCart();
-  
   // Independent quantity state for each vegetable
   const [quantities, setQuantities] = useState(
     vegProducts.reduce((acc, product) => ({ ...acc, [product.id]: 1 }), {})
@@ -27,20 +21,6 @@ export default function FarmFreshVegetables() {
       ...prev,
       [id]: Math.max(1, prev[id] + delta)
     }));
-  };
-
-  const handleProductClick = (product) => {
-    const productId = `farm-fresh-vegetable-${product.id}`;
-    router.push({
-      pathname: `/product/${productId}`,
-      query: {
-        name: product.name,
-        price: product.price,
-        size: product.size,
-        image: product.image,
-        category: 'Farm Fresh Vegetables',
-      },
-    });
   };
 
   return (
@@ -61,11 +41,11 @@ export default function FarmFreshVegetables() {
 
             return (
               <div className="product-card" key={item.id}>
-                <div className="img-holder" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
+                <div className="img-holder">
                   <img src={item.image} alt={item.name} />
                 </div>
                 
-                <h4 className="p-title" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>{item.name}</h4>
+                <h4 className="p-title">{item.name}</h4>
                 <div className="p-amount">Rs. {totalAmount}</div>
                 <div className="p-unit-badge">{item.size}</div>
 
@@ -73,11 +53,11 @@ export default function FarmFreshVegetables() {
                 <div className="qty-picker">
                   <button onClick={() => updateQty(item.id, -1)}>-</button>
                   <input type="text" value={currentQty} readOnly />
-                  <button onClick={() => updateQty(item.id, 1)}>+</button>
+                  <button onClick={() => updateQty(p.id, 1)}>+</button>
                 </div>
                 
                 {/* Green Add to Cart Button */}
-                <button className="add-to-cart-btn" onClick={() => addToCart(item, currentQty)}>
+                <button className="add-to-cart-btn" onClick={() => console.log('Added:', item.name)}>
                   Add to Cart
                 </button>
               </div>
