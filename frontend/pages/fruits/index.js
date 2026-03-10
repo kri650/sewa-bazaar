@@ -1,5 +1,6 @@
 import ShopLayout from '../../components/ShopLayout';
 import CategoryPage from '../../components/CategoryPage';
+import styles from './FreshFruits.module.css';
 
 const fruitProducts = [
   {
@@ -68,12 +69,25 @@ const products = fruitProducts.map((product) => ({
 export default function FreshFruitsPage() {
   return (
     <ShopLayout>
-      <CategoryPage
-        title="Fruits"
-        description="Freshly harvested, juicy fruit varieties — delivering farm-fresh nutrition and taste in every bite."
-        category="Fruits"
-        products={products}
-      />
+      <div className={styles.hero}>
+        <div className={styles.heroText}>
+          <h1>Fresh Groceries for Everyday Needs</h1>
+          <p className={styles.lead}>Shop fruits, pantry staples, dairy, snacks and more — delivered fresh from farms to your door.</p>
+          <a className={styles.cta} href="/fruits">Shop Now</a>
+        </div>
+        <div className={styles.heroImageWrap}>
+          <img src={fruitProducts[0].image} alt="Fresh fruits" className={styles.heroImage} />
+        </div>
+      </div>
+
+      <div className={styles.container}>
+        <CategoryPage
+          title="Fruits"
+          description="Freshly harvested, juicy fruit varieties — delivering farm-fresh nutrition and taste in every bite."
+          category="Fruits"
+          products={products}
+        />
+      </div>
     </ShopLayout>
   );
 }
