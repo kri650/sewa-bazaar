@@ -217,6 +217,8 @@ const getSectionItems = (items, page, size) => {
   return items.slice(start, start + size).map((item, offset) => ({ item, index: start + offset }))
 }
 
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
+
 export default function Home() {
   const { addToCart } = useCart()
   const router = useRouter()
@@ -234,7 +236,7 @@ export default function Home() {
     '/hero/Green%20Modern%20Bold%20Vegetable%20Grocery%20Presentation%20(1).png',
     '/hero/Green%20and%20Yellow%20Modern%20Vegetable%20Shop%20Profile%20Presentation.png',
     '/hero/Red%20Yellow%20Colorful%20Fruits%20Presentation.png',
-    '/hero/IMG_20260307_152821_357.jpg%20(1).jpeg',
+  '/hero/IMG_20260307_152821_357.jpg%20(1).jpeg',
   ]
 
   // allow overriding via env var (NEXT_PUBLIC_HERO_IMAGES) as comma separated URLs
@@ -258,6 +260,62 @@ export default function Home() {
   const [babyQty, setBabyQty] = useState(() => babyCare.map(() => 1))
   const [poojaQty, setPoojaQty] = useState(() => poojaEssentials.map(() => 1))
   const [bestQty, setBestQty] = useState(() => bestSellers.map(() => 1))
+
+  // Admin-added products from backend
+  const [adminProducts, setAdminProducts] = useState([])
+  const [adminQty, setAdminQty] = useState([])
+  const [adminPage, setAdminPage] = useState(0)
+
+  // Sewa Bazaar Minutes — per-product delivery eligibility
+  const [sewaMinutesMap, setSewaMinutesMap] = useState({}) // { [productId]: true/false }
+
+  useEffect(() => {
+    fetch(`${API_BASE}/products`)
+      .then((r) => r.ok ? r.json() : [])
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          // Normalize fields so they work with existing card logic
+          const normalized = data.map((p) => ({
+            id: String(p.id),
+            name: p.name || 'Product',
+            price: parseRupees(p.price),
+            size: p.unit || '',
+            image: p.image || '',
+            category: p.category || '',
+            description: p.description || '',
+            latitude: p.latitude || 0,
+            longitude: p.longitude || 0,
+          }))
+          setAdminProducts(normalized)
+          setAdminQty(normalized.map(() => 1))
+          // Check Sewa Bazaar Minutes eligibility for each product using user's location
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+              (pos) => {
+                const uLat = pos.coords.latitude
+                const uLng = pos.coords.longitude
+                Promise.all(
+                  normalized.map((p) => {
+                    const plParams = (p.latitude !== 0 || p.longitude !== 0)
+                      ? `&plat=${p.latitude}&plng=${p.longitude}` : ''
+                    return fetch(`/api/delivery/check-distance?lat=${uLat}&lng=${uLng}${plParams}`)
+                      .then((r) => r.ok ? r.json() : null)
+                      .then((info) => ({ id: p.id, eligible: info?.sewa_minutes_eligible || false }))
+                      .catch(() => ({ id: p.id, eligible: false }))
+                  })
+                ).then((results) => {
+                  const map = {}
+                  results.forEach(({ id, eligible }) => { map[id] = eligible })
+                  setSewaMinutesMap(map)
+                })
+              },
+              () => {} // silently ignore if denied
+            )
+          }
+        }
+      })
+      .catch(() => {/* backend may be offline – silently skip */})
+  }, [])
   
   const [fruitsVegPage, setFruitsVegPage] = useState(0)
   const [attaPage, setAttaPage] = useState(0)
@@ -283,6 +341,7 @@ export default function Home() {
   const babyPageCount = Math.ceil(babyCare.length / 6)
   const poojaPageCount = Math.ceil(poojaEssentials.length / 6)
   const bestPageCount = Math.ceil(bestSellers.length / 4)
+  const adminPageCount = Math.max(1, Math.ceil(adminProducts.length / 6))
 
   const changeQty = (setter, index, delta) => {
     setter((prev) => prev.map((qty, i) => {
@@ -345,7 +404,8 @@ export default function Home() {
         </div>
       </div>
 
-      <SiteHeader />
+
+  <SiteHeader />
 
       <section className="heroAnimationSection">
         <div className="topAnimationBar" aria-hidden="true">
@@ -375,6 +435,85 @@ export default function Home() {
               <Link href="/best-deal">
                 <button type="button" className="shopNowBtn">Shop Now</button>
               </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Sewa Bazaar Minutes Marquee Bar ── */}
+      <div className="sewaBazaarMinutesBar" aria-label="Sewa Bazaar Minutes promotion">
+        <div className="marqueeTrack">
+          {/* duplicate items so the loop is seamless */}
+          {[...Array(2)].map((_, set) => (
+            [
+              { icon: '⚡', text: 'Sewa Bazaar Minutes — Delivered in 10 Minutes' },
+              { icon: '📍', text: 'Ultra-fast delivery within your area' },
+              { icon: '⚡', text: 'Same groceries. 10× faster.' },
+              { icon: '🛒', text: 'Order now & get it in 10 minutes' },
+              { icon: '⚡', text: 'Sewa Bazaar Minutes — India\'s fastest grocery delivery' },
+              { icon: '🌿', text: 'Fresh, fast & at your door in minutes' },
+            ].map((item, i) => (
+              <span key={`${set}-${i}`} className="marqueeItem">
+                <span className="marqueeDot" />
+                {item.icon} {item.text}
+              </span>
+            ))
+          ))}
+        </div>
+      </div>
+
+      {/* ── Sewa Bazaar Minutes Feature Section ── */}
+      <section className="sewaBazaarMinutesSection" aria-label="Sewa Bazaar Minutes — 10-minute delivery">
+        <div className="sbmInner">
+          {/* Left visual */}
+          <div className="sbmVisual" aria-hidden="true">
+            <div className="sbmPing" />
+            <div className="sbmBolt">⚡</div>
+            <div className="sbmMinLabel">10 MIN</div>
+          </div>
+
+          {/* Right content */}
+          <div className="sbmContent">
+            <div className="sbmEyebrow">
+              <span>⚡</span> NEW FEATURE
+            </div>
+            <h2 className="sbmHeadline">
+              Introducing<br />
+              <span>Sewa Bazaar Minutes</span>
+            </h2>
+            <p className="sbmSub">
+              Get your fresh groceries, vegetables &amp; daily essentials delivered
+              to your door in <strong>just 10 minutes</strong> — if you're within our express zone.
+              No waiting. No planning ahead. Just instant freshness.
+            </p>
+
+            <div className="sbmSteps">
+              <div className="sbmStep">
+                <div className="sbmStepIcon">🛒</div>
+                <div className="sbmStepText">
+                  <strong>Add to Cart</strong>
+                  <span>Pick your products</span>
+                </div>
+              </div>
+              <div className="sbmStep">
+                <div className="sbmStepIcon">📍</div>
+                <div className="sbmStepText">
+                  <strong>Share Location</strong>
+                  <span>We check your zone</span>
+                </div>
+              </div>
+              <div className="sbmStep">
+                <div className="sbmStepIcon">⚡</div>
+                <div className="sbmStepText">
+                  <strong>10-Min Delivery</strong>
+                  <span>If you're in the zone</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="sbmNotice">
+              <span>📍</span>
+              Available within the express delivery zone set by our team · Check eligibility on any product page
             </div>
           </div>
         </div>
@@ -443,6 +582,68 @@ export default function Home() {
 
       <section className="productShelfSection" aria-label="Featured products">
         <div className="container">
+
+          {/* ── NEW ARRIVALS (admin-added products) ── */}
+          {adminProducts.length > 0 && (
+            <div className="shelfBlock">
+              <div className="shelfHeader">
+                <h3>New Arrivals <span style={{ color: '#e53935', fontWeight: 700 }}>— just added!</span></h3>
+                <Link href="/new-arrivals">
+                  <button type="button" className="viewAllBtn">View All</button>
+                </Link>
+              </div>
+              <div className="productSliderWrap">
+                {adminPageCount > 1 && (
+                  <button type="button" className="productNav productNavLeft" onClick={() => setAdminPage((p) => (p - 1 + adminPageCount) % adminPageCount)} aria-label="Previous products">‹</button>
+                )}
+                <div className="productGrid">
+                  {getSectionItems(adminProducts, adminPage, 6).map(({ item, index }) => (
+                    <article className="productCard" key={`admin-${item.id}`}>
+                      <div className="productImageWrap" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
+                        {item.image
+                          ? <img src={item.image} alt={item.name} loading="lazy" />
+                          : <div style={{ width: '100%', height: '100%', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: '#888' }}>No image</div>
+                        }
+                      </div>
+                      {/* Sewa Bazaar Minutes badge */}
+                      {sewaMinutesMap[item.id] === true && (
+                        <div style={{
+                          display: 'flex', alignItems: 'center', gap: 5,
+                          background: 'linear-gradient(90deg,#064e3b,#047857)',
+                          color: '#fff', fontSize: 10, fontWeight: 800,
+                          padding: '3px 9px', borderRadius: 20,
+                          margin: '4px 0 2px', letterSpacing: 0.5,
+                          width: 'fit-content',
+                        }}>
+                          ⚡ Sewa Bazaar Minutes · 10 min
+                        </div>
+                      )}
+                      {item.category && <span style={{ fontSize: 11, color: '#4caf50', fontWeight: 600, textTransform: 'uppercase', marginBottom: 2, display: 'block' }}>{item.category}</span>}
+                      <p className="productName" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>{item.name}</p>
+                      <p className="productPrice">{formatRupees(parseRupees(item.price) * (adminQty[index] || 1))}</p>
+                      {item.size && <span className="productSize">{item.size}</span>}
+                      <div className="qtyRow">
+                        <button type="button" onClick={(e) => { e.stopPropagation(); setAdminQty((prev) => prev.map((q, i) => i === index ? Math.max(1, q - 1) : q)); }}>-</button>
+                        <span>{adminQty[index] || 1}</span>
+                        <button type="button" onClick={(e) => { e.stopPropagation(); setAdminQty((prev) => prev.map((q, i) => i === index ? q + 1 : q)); }}>+</button>
+                      </div>
+                      <button
+                        type="button"
+                        className="pickNowBtn"
+                        onClick={(e) => { e.stopPropagation(); addToCart(item, adminQty[index] || 1); }}
+                      >
+                        Add to Cart
+                      </button>
+                    </article>
+                  ))}
+                </div>
+                {adminPageCount > 1 && (
+                  <button type="button" className="productNav productNavRight" onClick={() => setAdminPage((p) => (p + 1) % adminPageCount)} aria-label="Next products">›</button>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="shelfBlock">
             <div className="shelfHeader">
               <h3>Fruits & Vegetables <span>- fresh from the farm!</span></h3>

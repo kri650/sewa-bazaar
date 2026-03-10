@@ -3,6 +3,7 @@ import { useCart } from '../contexts/CartContext'
 import ShopLayout from '../components/ShopLayout'
 import Link from 'next/link'
 import { useState } from 'react'
+import { useDelivery } from '../contexts/DeliveryContext'
 
 export default function CartPage() {
   const { cart, removeFromCart, updateQuantity, getCartTotal, clearCart } = useCart()
@@ -217,6 +218,10 @@ export default function CartPage() {
 
               <div className="savingsMessage">
                 <span className="checkIcon">✓</span> You will save ₹{discount.toFixed(2)} on this order
+              </div>
+
+              <div style={{ marginTop: 12, padding: '10px 12px', background: '#fff', borderRadius: 8, border: '1px solid #eee' }}>
+                <DeliveryInfo />
               </div>
 
               <div className="securityBadge">
@@ -608,5 +613,30 @@ export default function CartPage() {
         `}</style>
       </main>
     </ShopLayout>
+  )
+}
+
+function DeliveryInfo() {
+  const { deliveryType, estimatedTime, detectUserLocation, distanceKm } = useDelivery()
+  return (
+    <div>
+      {deliveryType === 'fast' && (
+        <div style={{ fontWeight: 700, color: '#0a7c42', fontSize: 14 }}>Fast Delivery Available</div>
+      )}
+      {deliveryType === 'normal' && (
+        <div style={{ fontWeight: 700, color: '#b45309', fontSize: 14 }}>Standard Delivery</div>
+      )}
+      {!deliveryType && (
+        <div style={{ color: '#888', fontSize: 13 }}>Delivery info unavailable</div>
+      )}
+      <div style={{ fontSize: 13, color: '#555', marginTop: 2 }}>
+        {deliveryType === 'fast' && estimatedTime ? `Delivered in ${estimatedTime}` : null}
+        {deliveryType === 'normal' && estimatedTime ? `Delivery ${estimatedTime}` : null}
+        {distanceKm ? ` • ${distanceKm} km` : ''}
+      </div>
+      <div style={{ marginTop: 8 }}>
+        <button onClick={() => detectUserLocation().catch(() => {})} className="shopNowBtn" style={{ fontSize: 12, padding: '6px 14px' }}>Detect My Location</button>
+      </div>
+    </div>
   )
 }

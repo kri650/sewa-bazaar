@@ -1,0 +1,23 @@
+// Auto-extracted from pages/baby-care.js
+export const babyCareProducts = [
+  { id: 'baby-diapers', name: 'Baby Diapers (Medium)', price: 450.00, size: '46 PCS', image: 'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=400&q=80' },
+  { id: 'baby-wipes', name: 'Baby Wet Wipes', price: 120.00, size: '80 PCS', image: 'https://images.unsplash.com/photo-1584583570840-1e5d42df07c5?w=400&q=80' },
+  { id: 'baby-lotion', name: 'Baby Body Lotion', price: 180.00, size: '200 ML', image: 'https://images.unsplash.com/photo-1607748851746-0eecef527761?w=400&q=80' },
+  { id: 'baby-shampoo', name: 'Gentle Baby Shampoo', price: 220.00, size: '200 ML', image: 'https://images.unsplash.com/photo-1608906622171-75ac03e33c75?w=400&q=80' },
+  { id: 'baby-soap', name: 'Mild Baby Soap', price: 45.00, size: '125 GM', image: 'https://images.unsplash.com/photo-1584583570840-1e5d42df07c5?w=400&q=80' },
+  { id: 'baby-powder', name: 'Baby Powder', price: 140.00, size: '200 GM', image: 'https://images.unsplash.com/photo-1607748851746-0eecef527761?w=400&q=80' },
+  { id: 'baby-oil', name: 'Nourishing Baby Oil', price: 160.00, size: '200 ML', image: 'https://images.unsplash.com/photo-1608906622171-75ac03e33c75?w=400&q=80' },
+  { id: 'baby-cream', name: 'Baby Moisturizing Cream', price: 150.00, size: '100 GM', image: 'https://images.unsplash.com/photo-1607748851746-0eecef527761?w=400&q=80' },
+  { id: 'baby-wash', name: 'Baby Body Wash', price: 200.00, size: '200 ML', image: 'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=400&q=80' },
+  { id: 'feeding-bottle', name: 'Baby Feeding Bottle', price: 180.00, size: '250 ML', image: 'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=400&q=80' },
+  { id: 'baby-toothbrush', name: 'Baby Toothbrush', price: 60.00, size: '1 PC', image: 'https://images.unsplash.com/photo-1559058922-4c79d050e4ab?w=400&q=80' },
+  { id: 'baby-toothpaste', name: 'Baby Toothpaste', price: 80.00, size: '50 GM', image: 'https://images.unsplash.com/photo-1584583570840-1e5d42df07c5?w=400&q=80' },
+  { id: 'baby-towel', name: 'Soft Baby Towel', price: 250.00, size: '1 PC', image: 'https://images.unsplash.com/photo-1584583570840-1e5d42df07c5?w=400&q=80' },
+  { id: 'baby-blanket', name: 'Cozy Baby Blanket', price: 450.00, size: '1 PC', image: 'https://images.unsplash.com/photo-1584583570840-1e5d42df07c5?w=400&q=80' },
+  { id: 'baby-shampoo-pack', name: 'Baby Shampoo + Conditioner', price: 380.00, size: '2 x 200 ML', image: 'https://images.unsplash.com/photo-1608906622171-75ac03e33c75?w=400&q=80' },
+  { id: 'baby-care-kit', name: 'Complete Baby Care Kit', price: 850.00, size: '1 SET', image: 'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=400&q=80' },
+  { id: 'baby-moisturizer', name: 'Baby Face Moisturizer', price: 130.00, size: '100 GM', image: 'https://images.unsplash.com/photo-1607748851746-0eecef527761?w=400&q=80' },
+  { id: 'baby-body-wash', name: 'Tearfree Baby Body Wash', price: 220.00, size: '250 ML', image: 'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=400&q=80' },
+  { id: 'baby-hair-oil', name: 'Baby Hair Oil', price: 140.00, size: '100 ML', image: 'https://images.unsplash.com/photo-1608906622171-75ac03e33c75?w=400&q=80' },
+  { id: 'baby-diaper-pants', name: 'Baby Diaper Pants (Large)', price: 520.00, size: '40 PCS', image: 'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=400&q=80' },
+]

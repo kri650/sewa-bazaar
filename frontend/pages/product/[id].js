@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import ShopLayout from '../../components/ShopLayout';
 import { useCart } from '../../contexts/CartContext';
 
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
+
 // All product data from homepage
 const allProducts = [
   // Fresh Vegetables
@@ -49,13 +51,7 @@ const allProducts = [
   { id: '8', name: "Ivy Gourd", price: 40.00, size: "500 GM", image: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/...", category: 'Vegetables', description: 'Fresh ivy gourd, perfect for stir-fries and traditional dishes.' },
 ];
 
-// Sample reviews
-const sampleReviews = [
-  { id: 1, name: 'Priya Sharma', rating: 5, date: '2 days ago', comment: 'Excellent quality! Fresh and exactly as described. Will order again!', avatar: 'https://i.pravatar.cc/150?img=1' },
-  { id: 2, name: 'Rajesh Kumar', rating: 5, date: '1 week ago', comment: 'Very fresh and delivered on time. Great service!', avatar: 'https://i.pravatar.cc/150?img=12' },
-  { id: 3, name: 'Anita Desai', rating: 4, date: '2 weeks ago', comment: 'Good quality product. Packaging could be better.', avatar: 'https://i.pravatar.cc/150?img=5' },
-  { id: 4, name: 'Amit Patel', rating: 5, date: '3 weeks ago', comment: 'Best organic produce! Highly recommended.', avatar: 'https://i.pravatar.cc/150?img=13' },
-];
+// Reviews are stored per-product in localStorage under the key `reviews:{productId}`
 
 export default function ProductDetailPage() {
   const router = useRouter();
@@ -66,41 +62,141 @@ export default function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('description');
+  const [reviews, setReviews] = useState([])
+  const [newReview, setNewReview] = useState({ name: '', rating: 5, comment: '' })
+
+  // Sewa Bazaar Minutes delivery state
+  const [deliveryInfo, setDeliveryInfo] = useState(null)   // null = checking, false = no geo, object = result
+  const [geoStatus, setGeoStatus] = useState('idle')       // idle | checking | done | denied | error
 
   useEffect(() => {
     if (!id) return;
 
     const idValue = Array.isArray(id) ? id[0] : id;
     const queryData = router.query || {};
+
+    // 1. Check local hardcoded list first
     const found = allProducts.find((p) => p.id === idValue);
 
-    let normalized = found || null;
-    if (!normalized && queryData.name) {
+    if (found) {
+      // If query has a better image (from admin product), prefer it
+      const betterImage = queryData.image && !queryData.image.startsWith('data:') ? queryData.image : found.image;
+      setProduct({
+        ...found,
+        image: betterImage,
+        inStock: true,
+        rating: 0,
+        totalReviews: 0,
+      });
+      setLoading(false);
+      return;
+    }
+
+    // 2. Try query params (passed from homepage card click)
+    if (queryData.name) {
       const parsedPrice = Number(queryData.price);
-      normalized = {
+      setProduct({
         id: idValue,
         name: String(queryData.name),
         price: Number.isFinite(parsedPrice) ? parsedPrice : 0,
         size: String(queryData.size || '1 Unit'),
         image: String(queryData.image || ''),
         category: String(queryData.category || 'Products'),
-        description: `Fresh ${String(queryData.name)} from our collection.`,
-      };
+        description: queryData.description || `Fresh ${String(queryData.name)} from our collection.`,
+        inStock: true,
+        rating: 0,
+        totalReviews: 0,
+      });
+      setLoading(false);
+      return;
     }
 
-    if (normalized) {
-      setProduct({
-        ...normalized,
-        inStock: true,
-        reviews: sampleReviews,
-        rating: 4.8,
-        totalReviews: sampleReviews.length,
-      });
-    } else {
-      setProduct(null);
-    }
-    setLoading(false);
+    // 3. Fetch from backend API (admin-added products)
+    fetch(`${API_BASE}/products/${idValue}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data && data.name) {
+          setProduct({
+            id: String(data.id),
+            name: data.name,
+            price: Number(data.price) || 0,
+            size: data.unit || '1 Unit',
+            image: data.image || '',
+            category: data.category || 'Products',
+            description: data.description || `Fresh ${data.name} from our collection.`,
+            inStock: true,
+            rating: 0,
+            totalReviews: 0,
+          });
+        } else {
+          setProduct(null);
+        }
+      })
+      .catch(() => setProduct(null))
+      .finally(() => setLoading(false));
   }, [id, router.query]);
+
+  // Load reviews from localStorage when product is available
+  useEffect(() => {
+    if (!product) return
+    const key = `reviews:${product.id}`
+    try {
+      const saved = localStorage.getItem(key)
+      const list = saved ? JSON.parse(saved) : []
+      setReviews(Array.isArray(list) ? list : [])
+    } catch (e) { setReviews([]) }
+  }, [product])
+
+  // ── Sewa Bazaar Minutes: check if user is within fast-delivery radius ──
+  useEffect(() => {
+    if (!product) return
+    if (!navigator.geolocation) { setGeoStatus('denied'); return }
+    setGeoStatus('checking')
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const uLat = pos.coords.latitude
+        const uLng = pos.coords.longitude
+        // Pass product's own lat/lng if set by admin (non-zero)
+        const pLat = product.latitude || 0
+        const pLng = product.longitude || 0
+        const plParams = (pLat !== 0 || pLng !== 0) ? `&plat=${pLat}&plng=${pLng}` : ''
+        fetch(`/api/delivery/check-distance?lat=${uLat}&lng=${uLng}${plParams}`)
+          .then((r) => r.ok ? r.json() : null)
+          .then((data) => {
+            setDeliveryInfo(data)
+            setGeoStatus('done')
+          })
+          .catch(() => { setGeoStatus('error') })
+      },
+      () => { setGeoStatus('denied') },
+      { timeout: 8000, maximumAge: 300000 }
+    )
+  }, [product])
+
+  const saveReviews = (list) => {
+    if (!product) return
+    const key = `reviews:${product.id}`
+    try {
+      localStorage.setItem(key, JSON.stringify(list))
+    } catch (e) {}
+  }
+
+  const handleSubmitReview = (e) => {
+    e.preventDefault()
+    if (!product) return
+    const entry = {
+      id: Date.now(),
+      name: newReview.name.trim() || 'Anonymous',
+      rating: Number(newReview.rating) || 5,
+      comment: newReview.comment.trim() || '',
+      date: new Date().toLocaleString('en-IN', { dateStyle: 'medium' }),
+    }
+    const updated = [entry, ...reviews]
+    setReviews(updated)
+    saveReviews(updated)
+    setNewReview({ name: '', rating: 5, comment: '' })
+    setActiveTab('reviews')
+  }
 
   const updateQty = (delta) => {
     setQuantity(prev => Math.max(1, prev + delta));
@@ -109,9 +205,19 @@ export default function ProductDetailPage() {
   const handleAddToCart = () => {
     if (product) {
       addToCart(product, quantity);
-      alert(`Added ${quantity} x ${product.name} to cart!`);
+      // simple confirmation; header/cart badge will reflect the change via context
+      // keep user on the product page after adding
+      // (could be replaced with a nicer toast component later)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     }
   };
+
+  const handleBuyNow = () => {
+    if (!product) return
+    // Add to cart (ensures item is in cart) then navigate to cart/checkout
+    addToCart(product, quantity)
+    router.push('/cart')
+  }
 
   const formatRupees = (amount) => `Rs. ${amount.toLocaleString('en-IN', {
     minimumFractionDigits: 2,
@@ -207,10 +313,95 @@ export default function ProductDetailPage() {
               {/* Action Buttons */}
               <div className="action-buttons">
                 <button className="add-to-cart-btn-large" onClick={handleAddToCart}>
-                  🛒 Add to Cart
+                  Add to Cart
                 </button>
-                <button className="buy-now-btn">Buy Now</button>
+                <button className="buy-now-btn" onClick={handleBuyNow}>Buy Now</button>
               </div>
+
+              {/* ── Sewa Bazaar Minutes Delivery Badge ── */}
+              {geoStatus === 'checking' && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  background: '#f0fdf4', border: '1px solid #bbf7d0',
+                  borderRadius: 10, padding: '10px 16px', marginTop: 14,
+                  fontSize: 13, color: '#15803d',
+                }}>
+                  <span style={{ fontSize: 18, animation: 'spin 1s linear infinite', display: 'inline-block' }}>⏳</span>
+                  Checking delivery availability for your location…
+                </div>
+              )}
+
+              {geoStatus === 'done' && deliveryInfo?.sewa_minutes_eligible && (
+                <div style={{
+                  background: 'linear-gradient(135deg, #064e3b 0%, #065f46 60%, #047857 100%)',
+                  borderRadius: 12, padding: '14px 18px', marginTop: 14,
+                  display: 'flex', alignItems: 'center', gap: 14,
+                  boxShadow: '0 4px 18px rgba(4,120,87,0.32)',
+                  position: 'relative', overflow: 'hidden',
+                }}>
+                  {/* lightning bolt accent */}
+                  <div style={{
+                    position: 'absolute', right: -10, top: -10,
+                    fontSize: 72, opacity: 0.08, userSelect: 'none',
+                    lineHeight: 1,
+                  }}>⚡</div>
+                  <div style={{
+                    background: '#10b981', borderRadius: '50%',
+                    width: 46, height: 46, display: 'flex',
+                    alignItems: 'center', justifyContent: 'center',
+                    fontSize: 22, flexShrink: 0,
+                    boxShadow: '0 2px 8px rgba(16,185,129,0.5)',
+                  }}>⚡</div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <span style={{
+                        color: '#fff', fontWeight: 800, fontSize: 15, letterSpacing: 0.2,
+                      }}>Sewa Bazaar Minutes</span>
+                      <span style={{
+                        background: '#10b981', color: '#fff', fontSize: 10,
+                        fontWeight: 800, padding: '2px 8px', borderRadius: 20,
+                        letterSpacing: 0.8, textTransform: 'uppercase',
+                      }}>10 MIN</span>
+                    </div>
+                    <div style={{ color: '#6ee7b7', fontSize: 12, marginTop: 3 }}>
+                      You are within {deliveryInfo.fast_radius_km} km — ultra-fast delivery to your door!
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {geoStatus === 'done' && deliveryInfo && !deliveryInfo.sewa_minutes_eligible && (
+                <div style={{
+                  background: '#fafafa', border: '1px solid #e5e7eb',
+                  borderRadius: 10, padding: '12px 16px', marginTop: 14,
+                  display: 'flex', alignItems: 'center', gap: 12,
+                }}>
+                  <span style={{ fontSize: 20 }}>🚚</span>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 13, color: '#374151' }}>Standard Delivery</div>
+                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>
+                      Estimated {deliveryInfo.estimated_time} · {deliveryInfo.distance} km from nearest delivery point
+                    </div>
+                    <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>
+                      ⚡ Sewa Bazaar Minutes not available — outside {deliveryInfo.fast_radius_km} km zone
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {geoStatus === 'denied' && (
+                <div style={{
+                  background: '#fffbeb', border: '1px solid #fde68a',
+                  borderRadius: 10, padding: '10px 16px', marginTop: 14,
+                  fontSize: 12, color: '#92400e', display: 'flex', gap: 8, alignItems: 'flex-start',
+                }}>
+                  <span style={{ fontSize: 16 }}>📍</span>
+                  <div>
+                    <strong>Allow location access</strong> to check if you are eligible for
+                    <span style={{ fontWeight: 700, color: '#065f46' }}> Sewa Bazaar Minutes</span> (10-min delivery).
+                  </div>
+                </div>
+              )}
 
               {/* Features */}
               <div className="product-features">
@@ -281,17 +472,34 @@ export default function ProductDetailPage() {
                 <div className="tab-panel reviews-panel">
                   <div className="reviews-summary">
                     <div className="rating-overview">
-                      <div className="rating-number">{product.rating}</div>
-                      <div className="rating-stars">{renderStars(product.rating)}</div>
-                      <div className="rating-count">Based on {product.totalReviews} reviews</div>
+                      <div className="rating-number">{reviews.length ? ( (reviews.reduce((s,r)=>s+r.rating,0)/reviews.length).toFixed(1) ) : '—'}</div>
+                      <div className="rating-stars">{reviews.length ? renderStars(Math.round(reviews.reduce((s,r)=>s+r.rating,0)/reviews.length)) : renderStars(0)}</div>
+                      <div className="rating-count">Based on {reviews.length} review{reviews.length !== 1 ? 's' : ''}</div>
                     </div>
                   </div>
 
+                  <div style={{ marginTop: 12 }}>
+                    <form onSubmit={handleSubmitReview} className="review-form">
+                      <div style={{ display:'flex', gap:8, marginBottom:8 }}>
+                        <input placeholder="Your name" value={newReview.name} onChange={e => setNewReview(n => ({...n, name: e.target.value}))} />
+                        <select value={newReview.rating} onChange={e => setNewReview(n => ({...n, rating: e.target.value}))}>
+                          {[5,4,3,2,1].map(r => <option key={r} value={r}>{r} Stars</option>)}
+                        </select>
+                      </div>
+                      <textarea placeholder="Write your review" value={newReview.comment} onChange={e => setNewReview(n => ({...n, comment: e.target.value}))} rows={4} />
+                      <div style={{ marginTop: 8, display:'flex', gap:8 }}>
+                        <button type="submit" className="add-review-btn">Submit Review</button>
+                        <button type="button" className="cancel-review-btn" onClick={() => setNewReview({ name: '', rating: 5, comment: '' })}>Clear</button>
+                      </div>
+                    </form>
+                  </div>
+
                   <div className="reviews-list">
-                    {product.reviews.map((review) => (
+                    {reviews.length === 0 && <div style={{color:'#777',padding:20}}>No reviews yet — be the first to review.</div>}
+                    {reviews.map((review) => (
                       <div key={review.id} className="review-item">
                         <div className="review-header">
-                          <img src={review.avatar} alt={review.name} className="review-avatar" />
+                          <div style={{width:44,height:44,borderRadius:44,background:'#eee',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,color:'#666'}}>{(review.name||'A').charAt(0).toUpperCase()}</div>
                           <div className="review-info">
                             <div className="review-name">{review.name}</div>
                             <div className="review-meta">
@@ -304,8 +512,6 @@ export default function ProductDetailPage() {
                       </div>
                     ))}
                   </div>
-
-                  <button className="write-review-btn">Write a Review</button>
                 </div>
               )}
 

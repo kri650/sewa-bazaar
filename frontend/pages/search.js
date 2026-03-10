@@ -1,51 +1,51 @@
- 'use client'
 import { useRouter } from 'next/router'
 import { useState, useEffect } from 'react'
 import ShopLayout from '../components/ShopLayout'
 import { useCart } from '../contexts/CartContext'
-import allProducts from '../data/products'
 
-export default function SearchPage() {
+export default function SearchPage({ allProducts }) {
   const router = useRouter()
-  const { q } = router.query || {}
-  const [effectiveQuery, setEffectiveQuery] = useState('')
+  const { q } = router.query
   const [searchResults, setSearchResults] = useState([])
   const [quantities, setQuantities] = useState({})
   const { addToCart } = useCart()
 
   useEffect(() => {
-    // Support both client-routed and full-page loads (static export)
-    let query = q
-    if (!query && typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search)
-      query = params.get('q')
-    }
-
-    if (query) {
-      setEffectiveQuery(String(query))
-      const searchTerm = String(query).toLowerCase().trim()
-
-      // Split into tokens. ALL tokens must match for a product to appear.
-      // e.g. "ginger"  → only products containing "ginger"
-      //      "organic ginger" → only products containing BOTH "organic" AND "ginger"
-      //      "gi"  → products whose name/category contains "gi" (so Ginger matches)
-      const tokens = searchTerm.split(/\s+/).filter(Boolean)
+    // Tokenize the query and perform a case-insensitive match across multiple fields.
+    if (q) {
+      const query = String(q)
+      const tokens = query
+        .toLowerCase()
+        .split(/\s+/)
+        .map(t => t.trim())
+        .filter(Boolean)
 
       const results = allProducts.filter(product => {
-        const name = product.name.toLowerCase()
-        const category = (product.category || '').toLowerCase()
-        const searchable = name + ' ' + category
+        // Concatenate searchable fields for this product
+        const haystack = [
+          product.name,
+          product.category,
+          product.id,
+          product.size || product.unit || '',
+          product.description || '',
+        ]
+          .join(' ')
+          .toLowerCase()
 
-        // Every token must appear somewhere in name+category
-        return tokens.every(t => searchable.includes(t))
+        // Require every token to appear somewhere in the haystack
+        return tokens.every(token => haystack.includes(token))
       })
 
       setSearchResults(results)
 
-      // Initialize quantities
+      // Initialize quantities for results
       const initialQty = {}
-      results.forEach(p => initialQty[p.id] = 1)
+      results.forEach(p => (initialQty[p.id] = 1))
       setQuantities(initialQty)
+    } else {
+      // Clear results when no query is present
+      setSearchResults([])
+      setQuantities({})
     }
   }, [q])
 
@@ -74,9 +74,9 @@ export default function SearchPage() {
       <div className="searchPage">
         <div className="searchHeader">
           <h1>Search Results</h1>
-          {effectiveQuery && (
+          {q && (
             <p className="searchQuery">
-              Showing results for: <strong>"{effectiveQuery}"</strong>
+              Showing results for: <strong>"{q}"</strong>
             </p>
           )}
           <p className="resultCount">
@@ -96,49 +96,38 @@ export default function SearchPage() {
             <p>Try searching with different keywords</p>
           </div>
         ) : (
-          <div className="product-grid">
+          <div className="productGrid">
             {searchResults.map((product) => {
               const currentQty = quantities[product.id] || 1
               const totalAmount = (product.price * currentQty).toFixed(2)
 
               return (
-                <div className="product-item" key={product.id}>
-                  <div
-                    className="img-holder"
-                    onClick={() => handleProductClick(product)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      onError={(e) => {
-                        e.currentTarget.onerror = null
-                        e.currentTarget.style.display = 'none'
-                        e.currentTarget.parentElement.classList.add('img-missing')
-                      }}
-                    />
+                <div key={product.id} className="productCard">
+                  <div className="productImage" onClick={() => handleProductClick(product)} style={{ cursor: 'pointer' }}>
+                    <div className="imagePlaceholder">
+                      <span>Fresh Organic</span>
+                    </div>
                   </div>
+                  
+                  <div className="productInfo">
+                    <span className="productCategory">{product.category}</span>
+                    <h3 className="productName" onClick={() => handleProductClick(product)} style={{ cursor: 'pointer' }}>{product.name}</h3>
+                    <div className="productPrice">₹{totalAmount}</div>
+                    <div className="productUnit">{product.unit}</div>
 
-                  <h4
-                    className="p-title"
-                    onClick={() => handleProductClick(product)}
-                    style={{ cursor: 'pointer' }}
-                  >{product.name}</h4>
-                  <div className="p-amount">Rs. {totalAmount}</div>
-                  <div className="p-unit-badge">{product.unit}</div>
+                    <div className="quantityControls">
+                      <button onClick={() => updateQty(product.id, -1)}>−</button>
+                      <input type="text" value={currentQty} readOnly />
+                      <button onClick={() => updateQty(product.id, 1)}>+</button>
+                    </div>
 
-                  <div className="qty-picker">
-                    <button onClick={(e) => { e.stopPropagation(); updateQty(product.id, -1) }}>-</button>
-                    <input type="text" value={currentQty} readOnly />
-                    <button onClick={(e) => { e.stopPropagation(); updateQty(product.id, 1) }}>+</button>
+                    <button
+                      className="addToCartBtn"
+                      onClick={() => addToCart(product, currentQty)}
+                    >
+                      Add to Cart
+                    </button>
                   </div>
-
-                  <button
-                    className="add-to-cart-btn"
-                    onClick={(e) => { e.stopPropagation(); addToCart(product, currentQty) }}
-                  >
-                    Add to Cart
-                  </button>
                 </div>
               )
             })}
@@ -146,34 +135,34 @@ export default function SearchPage() {
         )}
       </div>
 
-      <style jsx global>{`
+      <style jsx>{`
         .searchPage {
           max-width: 1400px;
           margin: 0 auto;
-          padding: 40px 5%;
+          padding: 40px 20px;
           min-height: 60vh;
         }
 
         .searchHeader {
           text-align: center;
-          margin-bottom: 50px;
+          margin-bottom: 40px;
         }
 
         .searchHeader h1 {
-          font-size: 38px;
+          font-size: 36px;
           font-weight: 800;
           color: #333;
-          margin-bottom: 8px;
+          margin: 0 0 10px;
         }
 
         .searchQuery {
-          font-size: 16px;
+          font-size: 18px;
           color: #666;
-          margin: 8px 0;
+          margin: 10px 0;
         }
 
         .searchQuery strong {
-          color: #6aa333;
+          color: #619233;
         }
 
         .resultCount {
@@ -187,6 +176,11 @@ export default function SearchPage() {
           padding: 60px 20px;
         }
 
+        .noResultsIcon {
+          color: #ddd;
+          margin-bottom: 20px;
+        }
+
         .noResults h2 {
           font-size: 24px;
           color: #333;
@@ -198,113 +192,113 @@ export default function SearchPage() {
           color: #666;
         }
 
-        /* ── Product grid: identical to product pages ── */
-        .product-grid {
+        .productGrid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
           gap: 30px;
         }
 
-        .product-item {
+        .productCard {
           border: 1px solid #f2f2f2;
           border-radius: 12px;
-          padding: 20px;
-          text-align: center;
-          display: flex;
-          flex-direction: column;
-          transition: all 0.3s ease;
-          background: #fff;
-        }
-
-        .product-item:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 12px 30px rgba(0,0,0,0.07);
-        }
-
-        .img-holder {
-          height: 180px;
-          background: #f8faf3;
-          border-radius: 10px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin-bottom: 15px;
           overflow: hidden;
+          background: #fff;
+          transition: all 0.3s ease;
         }
 
-        .img-holder img {
-          max-height: 100%;
-          max-width: 100%;
-          object-fit: contain;
-          transition: transform 0.3s ease;
+        .productCard:hover {
+          transform: translateY(-5px);
+          box-shadow: 0 12px 30px rgba(0,0,0,0.08);
         }
 
-        .product-item:hover .img-holder img {
-          transform: scale(1.06);
+        .productImage {
+          height: 200px;
+          background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+          display: grid;
+          place-items: center;
         }
 
-        .img-holder.img-missing::after {
-          content: '🌿';
-          font-size: 52px;
-          opacity: 0.35;
+        .imagePlaceholder {
+          text-align: center;
+          color: #999;
+          font-size: 14px;
+          padding: 20px;
         }
 
-        .p-title {
-          font-size: 15px;
+        .productInfo {
+          padding: 20px;
+        }
+
+        .productCategory {
+          font-size: 12px;
+          color: #619233;
           font-weight: 600;
-          color: #444;
-          height: 40px;
-          margin: 5px 0;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
 
-        .p-amount {
-          font-size: 18px;
+        .productName {
+          font-size: 16px;
+          font-weight: 600;
+          color: #333;
+          margin: 8px 0;
+          min-height: 48px;
+          line-height: 1.5;
+        }
+
+        .productPrice {
+          font-size: 20px;
           font-weight: 700;
           color: #111;
-          margin-bottom: 6px;
+          margin: 10px 0 5px;
         }
 
-        .p-unit-badge {
-          font-size: 11px;
-          background: #f8f8f8;
+        .productUnit {
+          font-size: 12px;
           color: #888;
+          background: #f8f8f8;
           padding: 4px 12px;
           border-radius: 4px;
           display: inline-block;
-          align-self: center;
-          margin-bottom: 20px;
-          font-weight: bold;
+          margin-bottom: 15px;
         }
 
-        .qty-picker {
+        .quantityControls {
           display: flex;
           border: 1px solid #e0e0e0;
           border-radius: 6px;
           overflow: hidden;
-          align-self: center;
           margin-bottom: 15px;
+          width: fit-content;
         }
 
-        .qty-picker button {
+        .quantityControls button {
           background: #fff;
           border: none;
           padding: 8px 15px;
           cursor: pointer;
           font-size: 18px;
+          color: #333;
+          transition: background 0.2s;
         }
 
-        .qty-picker input {
-          width: 40px;
+        .quantityControls button:hover {
+          background: #f5f5f5;
+        }
+
+        .quantityControls input {
+          width: 50px;
           text-align: center;
+          border: none;
           border-left: 1px solid #e0e0e0;
           border-right: 1px solid #e0e0e0;
-          border-top: none;
-          border-bottom: none;
           font-weight: 600;
+          color: #333;
         }
 
-        .add-to-cart-btn {
-          background: #6aa333;
+        .addToCartBtn {
+          width: 100%;
+          background: #619233;
           color: #fff;
           border: none;
           padding: 12px;
@@ -312,26 +306,57 @@ export default function SearchPage() {
           font-weight: 700;
           font-size: 14px;
           cursor: pointer;
-          margin-top: auto;
-          transition: background 0.2s;
+          transition: all 0.2s;
         }
 
-        .add-to-cart-btn:hover {
-          background: #5a8d2a;
+        .addToCartBtn:hover {
+          background: #4f7a29;
+          transform: translateY(-2px);
         }
 
         @media (max-width: 768px) {
-          .searchPage { padding: 30px 4%; }
-          .searchHeader h1 { font-size: 28px; }
-          .product-grid {
+          .searchPage {
+            padding: 30px 15px;
+          }
+
+          .searchHeader h1 {
+            font-size: 28px;
+          }
+
+          .productGrid {
             grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
             gap: 15px;
           }
-          .img-holder { height: 140px; }
-          .p-title { font-size: 13px; height: 36px; }
-          .p-amount { font-size: 15px; }
+
+          .productImage {
+            height: 150px;
+          }
+
+          .productInfo {
+            padding: 15px;
+          }
+
+          .productName {
+            font-size: 14px;
+            min-height: 40px;
+          }
+
+          .productPrice {
+            font-size: 16px;
+          }
         }
       `}</style>
     </ShopLayout>
   )
+}
+
+// Force Next.js to include the product data in the bundle
+export async function getStaticProps() {
+  const allProducts = (await import('../data/products')).default
+  
+  return {
+    props: {
+      allProducts
+    }
+  }
 }

@@ -1,6 +1,8 @@
 import { useRouter } from 'next/router'
 import { useState } from 'react'
 import { useCart } from '../contexts/CartContext'
+import styles from '../styles/product.module.css'
+import { useDelivery } from '../contexts/DeliveryContext'
 
 const parseRupees = (price) => Number(String(price ?? '').replace(/[^\d.]/g, '')) || 0
 const formatRupees = (amount) =>
@@ -16,6 +18,7 @@ export default function CategoryPage({
   const router = useRouter()
   const { addToCart } = useCart()
   const [quantities, setQuantities] = useState(() => products.map(() => 1))
+  const { deliveryType, estimatedTime, estimatedMinutesMin, estimatedMinutesMax } = useDelivery()
 
   const changeQty = (index, delta) => {
     setQuantities((prev) =>
@@ -54,7 +57,25 @@ export default function CategoryPage({
             const normalizedSize = product.size || product.unit || ''
 
             return (
-              <article className="productCard" key={routeId}>
+              <article className={styles.productCard || 'productCard'} key={routeId}>
+                  {/* Delivery ETA badge – Flipkart style */}
+                  {deliveryType && estimatedTime && (
+                    <div className={styles.etaBadge || 'etaBadge'} style={{
+                      background: deliveryType === 'fast' ? '#e6f9f0' : '#fff8e1',
+                      color: deliveryType === 'fast' ? '#0a7c42' : '#b45309',
+                      border: `1px solid ${deliveryType === 'fast' ? '#86efac' : '#fcd34d'}`,
+                      borderRadius: 5,
+                      padding: '3px 7px',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      display: 'inline-block',
+                      marginBottom: 4,
+                    }}>
+                      {deliveryType === 'fast'
+                        ? `Delivery in ${estimatedTime}`
+                        : `Delivery ${estimatedTime}`}
+                    </div>
+                  )}
                 <div
                   className="productImageWrap"
                   onClick={() => handleProductClick(product, routeId)}

@@ -1,8 +1,7 @@
-"use client";
 import ShopLayout from '../../components/ShopLayout';
 import CategoryPage from '../../components/CategoryPage';
 
-export const fruitProducts = [
+const fruitProducts = [
   {
     id: 1,
     name: 'Premium Alphonso Mango',

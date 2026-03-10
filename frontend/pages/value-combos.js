@@ -1,8 +1,5 @@
-"use client";
 import React, { useState } from "react";
-import { useRouter } from "next/router";
-import ShopLayout from '../components/ShopLayout';
-import { addToCart } from '../components/cartStore';
+import ShopLayout from './components/ShopLayout';
 
 const valueCombos = [
   { id: 1, name: 'Family Veg Combo', price: 399.00, size: '5 KG', image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=600', description: 'Balanced selection of everyday vegetables for a family of 4.' },
@@ -14,8 +11,6 @@ const valueCombos = [
 ];
 
 export default function ValueCombos() {
-  const router = useRouter();
-
   // Independent quantity state for each combo pack
   const [quantities, setQuantities] = useState(
     valueCombos.reduce((acc, product) => ({ ...acc, [product.id]: 1 }), {})
@@ -26,20 +21,6 @@ export default function ValueCombos() {
       ...prev,
       [id]: Math.max(1, prev[id] + delta)
     }));
-  };
-
-  const handleProductClick = (product) => {
-    const productId = `value-combo-${product.id}`;
-    router.push({
-      pathname: `/product/${productId}`,
-      query: {
-        name: product.name,
-        price: product.price,
-        size: product.size,
-        image: product.image,
-        category: 'Value Combos',
-      },
-    });
   };
 
   return (
@@ -60,11 +41,11 @@ export default function ValueCombos() {
 
             return (
               <div className="product-card" key={item.id}>
-                <div className="img-holder" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
+                <div className="img-holder">
                   <img src={item.image} alt={item.name} />
                 </div>
                 
-                <h4 className="p-title" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>{item.name}</h4>
+                <h4 className="p-title">{item.name}</h4>
                 <div className="p-amount">Rs. {totalAmount}</div>
                 <div className="p-unit-badge">{item.size}</div>
 
@@ -76,7 +57,7 @@ export default function ValueCombos() {
                 </div>
                 
                 {/* Green Add to Cart Button */}
-                <button className="add-to-cart-btn" onClick={() => addToCart(item, currentQty)}>
+                <button className="add-to-cart-btn" onClick={() => console.log('Added:', item.name)}>
                   Add to Cart
                 </button>
               </div>

@@ -1,0 +1,23 @@
+// Auto-extracted from pages/soap-detergents.js
+export const soapDetergentsProducts = [
+  { id: 'laundry-detergent', name: 'Laundry Detergent Powder', price: 280.00, size: '2 KG', image: 'https://images.unsplash.com/photo-1563911302283-d2bc129e7570?w=400&q=80' },
+  { id: 'detergent-powder', name: 'Premium Detergent Powder', price: 320.00, size: '3 KG', image: 'https://images.unsplash.com/photo-1627935719440-0d38a8d09e43?w=400&q=80' },
+  { id: 'detergent-liquid', name: 'Liquid Detergent', price: 240.00, size: '1 L', image: 'https://images.unsplash.com/photo-1627935719440-0d38a8d09e43?w=400&q=80' },
+  { id: 'washing-bar', name: 'Washing Bar Soap', price: 45.00, size: '250 GM', image: 'https://images.unsplash.com/photo-1563911302283-d2bc129e7570?w=400&q=80' },
+  { id: 'dish-wash-liquid', name: 'Dishwash Liquid', price: 120.00, size: '500 ML', image: 'https://images.unsplash.com/photo-1585421514738-7c7e13c7e553?w=400&q=80' },
+  { id: 'dish-wash-bar', name: 'Dishwash Bar', price: 15.00, size: '200 GM', image: 'https://images.unsplash.com/photo-1585421514738-7c7e13c7e553?w=400&q=80' },
+  { id: 'floor-cleaner', name: 'Floor Cleaner Liquid', price: 160.00, size: '1 L', image: 'https://images.unsplash.com/photo-1628177142898-93e36e4e3a50?w=400&q=80' },
+  { id: 'toilet-cleaner', name: 'Toilet Bowl Cleaner', price: 95.00, size: '500 ML', image: 'https://images.unsplash.com/photo-1585421514738-7c7e13c7e553?w=400&q=80' },
+  { id: 'fabric-softener', name: 'Fabric Softener', price: 180.00, size: '1 L', image: 'https://images.unsplash.com/photo-1627935719440-0d38a8d09e43?w=400&q=80' },
+  { id: 'stain-remover', name: 'Stain Remover Spray', price: 140.00, size: '500 ML', image: 'https://images.unsplash.com/photo-1563911302283-d2bc129e7570?w=400&q=80' },
+  { id: 'cleaning-powder', name: 'Surface Cleaning Powder', price: 85.00, size: '500 GM', image: 'https://images.unsplash.com/photo-1628177142898-93e36e4e3a50?w=400&q=80' },
+  { id: 'glass-cleaner', name: 'Glass & Window Cleaner', price: 110.00, size: '500 ML', image: 'https://images.unsplash.com/photo-1628177142898-93e36e4e3a50?w=400&q=80' },
+  { id: 'surface-cleaner', name: 'Multipurpose Surface Cleaner', price: 130.00, size: '500 ML', image: 'https://images.unsplash.com/photo-1628177142898-93e36e4e3a50?w=400&q=80' },
+  { id: 'kitchen-cleaner', name: 'Kitchen Grease Cleaner', price: 125.00, size: '500 ML', image: 'https://images.unsplash.com/photo-1585421514738-7c7e13c7e553?w=400&q=80' },
+  { id: 'hand-wash-liquid', name: 'Hand Wash Liquid Refill', price: 90.00, size: '500 ML', image: 'https://images.unsplash.com/photo-1585421514738-7c7e13c7e553?w=400&q=80' },
+  { id: 'multipurpose-cleaner', name: 'All-Purpose Cleaner', price: 150.00, size: '1 L', image: 'https://images.unsplash.com/photo-1628177142898-93e36e4e3a50?w=400&q=80' },
+  { id: 'disinfectant-spray', name: 'Disinfectant Spray', price: 180.00, size: '500 ML', image: 'https://images.unsplash.com/photo-1585421514738-7c7e13c7e553?w=400&q=80' },
+  { id: 'liquid-detergent-pack', name: 'Liquid Detergent Family Pack', price: 420.00, size: '2 L', image: 'https://images.unsplash.com/photo-1627935719440-0d38a8d09e43?w=400&q=80' },
+  { id: 'scrub-pads', name: 'Scrub Pads (5 Pack)', price: 60.00, size: '5 PCS', image: 'https://images.unsplash.com/photo-1585421514738-7c7e13c7e553?w=400&q=80' },
+  { id: 'cleaning-wipes', name: 'Cleaning Wipes (50 pcs)', price: 120.00, size: '50 PCS', image: 'https://images.unsplash.com/photo-1628177142898-93e36e4e3a50?w=400&q=80' },
+]
