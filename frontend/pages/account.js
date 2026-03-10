@@ -186,28 +186,10 @@ export default function AccountPage() {
   /* ── NOT LOGGED IN ───── */
   if (!token) {
     return (
-      <ShopLayout>
+      <ShopLayout showHeader={true}>
         <main className="authPage">
 
-          {/* ── Left panel — branding ── */}
-          <div className="authLeft">
-            <div className="authLeftInner">
-              <div className="authLogoRow">
-                <img src="/logo.png" alt="Sewa Bazaar" className="authLogo" />
-                <span className="authLogoText">Sewa Bazaar</span>
-              </div>
-              <h2 className="authTagline">Fresh Organics,<br />Delivered Daily 🌿</h2>
-              <p className="authSubtag">Sign in to track your orders, manage addresses, and enjoy a seamless shopping experience.</p>
-              <ul className="authPerks">
-                <li><span className="perkIcon">🚚</span> Fast &amp; reliable delivery</li>
-                <li><span className="perkIcon">🌱</span> 100% organic products</li>
-                <li><span className="perkIcon">📦</span> Track orders in real-time</li>
-                <li><span className="perkIcon">💚</span> Exclusive member offers</li>
-              </ul>
-            </div>
-          </div>
-
-          {/* ── Right panel — form ── */}
+          {/* ── Centered card ── */}
           <div className="authRight">
             <div className="authFormWrap">
 
@@ -327,108 +309,37 @@ export default function AccountPage() {
           </div>
 
           <style jsx>{`
+            /* ── Page wrapper ── */
             .authPage {
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              min-height: calc(100vh - 124px);
+              min-height: calc(100vh - 70px);
               background: #fff;
-            }
-
-            /* ── Left green panel ── */
-            .authLeft {
-              background: linear-gradient(145deg, #3d6b1a 0%, #619233 50%, #7ab33e 100%);
               display: flex;
               align-items: center;
               justify-content: center;
-              padding: 60px 48px;
-              position: relative;
-              overflow: hidden;
+              padding: 40px 16px;
             }
-            .authLeft::before {
-              content: '';
-              position: absolute;
-              width: 400px; height: 400px;
-              background: rgba(255,255,255,0.05);
-              border-radius: 50%;
-              top: -100px; right: -100px;
-            }
-            .authLeft::after {
-              content: '';
-              position: absolute;
-              width: 300px; height: 300px;
-              background: rgba(255,255,255,0.05);
-              border-radius: 50%;
-              bottom: -80px; left: -80px;
-            }
-            .authLeftInner { position: relative; z-index: 1; max-width: 380px; }
-            .authLogoRow {
-              display: flex;
-              align-items: center;
-              gap: 12px;
-              margin-bottom: 40px;
-            }
-            .authLogo { width: 48px; height: 48px; object-fit: contain; }
-            .authLogoText {
-              font-size: 22px;
-              font-weight: 800;
-              color: #fff;
-              font-family: 'Playfair Display', serif;
-            }
-            .authTagline {
-              font-size: 36px;
-              font-weight: 800;
-              color: #fff;
-              line-height: 1.2;
-              margin: 0 0 16px;
-              font-family: 'Playfair Display', serif;
-            }
-            .authSubtag {
-              font-size: 15px;
-              color: rgba(255,255,255,0.82);
-              line-height: 1.6;
-              margin: 0 0 36px;
-            }
-            .authPerks {
-              list-style: none;
-              padding: 0; margin: 0;
-              display: flex;
-              flex-direction: column;
-              gap: 14px;
-            }
-            .authPerks li {
-              display: flex;
-              align-items: center;
-              gap: 12px;
-              font-size: 15px;
-              color: rgba(255,255,255,0.9);
-              font-weight: 500;
-            }
-            .perkIcon { font-size: 20px; }
 
-            /* ── Right white form panel ── */
+            /* ── Card ── */
             .authRight {
-              background: #fff;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              padding: 60px 48px;
+              width: 100%;
+              max-width: 460px;
             }
-            .authFormWrap { width: 100%; max-width: 420px; }
-            .authHeader { margin-bottom: 28px; }
+            .authFormWrap { width: 100%; }
+
+            /* ── Header ── */
+            .authHeader { margin-bottom: 24px; text-align: center; }
             .authHeader h1 {
-              font-size: 28px;
+              font-size: 26px;
               font-weight: 800;
               color: #1a1a1a;
               margin: 0 0 6px;
-              font-family: 'Playfair Display', serif;
             }
-            .authHeader p { font-size: 15px; color: #777; margin: 0; }
+            .authHeader p { font-size: 14px; color: #888; margin: 0; }
 
-            /* Tabs */
+            /* ── Tabs ── */
             .authTabs {
               display: flex;
-              gap: 0;
-              background: #f5f5f5;
+              background: #f3f4f6;
               border-radius: 10px;
               padding: 4px;
               margin-bottom: 24px;
@@ -437,80 +348,63 @@ export default function AccountPage() {
               flex: 1;
               background: none;
               border: none;
-              padding: 10px 16px;
+              padding: 10px;
               font-size: 14px;
               font-weight: 600;
               cursor: pointer;
               color: #888;
               border-radius: 8px;
-              transition: all 0.2s;
+              transition: all 0.18s;
             }
             .authTab.active {
               background: #fff;
               color: #619233;
-              box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+              box-shadow: 0 1px 6px rgba(0,0,0,0.1);
             }
 
-            /* Error */
+            /* ── Error ── */
             .authError {
               display: flex;
               align-items: center;
               gap: 8px;
-              padding: 11px 14px;
+              padding: 10px 14px;
               background: #fff5f5;
               border: 1px solid #fdd;
               border-left: 4px solid #e53935;
               border-radius: 8px;
               color: #c0392b;
               font-size: 13px;
-              margin-bottom: 20px;
+              margin-bottom: 18px;
             }
 
-            /* Form */
-            .authForm {
-              display: flex;
-              flex-direction: column;
-              gap: 18px;
-            }
-            .formRow2 {
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 14px;
-            }
-            .formFld {
-              display: flex;
-              flex-direction: column;
-              gap: 6px;
-            }
+            /* ── Form ── */
+            .authForm { display: flex; flex-direction: column; gap: 16px; }
+            .formRow2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+            .formFld { display: flex; flex-direction: column; gap: 5px; }
             .formFld label {
               font-size: 12px;
               font-weight: 700;
-              color: #444;
+              color: #555;
               text-transform: uppercase;
-              letter-spacing: 0.5px;
+              letter-spacing: 0.4px;
             }
-            .inputWrap {
-              position: relative;
-              display: flex;
-              align-items: center;
-            }
+            .inputWrap { position: relative; display: flex; align-items: center; }
             .inputIcon {
               position: absolute;
-              left: 13px;
-              color: #aaa;
+              left: 12px;
+              color: #bbb;
               pointer-events: none;
-              flex-shrink: 0;
             }
             .inputWrap input {
               width: 100%;
               padding: 11px 14px 11px 38px;
-              border: 1.5px solid #e8e8e8;
+              border: 1.5px solid #e5e7eb;
               border-radius: 9px;
               font-size: 14px;
               color: #1a1a1a;
               background: #fafafa;
               outline: none;
-              transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+              transition: border-color 0.2s, box-shadow 0.2s;
               box-sizing: border-box;
             }
             .inputWrap input:focus {
@@ -519,56 +413,39 @@ export default function AccountPage() {
               box-shadow: 0 0 0 3px rgba(97,146,51,0.1);
             }
 
-            /* Primary button */
+            /* ── Button ── */
             .authPrimaryBtn {
               width: 100%;
               background: linear-gradient(135deg, #619233 0%, #4f7a29 100%);
               color: #fff;
               border: none;
-              padding: 14px;
-              border-radius: 10px;
+              padding: 13px;
+              border-radius: 9px;
               font-size: 15px;
               font-weight: 700;
               cursor: pointer;
               transition: all 0.2s;
-              letter-spacing: 0.3px;
               margin-top: 4px;
-              box-shadow: 0 4px 14px rgba(97,146,51,0.35);
+              box-shadow: 0 4px 14px rgba(97,146,51,0.3);
             }
             .authPrimaryBtn:hover:not(:disabled) {
-              transform: translateY(-2px);
-              box-shadow: 0 6px 20px rgba(97,146,51,0.45);
+              transform: translateY(-1px);
+              box-shadow: 0 6px 18px rgba(97,146,51,0.4);
             }
-            .authPrimaryBtn:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
+            .authPrimaryBtn:disabled { opacity: 0.6; cursor: not-allowed; }
 
-            /* Switch link */
-            .authSwitch {
-              text-align: center;
-              font-size: 13px;
-              color: #888;
-              margin: 0;
-            }
+            /* ── Switch link ── */
+            .authSwitch { text-align: center; font-size: 13px; color: #888; margin: 0; }
             .authSwitch button {
-              background: none;
-              border: none;
-              cursor: pointer;
-              color: #619233;
-              font-weight: 700;
-              font-size: 13px;
-              padding: 0;
-              text-decoration: underline;
-              text-underline-offset: 2px;
+              background: none; border: none; cursor: pointer;
+              color: #619233; font-weight: 700; font-size: 13px;
+              padding: 0; text-decoration: underline; text-underline-offset: 2px;
             }
 
-            /* Responsive */
-            @media (max-width: 860px) {
-              .authPage { grid-template-columns: 1fr; }
-              .authLeft { display: none; }
-              .authRight { padding: 40px 24px; }
-            }
+            /* ── Responsive ── */
             @media (max-width: 480px) {
               .formRow2 { grid-template-columns: 1fr; }
-              .authRight { padding: 32px 16px; }
+              .authPage { padding: 24px 12px; }
             }
           `}</style>
         </main>
