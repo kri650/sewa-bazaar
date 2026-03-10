@@ -193,24 +193,26 @@ export default function AccountPage() {
           <div className="authRight">
             <div className="authFormWrap">
 
+              {/* Logo + brand */}
+              <div className="authBrand">
+                <img src="/logo.png" alt="Sewa Bazaar" className="authBrandLogo" />
+                <span className="authBrandName">Sewa Bazaar</span>
+              </div>
+
               <div className="authHeader">
-                <h1>{authMode === 'login' ? 'Welcome back' : 'Create account'}</h1>
-                <p>{authMode === 'login' ? 'Sign in to your account' : 'Join Sewa Bazaar today'}</p>
+                <h1>{authMode === 'login' ? 'Welcome back 👋' : 'Create your account'}</h1>
+                <p>{authMode === 'login' ? 'Sign in to track orders & manage your profile' : 'Join thousands of happy customers'}</p>
               </div>
 
               <div className="authTabs">
                 <button
                   className={authMode === 'login' ? 'authTab active' : 'authTab'}
                   onClick={() => { setAuthMode('login'); setError('') }}
-                >
-                  Sign In
-                </button>
+                >Sign In</button>
                 <button
                   className={authMode === 'register' ? 'authTab active' : 'authTab'}
                   onClick={() => { setAuthMode('register'); setError('') }}
-                >
-                  Register
-                </button>
+                >Register</button>
               </div>
 
               {error && (
@@ -239,9 +241,7 @@ export default function AccountPage() {
                     </div>
                   </div>
                   <button type="submit" className="authPrimaryBtn" disabled={loading}>
-                    {loading
-                      ? <span className="btnLoader">Signing in…</span>
-                      : 'Sign In →'}
+                    {loading ? <span className="btnLoader">Signing in…</span> : 'Sign In →'}
                   </button>
                   <p className="authSwitch">
                     Don't have an account?{' '}
@@ -254,7 +254,7 @@ export default function AccountPage() {
                     <label>Full Name</label>
                     <div className="inputWrap">
                       <svg className="inputIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                      <input type="text" placeholder="Jane Doe" value={regForm.name}
+                      <input type="text" placeholder="Your full name" value={regForm.name}
                         onChange={e => setRegForm(p => ({ ...p, name: e.target.value }))} required />
                     </div>
                   </div>
@@ -295,9 +295,7 @@ export default function AccountPage() {
                     </div>
                   </div>
                   <button type="submit" className="authPrimaryBtn" disabled={loading}>
-                    {loading
-                      ? <span className="btnLoader">Creating account…</span>
-                      : 'Create Account →'}
+                    {loading ? <span className="btnLoader">Creating account…</span> : 'Create Account →'}
                   </button>
                   <p className="authSwitch">
                     Already have an account?{' '}
@@ -305,14 +303,22 @@ export default function AccountPage() {
                   </p>
                 </form>
               )}
+
+              {/* Trust badges */}
+              <div className="authTrust">
+                <span>🔒 Secure login</span>
+                <span>🌱 100% Organic</span>
+                <span>🚚 Fast Delivery</span>
+              </div>
+
             </div>
           </div>
 
           <style jsx>{`
-            /* ── Page wrapper ── */
+            /* ── Page ── */
             .authPage {
               min-height: calc(100vh - 70px);
-              background: #fff;
+              background: #f7f8f5;
               display: flex;
               align-items: center;
               justify-content: center;
@@ -322,19 +328,46 @@ export default function AccountPage() {
             /* ── Card ── */
             .authRight {
               width: 100%;
-              max-width: 460px;
+              max-width: 480px;
             }
-            .authFormWrap { width: 100%; }
+            .authFormWrap {
+              background: #fff;
+              border-radius: 16px;
+              border: 1px solid #e8ede0;
+              box-shadow: 0 4px 24px rgba(97,146,51,0.08);
+              padding: 40px 40px 32px;
+            }
+
+            /* ── Brand ── */
+            .authBrand {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 10px;
+              margin-bottom: 24px;
+            }
+            .authBrandLogo { width: 40px; height: 40px; object-fit: contain; }
+            .authBrandName {
+              font-size: 20px;
+              font-weight: 800;
+              color: #619233;
+              letter-spacing: -0.3px;
+            }
+
+            /* ── Divider under brand ── */
+            .authBrand::after {
+              display: none;
+            }
 
             /* ── Header ── */
-            .authHeader { margin-bottom: 24px; text-align: center; }
+            .authHeader { margin-bottom: 22px; text-align: center; }
             .authHeader h1 {
-              font-size: 26px;
+              font-size: 22px;
               font-weight: 800;
               color: #1a1a1a;
               margin: 0 0 6px;
             }
-            .authHeader p { font-size: 14px; color: #888; margin: 0; }
+            .authHeader p { font-size: 13px; color: #888; margin: 0; }
 
             /* ── Tabs ── */
             .authTabs {
@@ -342,13 +375,13 @@ export default function AccountPage() {
               background: #f3f4f6;
               border-radius: 10px;
               padding: 4px;
-              margin-bottom: 24px;
+              margin-bottom: 22px;
             }
             .authTab {
               flex: 1;
               background: none;
               border: none;
-              padding: 10px;
+              padding: 9px;
               font-size: 14px;
               font-weight: 600;
               cursor: pointer;
@@ -374,27 +407,22 @@ export default function AccountPage() {
               border-radius: 8px;
               color: #c0392b;
               font-size: 13px;
-              margin-bottom: 18px;
+              margin-bottom: 16px;
             }
 
             /* ── Form ── */
-            .authForm { display: flex; flex-direction: column; gap: 16px; }
+            .authForm { display: flex; flex-direction: column; gap: 15px; }
             .formRow2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
             .formFld { display: flex; flex-direction: column; gap: 5px; }
             .formFld label {
-              font-size: 12px;
+              font-size: 11px;
               font-weight: 700;
               color: #555;
               text-transform: uppercase;
-              letter-spacing: 0.4px;
+              letter-spacing: 0.5px;
             }
             .inputWrap { position: relative; display: flex; align-items: center; }
-            .inputIcon {
-              position: absolute;
-              left: 12px;
-              color: #bbb;
-              pointer-events: none;
-            }
+            .inputIcon { position: absolute; left: 12px; color: #bbb; pointer-events: none; }
             .inputWrap input {
               width: 100%;
               padding: 11px 14px 11px 38px;
@@ -427,6 +455,7 @@ export default function AccountPage() {
               transition: all 0.2s;
               margin-top: 4px;
               box-shadow: 0 4px 14px rgba(97,146,51,0.3);
+              letter-spacing: 0.2px;
             }
             .authPrimaryBtn:hover:not(:disabled) {
               transform: translateY(-1px);
@@ -434,7 +463,7 @@ export default function AccountPage() {
             }
             .authPrimaryBtn:disabled { opacity: 0.6; cursor: not-allowed; }
 
-            /* ── Switch link ── */
+            /* ── Switch ── */
             .authSwitch { text-align: center; font-size: 13px; color: #888; margin: 0; }
             .authSwitch button {
               background: none; border: none; cursor: pointer;
@@ -442,10 +471,27 @@ export default function AccountPage() {
               padding: 0; text-decoration: underline; text-underline-offset: 2px;
             }
 
+            /* ── Trust badges ── */
+            .authTrust {
+              display: flex;
+              justify-content: center;
+              gap: 20px;
+              margin-top: 24px;
+              padding-top: 20px;
+              border-top: 1px solid #f0f0f0;
+              flex-wrap: wrap;
+            }
+            .authTrust span {
+              font-size: 12px;
+              color: #888;
+              font-weight: 500;
+            }
+
             /* ── Responsive ── */
-            @media (max-width: 480px) {
+            @media (max-width: 520px) {
+              .authFormWrap { padding: 28px 20px 24px; }
               .formRow2 { grid-template-columns: 1fr; }
-              .authPage { padding: 24px 12px; }
+              .authTrust { gap: 12px; }
             }
           `}</style>
         </main>
