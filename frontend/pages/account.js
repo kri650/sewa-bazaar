@@ -1,6 +1,9 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import ShopLayout from '../components/ShopLayout'
+
+const MSG91_WIDGET_ID  = '36636a6d6143363732333330'
+const MSG91_TOKEN_AUTH = 'phonesewa'
 
 const API = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
 const TOKEN_KEY = 'sbUserToken'
@@ -70,6 +73,7 @@ export default function AccountPage() {
   const [otpStep, setOtpStep]     = useState(false)   // true = waiting for OTP
   const [otpValue, setOtpValue]   = useState('')
   const [pendingEmail, setPendingEmail] = useState('')
+  const widgetCalledRef = useRef(false)   // prevent double-init
 
   /* addresses */
   const [addresses, setAddresses]   = useState([])
@@ -124,10 +128,71 @@ export default function AccountPage() {
           longitude: 0,
         }),
       })
-      // Step 1 succeeded — show OTP input
+      // Step 1 succeeded — store email and launch MSG91 Widget for phone OTP
       setPendingEmail(regForm.email.trim())
       setOtpStep(true)
       setOtpValue('')
+      widgetCalledRef.current = false
+
+      // Normalize phone to 91XXXXXXXXXX format
+      const digits = regForm.phone.trim().replace(/\D/g, '').replace(/^(0|91)/, '')
+      const mobile = `91${digits}`
+
+      const launchWidget = () => {
+        if (widgetCalledRef.current) return
+        widgetCalledRef.current = true
+        window.initSendOTP({
+          widgetId: MSG91_WIDGET_ID,
+          tokenAuth: MSG91_TOKEN_AUTH,
+          identifier: mobile,
+          exposeMethods: 'true',
+          success: async (data) => {
+            // data.message contains the verified access-token from MSG91
+            setLoading(true)
+            setError('')
+            try {
+              const d = await apiFetch('/api/otp-auth/verify-widget', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  email: regForm.email.trim(),
+                  verifiedToken: data.message,
+                }),
+              })
+              localStorage.setItem(TOKEN_KEY, d.token)
+              localStorage.setItem(USER_KEY, JSON.stringify(d))
+              setToken(d.token)
+              setUser(d)
+              setOtpStep(false)
+            } catch (err) {
+              setError(err.message)
+            }
+            setLoading(false)
+          },
+          failure: (error) => {
+            console.error('[MSG91 Widget] failure:', error)
+            setError('OTP verification failed. Please try again.')
+            setLoading(false)
+          },
+        })
+      }
+
+      // Load otp-provider.js if not already loaded
+      if (typeof window.initSendOTP === 'function') {
+        launchWidget()
+      } else {
+        const existing = document.getElementById('msg91-otp-provider')
+        if (!existing) {
+          const script = document.createElement('script')
+          script.id  = 'msg91-otp-provider'
+          script.src = 'https://widget.msg91.com/plugin/awesome-widget/plugin.js'
+          script.onload = launchWidget
+          document.body.appendChild(script)
+        } else {
+          existing.addEventListener('load', launchWidget)
+        }
+      }
+
     } catch (err) { setError(err.message) }
     setLoading(false)
   }
@@ -270,35 +335,63 @@ export default function AccountPage() {
                   </p>
                 </form>
               ) : otpStep ? (
-                /* ── OTP verification screen ── */
-                <form onSubmit={handleVerifyOtp} className="authForm">
+                /* ── MSG91 Widget OTP screen ── */
+                <div className="authForm">
                   <div className="otpInfo">
                     <div className="otpIcon">📱</div>
-                    <p>We've sent a 6-digit OTP to</p>
-                    <strong>{pendingEmail}</strong>
-                    <p className="otpNote">Check your email / phone. Enter the OTP below to verify your account.</p>
+                    <p>A verification popup has been sent to</p>
+                    <strong>{regForm.phone}</strong>
+                    <p className="otpNote">Complete the OTP verification in the popup window to create your account.</p>
                   </div>
-                  <div className="formFld">
-                    <label>Enter OTP</label>
-                    <input
-                      className="otpInput"
-                      type="text"
-                      placeholder="_ _ _ _ _ _"
-                      maxLength={6}
-                      value={otpValue}
-                      onChange={e => setOtpValue(e.target.value.replace(/\D/g, ''))}
-                      required
-                      autoFocus
-                    />
-                  </div>
-                  <button type="submit" className="authPrimaryBtn" disabled={loading}>
-                    {loading ? 'Verifying…' : 'Verify & Create Account →'}
+                  {error && (
+                    <div className="authError">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                      {error}
+                    </div>
+                  )}
+                  {loading && <div className="otpSpinner">⏳ Verifying…</div>}
+                  <button
+                    type="button"
+                    className="authPrimaryBtn"
+                    disabled={loading}
+                    onClick={() => {
+                      // Re-launch widget if user closed it
+                      widgetCalledRef.current = false
+                      const digits = regForm.phone.trim().replace(/\D/g, '').replace(/^(0|91)/, '')
+                      const mobile = `91${digits}`
+                      if (typeof window.initSendOTP === 'function') {
+                        widgetCalledRef.current = true
+                        window.initSendOTP({
+                          widgetId: MSG91_WIDGET_ID,
+                          tokenAuth: MSG91_TOKEN_AUTH,
+                          identifier: mobile,
+                          exposeMethods: 'true',
+                          success: async (data) => {
+                            setLoading(true); setError('')
+                            try {
+                              const d = await apiFetch('/api/otp-auth/verify-widget', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ email: regForm.email.trim(), verifiedToken: data.message }),
+                              })
+                              localStorage.setItem(TOKEN_KEY, d.token)
+                              localStorage.setItem(USER_KEY, JSON.stringify(d))
+                              setToken(d.token); setUser(d); setOtpStep(false)
+                            } catch (err) { setError(err.message) }
+                            setLoading(false)
+                          },
+                          failure: (err) => { setError('OTP verification failed. Please try again.'); setLoading(false) },
+                        })
+                      }
+                    }}
+                  >
+                    Resend / Reopen OTP Popup
                   </button>
                   <p className="authSwitch">
-                    Wrong email?{' '}
+                    Wrong number?{' '}
                     <button type="button" onClick={() => { setOtpStep(false); setError('') }}>Go back</button>
                   </p>
-                </form>
+                </div>
               ) : (
                 <form onSubmit={handleRegister} className="authForm">
                   <div className="formFld">
@@ -547,6 +640,13 @@ export default function AccountPage() {
             .otpInfo p { font-size: 14px; color: #666; margin: 0 0 4px; }
             .otpInfo strong { font-size: 15px; color: #1a1a1a; font-weight: 700; }
             .otpNote { font-size: 12px; color: #aaa; margin-top: 8px !important; }
+            .otpSpinner {
+              text-align: center;
+              font-size: 14px;
+              color: #619233;
+              padding: 8px 0;
+              font-weight: 600;
+            }
             .otpInput {
               width: 100%;
               padding: 14px;

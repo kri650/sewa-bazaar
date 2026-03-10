@@ -48,6 +48,12 @@ app.use('/api',            userDashRoutes)          // user dashboard routes
 app.use('/api',            paymentRoutes)           // payment: create-order, verify
 app.use('/delivery',       deliveryRoutes)
 
+// MSG91 Widget webhook — called by MSG91 after OTP verified on their side
+app.post('/otp/webhook', express.json(), (req, res) => {
+  console.log('[MSG91 Webhook]', JSON.stringify(req.body))
+  res.status(200).json({ success: true })
+})
+
 const publicDir = path.join(__dirname, 'public')
 app.use('/static', express.static(publicDir))
 
