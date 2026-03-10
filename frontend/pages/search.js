@@ -1,51 +1,57 @@
 import { useRouter } from 'next/router'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import ShopLayout from '../components/ShopLayout'
 import { useCart } from '../contexts/CartContext'
+import allStaticProducts from '../data/products'
 
-export default function SearchPage({ allProducts }) {
+export default function SearchPage() {
   const router = useRouter()
   const { q } = router.query
   const [searchResults, setSearchResults] = useState([])
   const [quantities, setQuantities] = useState({})
+  const allProductsRef = useRef([])
   const { addToCart } = useCart()
 
+  // Load static products on mount
   useEffect(() => {
-    // Tokenize the query and perform a case-insensitive match across multiple fields.
-    if (q) {
-      const query = String(q)
-      const tokens = query
+    allProductsRef.current = Array.isArray(allStaticProducts) ? allStaticProducts : []
+    if (q) runFilter(q, allProductsRef.current)
+  }, [])
+
+  const runFilter = (query, products) => {
+    const tokens = String(query)
+      .toLowerCase()
+      .split(/\s+/)
+      .map(t => t.trim())
+      .filter(Boolean)
+
+    const results = products.filter(product => {
+      const haystack = [
+        product.name,
+        product.category,
+        product.id,
+        product.size || product.unit || '',
+        product.description || '',
+      ]
+        .join(' ')
         .toLowerCase()
-        .split(/\s+/)
-        .map(t => t.trim())
-        .filter(Boolean)
+      return tokens.every(token => haystack.includes(token))
+    })
 
-      const results = allProducts.filter(product => {
-        // Concatenate searchable fields for this product
-        const haystack = [
-          product.name,
-          product.category,
-          product.id,
-          product.size || product.unit || '',
-          product.description || '',
-        ]
-          .join(' ')
-          .toLowerCase()
+    setSearchResults(results)
+    const initialQty = {}
+    results.forEach(p => (initialQty[p.id] = 1))
+    setQuantities(initialQty)
+  }
 
-        // Require every token to appear somewhere in the haystack
-        return tokens.every(token => haystack.includes(token))
-      })
-
-      setSearchResults(results)
-
-      // Initialize quantities for results
-      const initialQty = {}
-      results.forEach(p => (initialQty[p.id] = 1))
-      setQuantities(initialQty)
-    } else {
-      // Clear results when no query is present
+  useEffect(() => {
+    if (!q) {
       setSearchResults([])
       setQuantities({})
+      return
+    }
+    if (allProductsRef.current.length > 0) {
+      runFilter(q, allProductsRef.current)
     }
   }, [q])
 
@@ -100,20 +106,25 @@ export default function SearchPage({ allProducts }) {
             {searchResults.map((product) => {
               const currentQty = quantities[product.id] || 1
               const totalAmount = (product.price * currentQty).toFixed(2)
+              const imgSrc = product.image || product.imageUrl || null
 
               return (
                 <div key={product.id} className="productCard">
                   <div className="productImage" onClick={() => handleProductClick(product)} style={{ cursor: 'pointer' }}>
-                    <div className="imagePlaceholder">
-                      <span>Fresh Organic</span>
-                    </div>
+                    {imgSrc ? (
+                      <img src={imgSrc} alt={product.name} className="productImg" />
+                    ) : (
+                      <div className="imagePlaceholder">
+                        <span>Fresh Organic</span>
+                      </div>
+                    )}
                   </div>
                   
                   <div className="productInfo">
                     <span className="productCategory">{product.category}</span>
                     <h3 className="productName" onClick={() => handleProductClick(product)} style={{ cursor: 'pointer' }}>{product.name}</h3>
                     <div className="productPrice">₹{totalAmount}</div>
-                    <div className="productUnit">{product.unit}</div>
+                    <div className="productUnit">{product.unit || product.size}</div>
 
                     <div className="quantityControls">
                       <button onClick={() => updateQty(product.id, -1)}>−</button>
@@ -216,13 +227,37 @@ export default function SearchPage({ allProducts }) {
           background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
           display: grid;
           place-items: center;
+          overflow: hidden;
         }
 
-        .imagePlaceholder {
-          text-align: center;
-          color: #999;
-          font-size: 14px;
-          padding: 20px;
+        .productImg {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+
+        .loadingState {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 80px 20px;
+          color: #888;
+          gap: 16px;
+        }
+
+        .spinner {
+          width: 44px;
+          height: 44px;
+          border: 4px solid #e0e0e0;
+          border-top-color: #619233;
+          border-radius: 50%;
+          animation: spin 0.75s linear infinite;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
         }
 
         .productInfo {
@@ -348,15 +383,4 @@ export default function SearchPage({ allProducts }) {
       `}</style>
     </ShopLayout>
   )
-}
-
-// Force Next.js to include the product data in the bundle
-export async function getStaticProps() {
-  const allProducts = (await import('../data/products')).default
-  
-  return {
-    props: {
-      allProducts
-    }
-  }
 }

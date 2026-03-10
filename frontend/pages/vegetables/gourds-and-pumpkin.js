@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import ShopLayout from '../components/ShopLayout';
+import { useCart } from '../../contexts/CartContext';
 
 const products = [
   { id: 1, name: "Bottle Gourd", price: 40.00, unit: "1 PC (Approx 1KG)", image: "data:image/jpeg;base64,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" },
@@ -24,6 +25,16 @@ export default function GourdsAndPumpkinPage() {
     }));
   };
 
+  const { addToCart } = useCart();
+  const [priceFilter, setPriceFilter] = useState('all');
+  const originalPrices = {1:65,2:95,3:90,4:72,5:80,6:78,7:58,8:65};
+  const filtered = products.filter(p => {
+    if (priceFilter === '0-50') return p.price <= 50;
+    if (priceFilter === '51-100') return p.price > 50 && p.price <= 100;
+    if (priceFilter === '100+') return p.price > 100;
+    return true;
+  });
+
   return (
     <ShopLayout showHeader={true}>
       <div className="category-container">
@@ -32,8 +43,21 @@ export default function GourdsAndPumpkinPage() {
         <p className="sub-title">Fresh, nutrient-rich, and farm-direct gourd and pumpkin varieties.</p>
       </div>
 
-      <div className="product-grid">
-        {products.map((p) => {
+      <div style={{display:'flex',gap:'24px',alignItems:'flex-start'}}>
+        <aside style={{width:'200px',flexShrink:0,background:'#f8f8f8',borderRadius:'10px',padding:'20px',position:'sticky',top:'20px'}}>
+          <h3 style={{fontSize:'16px',fontWeight:'700',marginBottom:'16px',color:'#333'}}>Filters</h3>
+          <div>
+            <h4 style={{fontSize:'13px',fontWeight:'600',color:'#555',marginBottom:'10px',textTransform:'uppercase',letterSpacing:'0.5px'}}>Price Range</h4>
+            {[{v:'all',l:'All Prices'},{v:'0-50',l:'Under ₹50'},{v:'51-100',l:'₹51 – ₹100'},{v:'100+',l:'Above ₹100'}].map(r=>(
+              <label key={r.v} style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'8px',cursor:'pointer',fontSize:'14px',color:priceFilter===r.v?'#6aa333':'#444'}}>
+                <input type="radio" name="gourds-price" value={r.v} checked={priceFilter===r.v} onChange={()=>setPriceFilter(r.v)} style={{accentColor:'#6aa333'}}/>{r.l}
+              </label>
+            ))}
+          </div>
+        </aside>
+
+        <div className="product-grid" style={{flex:1}}>
+          {filtered.map((p) => {
           const currentQty = quantities[p.id];
           const totalAmount = (p.price * currentQty).toFixed(2);
 
@@ -45,6 +69,14 @@ export default function GourdsAndPumpkinPage() {
               
               <h4 className="item-name">{p.name}</h4>
               <div className="item-price">Rs. {totalAmount}</div>
+              {originalPrices[p.id] && (
+                <div style={{display:'flex',alignItems:'center',gap:'8px',justifyContent:'center',marginBottom:'4px'}}>
+                  <span style={{textDecoration:'line-through',color:'#999',fontSize:'13px'}}>Rs. {originalPrices[p.id]}</span>
+                  <span style={{background:'#26a541',color:'#fff',borderRadius:'3px',padding:'2px 6px',fontSize:'11px',fontWeight:'bold'}}>
+                    {Math.round((1 - p.price/originalPrices[p.id])*100)}% off
+                  </span>
+                </div>
+              )}
               <div className="unit-badge">{p.unit}</div>
 
               <div className="qty-control">
@@ -53,10 +85,11 @@ export default function GourdsAndPumpkinPage() {
                 <button onClick={() => updateQty(p.id, 1)}>+</button>
               </div>
               
-              <button className="add-to-cart-btn">Add to Cart</button>
+              <button className="add-to-cart-btn" onClick={() => addToCart({id:p.id, name:p.name, price:p.price, image:p.image, unit:p.unit}, currentQty)}>Add to Cart</button>
             </div>
           );
-        })}
+          })}
+        </div>
       </div>
 
       <style jsx global>{`

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import ShopLayout from '../components/ShopLayout';
+import { useCart } from '../../contexts/CartContext';
 
 const products = [
   { id: 1, name: "Organic Cucumber White", price: 32.00, unit: "250 GM", image: "data:image/jpeg;base64,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" },
@@ -25,6 +26,16 @@ export default function SaladVegetablesPage() {
     }));
   };
 
+  const { addToCart } = useCart();
+  const [priceFilter, setPriceFilter] = useState('all');
+  const originalPrices = {1:55,2:42,3:65,4:52,5:52,6:85,7:48,8:38,9:30};
+  const filtered = products.filter(p => {
+    if (priceFilter === '0-50') return p.price <= 50;
+    if (priceFilter === '51-100') return p.price > 50 && p.price <= 100;
+    if (priceFilter === '100+') return p.price > 100;
+    return true;
+  });
+
   return (
     <ShopLayout showHeader={true}>
       <div className="salad-container">
@@ -34,8 +45,21 @@ export default function SaladVegetablesPage() {
         <p className="sub-heading">Fresh, juicy, and farm-direct vegetables for your salads.</p>
       </div>
 
-      <div className="product-grid">
-        {products.map((p) => {
+      <div style={{display:'flex',gap:'24px',alignItems:'flex-start'}}>
+        <aside style={{width:'200px',flexShrink:0,background:'#f8f8f8',borderRadius:'10px',padding:'20px',position:'sticky',top:'20px'}}>
+          <h3 style={{fontSize:'16px',fontWeight:'700',marginBottom:'16px',color:'#333'}}>Filters</h3>
+          <div>
+            <h4 style={{fontSize:'13px',fontWeight:'600',color:'#555',marginBottom:'10px',textTransform:'uppercase',letterSpacing:'0.5px'}}>Price Range</h4>
+            {[{v:'all',l:'All Prices'},{v:'0-50',l:'Under ₹50'},{v:'51-100',l:'₹51 – ₹100'},{v:'100+',l:'Above ₹100'}].map(r=>(
+              <label key={r.v} style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'8px',cursor:'pointer',fontSize:'14px',color:priceFilter===r.v?'#6aa333':'#444'}}>
+                <input type="radio" name="salad-price" value={r.v} checked={priceFilter===r.v} onChange={()=>setPriceFilter(r.v)} style={{accentColor:'#6aa333'}}/>{r.l}
+              </label>
+            ))}
+          </div>
+        </aside>
+
+        <div className="product-grid" style={{flex:1}}>
+          {filtered.map((p) => {
           const currentQty = quantities[p.id];
           const totalAmount = (p.price * currentQty).toFixed(2);
 
@@ -47,6 +71,14 @@ export default function SaladVegetablesPage() {
               
               <h4 className="p-title">{p.name}</h4>
               <div className="p-amount">Rs. {totalAmount}</div>
+              {originalPrices[p.id] && (
+                <div style={{display:'flex',alignItems:'center',gap:'8px',justifyContent:'center',marginBottom:'4px'}}>
+                  <span style={{textDecoration:'line-through',color:'#999',fontSize:'13px'}}>Rs. {originalPrices[p.id]}</span>
+                  <span style={{background:'#26a541',color:'#fff',borderRadius:'3px',padding:'2px 6px',fontSize:'11px',fontWeight:'bold'}}>
+                    {Math.round((1 - p.price/originalPrices[p.id])*100)}% off
+                  </span>
+                </div>
+              )}
               <div className="p-unit-badge">{p.unit}</div>
 
               <div className="qty-picker">
@@ -56,10 +88,11 @@ export default function SaladVegetablesPage() {
               </div>
               
               {/* Green Add to Cart Button as seen in your Mangoes screenshot */}
-              <button className="add-to-cart-btn">Add to Cart</button>
+              <button className="add-to-cart-btn" onClick={() => addToCart({id:p.id, name:p.name, price:p.price, image:p.image, unit:p.unit}, currentQty)}>Add to Cart</button>
             </div>
           );
-        })}
+          })}
+        </div>
       </div>
 
       <style jsx global>{`
