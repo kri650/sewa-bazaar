@@ -67,6 +67,9 @@ export default function AccountPage() {
   /* auth forms */
   const [loginForm, setLoginForm] = useState({ email: '', password: '' })
   const [regForm, setRegForm]     = useState({ name: '', email: '', phone: '', password: '', confirmPassword: '' })
+  const [otpStep, setOtpStep]     = useState(false)   // true = waiting for OTP
+  const [otpValue, setOtpValue]   = useState('')
+  const [pendingEmail, setPendingEmail] = useState('')
 
   /* addresses */
   const [addresses, setAddresses]   = useState([])
@@ -109,7 +112,7 @@ export default function AccountPage() {
     if (regForm.password !== regForm.confirmPassword) { setError('Passwords do not match'); return }
     setLoading(true)
     try {
-      const d = await apiFetch('/api/auth/signup', {
+      await apiFetch('/api/otp-auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -121,9 +124,27 @@ export default function AccountPage() {
           longitude: 0,
         }),
       })
+      // Step 1 succeeded — show OTP input
+      setPendingEmail(regForm.email.trim())
+      setOtpStep(true)
+      setOtpValue('')
+    } catch (err) { setError(err.message) }
+    setLoading(false)
+  }
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault()
+    setError(''); setLoading(true)
+    try {
+      const d = await apiFetch('/api/otp-auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: pendingEmail, otp: otpValue.trim() }),
+      })
       localStorage.setItem(TOKEN_KEY, d.token)
       localStorage.setItem(USER_KEY, JSON.stringify(d))
       setToken(d.token); setUser(d)
+      setOtpStep(false)
     } catch (err) { setError(err.message) }
     setLoading(false)
   }
@@ -245,7 +266,37 @@ export default function AccountPage() {
                   </button>
                   <p className="authSwitch">
                     Don't have an account?{' '}
-                    <button type="button" onClick={() => { setAuthMode('register'); setError('') }}>Create one</button>
+                    <button type="button" onClick={() => { setAuthMode('register'); setError(''); setOtpStep(false) }}>Create one</button>
+                  </p>
+                </form>
+              ) : otpStep ? (
+                /* ── OTP verification screen ── */
+                <form onSubmit={handleVerifyOtp} className="authForm">
+                  <div className="otpInfo">
+                    <div className="otpIcon">📱</div>
+                    <p>We've sent a 6-digit OTP to</p>
+                    <strong>{pendingEmail}</strong>
+                    <p className="otpNote">Check your email / phone. Enter the OTP below to verify your account.</p>
+                  </div>
+                  <div className="formFld">
+                    <label>Enter OTP</label>
+                    <input
+                      className="otpInput"
+                      type="text"
+                      placeholder="_ _ _ _ _ _"
+                      maxLength={6}
+                      value={otpValue}
+                      onChange={e => setOtpValue(e.target.value.replace(/\D/g, ''))}
+                      required
+                      autoFocus
+                    />
+                  </div>
+                  <button type="submit" className="authPrimaryBtn" disabled={loading}>
+                    {loading ? 'Verifying…' : 'Verify & Create Account →'}
+                  </button>
+                  <p className="authSwitch">
+                    Wrong email?{' '}
+                    <button type="button" onClick={() => { setOtpStep(false); setError('') }}>Go back</button>
                   </p>
                 </form>
               ) : (
@@ -485,6 +536,36 @@ export default function AccountPage() {
               font-size: 12px;
               color: #888;
               font-weight: 500;
+            }
+
+            /* ── OTP screen ── */
+            .otpInfo {
+              text-align: center;
+              padding: 8px 0 4px;
+            }
+            .otpIcon { font-size: 36px; margin-bottom: 10px; }
+            .otpInfo p { font-size: 14px; color: #666; margin: 0 0 4px; }
+            .otpInfo strong { font-size: 15px; color: #1a1a1a; font-weight: 700; }
+            .otpNote { font-size: 12px; color: #aaa; margin-top: 8px !important; }
+            .otpInput {
+              width: 100%;
+              padding: 14px;
+              border: 2px solid #e5e7eb;
+              border-radius: 10px;
+              font-size: 24px;
+              font-weight: 700;
+              text-align: center;
+              letter-spacing: 12px;
+              color: #1a1a1a;
+              background: #fafafa;
+              outline: none;
+              transition: border-color 0.2s, box-shadow 0.2s;
+              box-sizing: border-box;
+            }
+            .otpInput:focus {
+              border-color: #619233;
+              background: #fff;
+              box-shadow: 0 0 0 3px rgba(97,146,51,0.1);
             }
 
             /* ── Responsive ── */
