@@ -16,6 +16,7 @@
 
 const bcrypt    = require('bcryptjs')
 const jwt       = require('jsonwebtoken')
+const axios     = require('axios')
 const userModel = require('../models/userModel')
 const userExt   = require('../models/userModelExt')
 const otpStore  = require('../utils/otpStore')
@@ -97,9 +98,37 @@ async function signup(req, res) {
       otp,
     })
 
-    // ── Simulate sending OTP ────────────────────────────────────────────────
-    // In production: replace this with your SMS/email API (e.g. Twilio, MSG91)
+    // ── Send OTP via MSG91 SMS ──────────────────────────────────────────────
     console.log(`[OTP] Signup OTP for ${email} (phone: ${phone}): ${otp}`)
+
+    const MSG91_AUTH_KEY   = process.env.MSG91_AUTH_KEY
+    const MSG91_SENDER_ID  = process.env.MSG91_SENDER_ID  || 'SEWABZ'
+    const MSG91_TEMPLATE_ID = process.env.MSG91_TEMPLATE_ID
+
+    if (MSG91_AUTH_KEY) {
+      try {
+        // Normalize phone — strip leading 0 or +91, keep 10 digits, then prefix 91
+        const digits = String(phone).replace(/\D/g, '').replace(/^(0|91)/, '')
+        const mobile = `91${digits}`
+
+        await axios.post(
+          'https://api.msg91.com/api/v5/otp',
+          {
+            template_id: MSG91_TEMPLATE_ID,
+            mobile,
+            authkey: MSG91_AUTH_KEY,
+            otp,
+          },
+          { headers: { 'Content-Type': 'application/json' } }
+        )
+        console.log(`[OTP] SMS sent to ${mobile}`)
+      } catch (smsErr) {
+        // SMS failed — OTP still works via console log in dev
+        console.error('[OTP] SMS send failed:', smsErr?.response?.data || smsErr.message)
+      }
+    } else {
+      console.warn('[OTP] MSG91_AUTH_KEY not set — OTP only in console (dev mode)')
+    }
     // ───────────────────────────────────────────────────────────────────────
 
     return res.status(200).json({
