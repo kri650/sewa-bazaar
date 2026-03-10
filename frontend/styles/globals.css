@@ -2089,6 +2089,24 @@ main > section {
 	position:relative;
 }
 
+/* Filter bar used on product listing pages */
+.filterBar {
+	width: min(1200px, calc(100% - 40px));
+	margin: 18px auto;
+	display:flex;
+	align-items:center;
+	gap:12px;
+	justify-content:space-between;
+}
+.filterControls { display:flex; gap:8px; align-items:center }
+.filterBtn { background:#fff; border:1px solid #d7d7d7; padding:8px 12px; border-radius:20px; cursor:pointer }
+
+.productPrice { color: #0b965b; font-weight:700; display:block; margin-top:8px }
+.priceRow { display:flex; gap:10px; align-items:center; margin-top:6px }
+.productOriginal { color:#8b8b8b; text-decoration:line-through; font-size:0.95rem }
+.productDiscount { background:#ffebee; color:#e57373; padding:2px 6px; border-radius:4px; font-weight:600; font-size:11px }
+
+
 .footerContent {
 	position:absolute;
 	left:0;

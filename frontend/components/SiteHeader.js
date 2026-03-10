@@ -6,12 +6,11 @@ import { useCart } from '../contexts/CartContext'
 import { useLocation } from '../contexts/LocationContext'
 import { useDelivery } from '../contexts/DeliveryContext'
 import LocationPicker from './LocationPicker'
-import allProducts from '../data/products'
+import staticProducts from '../data/products'
 
 const navItems = [
   'BEST DEAL',
-  'FRUITS',
-  'VEGETABLES',
+  'FRUITS & VEGETABLES',
   'ATTA, RICE & GRAINS',
   'OIL & GHEE',
   'MILK & DAIRY',
@@ -26,7 +25,6 @@ const navItems = [
 
 const routeMap = {
   'BEST DEAL': '/best-deal',
-  'FRUITS': '/fruits',
   'ATTA, RICE & GRAINS': '/atta-rice-grains',
   'OIL & GHEE': '/oil-ghee',
   'MILK & DAIRY': '/milk-dairy',
@@ -57,12 +55,23 @@ export default function SiteHeader({ showTopHeader = true }) {
   const [suggestions, setSuggestions] = useState([])
   const [activeSuggestion, setActiveSuggestion] = useState(-1)
   const suggestionsRef = useRef(null)
+  const inputRef = useRef(null)
+  const [inlineCompletion, setInlineCompletion] = useState('')
+  const [liveProducts] = useState(staticProducts)
+  const [sessionUser, setSessionUser] = useState(null)
+
+  // read user session from localStorage after mount
+  useEffect(() => {
+    const raw = localStorage.getItem('sbUserData')
+    if (raw) { try { setSessionUser(JSON.parse(raw)) } catch (_) {} }
+  }, [])
 
   const handleSearch = (e) => {
     e.preventDefault()
     if (searchQuery.trim()) {
       const query = searchQuery.trim()
       setSuggestions([])
+      setInlineCompletion('')
       const pushTarget = { pathname: '/search', query: { q: query } }
       try {
         // Prefer client-side navigation (keeps history) and fall back to full load
@@ -93,8 +102,19 @@ export default function SiteHeader({ showTopHeader = true }) {
       if (activeSuggestion >= 0 && suggestions[activeSuggestion]) {
         const s = suggestions[activeSuggestion]
         setSearchQuery(s.name)
+        setSuggestions([])
+        setInlineCompletion('')
         router.push({ pathname: '/search', query: { q: s.name } })
         e.preventDefault()
+      }
+    } else if ((e.key === 'Tab' || e.key === 'ArrowRight') && inlineCompletion) {
+      const input = inputRef.current
+      const atEnd = input && input.selectionStart === searchQuery.length
+      if (atEnd) {
+        e.preventDefault()
+        setSearchQuery(inlineCompletion)
+        setInlineCompletion('')
+        setSuggestions([])
       }
     }
   }
@@ -104,6 +124,7 @@ export default function SiteHeader({ showTopHeader = true }) {
     if (!term) {
       setSuggestions([])
       setActiveSuggestion(-1)
+      setInlineCompletion('')
       return
     }
 
@@ -115,17 +136,20 @@ export default function SiteHeader({ showTopHeader = true }) {
       return tokens.every(t => searchable.includes(t))
     }
 
-    const prefix = allProducts.filter(p => {
+    const prefix = liveProducts.filter(p => {
       const name = p.name.toLowerCase()
       return matchesAll(p) && tokens.some(t => name.startsWith(t))
     })
-    const contains = allProducts.filter(p => {
+    const contains = liveProducts.filter(p => {
       return matchesAll(p) && !prefix.includes(p)
     })
     const merged = [...prefix, ...contains].slice(0, 8)
     setSuggestions(merged)
     setActiveSuggestion(-1)
-  }, [searchQuery])
+    // Best prefix match for inline ghost-text completion
+    const bestInline = liveProducts.find(p => p.name.toLowerCase().startsWith(term))
+    setInlineCompletion(bestInline ? bestInline.name : '')
+  }, [searchQuery, liveProducts])
   useEffect(() => {
     setMounted(true)
     return () => {
@@ -242,36 +266,60 @@ export default function SiteHeader({ showTopHeader = true }) {
           </div>
         </Link>
 
-            <form className="searchWrap" onSubmit={handleSearch}>
-              <input 
-                type="text" 
-                placeholder="Go organic" 
-                aria-label="Search products"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => { handleSearchKeyPress(e); handleSuggestionKeyDown(e) }}
-                onBlur={() => setTimeout(() => setSuggestions([]), 150)}
-                aria-autocomplete="list"
-                aria-controls="search-suggestions"
-              />
-              <button type="submit" className="searchBtn">Search</button>
-            </form>
-            {suggestions.length > 0 && (
-              <div id="search-suggestions" className="searchSuggestions" ref={suggestionsRef} role="listbox">
-                {suggestions.map((s, idx) => (
-                  <div
-                    key={s.id}
-                    role="option"
-                    aria-selected={idx === activeSuggestion}
-                    className={idx === activeSuggestion ? 'suggestion active' : 'suggestion'}
-                    onMouseDown={() => { setSearchQuery(s.name); setSuggestions([]); router.push({ pathname: '/search', query: { q: s.name } }) }}
-                  >
-                    <strong>{s.name}</strong>
-                    <div className="small">{s.category}</div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="searchContainer">
+              <form className="searchWrap" onSubmit={handleSearch}>
+                <div className="searchInputWrap">
+                  {inlineCompletion && searchQuery && inlineCompletion.toLowerCase().startsWith(searchQuery.toLowerCase()) && (
+                    <div className="ghostText" aria-hidden="true">
+                      <span className="ghostTyped">{searchQuery}</span>
+                      <span className="ghostSuffix">{inlineCompletion.slice(searchQuery.length)}</span>
+                    </div>
+                  )}
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    placeholder="Go organic"
+                    aria-label="Search products"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => { handleSearchKeyPress(e); handleSuggestionKeyDown(e) }}
+                    onBlur={() => setTimeout(() => { setSuggestions([]); setInlineCompletion('') }, 150)}
+                    aria-autocomplete="list"
+                    aria-controls="search-suggestions"
+                  />
+                </div>
+                <button type="submit" className="searchBtn">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                </button>
+              </form>
+              {suggestions.length > 0 && (
+                <div id="search-suggestions" className="searchSuggestions" ref={suggestionsRef} role="listbox">
+                  {suggestions.map((s, idx) => (
+                    <div
+                      key={s.id}
+                      role="option"
+                      aria-selected={idx === activeSuggestion}
+                      className={idx === activeSuggestion ? 'suggestion active' : 'suggestion'}
+                      onMouseDown={() => {
+                        setSuggestions([])
+                        setInlineCompletion('')
+                        router.push({
+                          pathname: `/product/${s.id}`,
+                          query: { name: s.name, price: s.price, size: s.size || s.unit, image: s.image, category: s.category }
+                        })
+                      }}
+                    >
+                      <svg className="suggestionIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                      <div className="suggestionText">
+                        <span className="suggestionName">{s.name}</span>
+                        <span className="suggestionCat">{s.category}</span>
+                      </div>
+                      <span className="suggestionPrice">₹{s.price}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
         <div className="topActions">
           <div className="headerInfo">
             <div className="headerInfoRow">📞 (+800) 111 2020 &nbsp;|&nbsp; (+700) 353 44 555</div>
@@ -288,20 +336,22 @@ export default function SiteHeader({ showTopHeader = true }) {
         </div>
       </header>
 
-      <nav className="mainNav">
+        <nav className="mainNav">
         <ul>
           {navItems.map((label) => {
-            // Make the top-level Vegetables label open the Vegetables dropdown
-            if (label === 'VEGETABLES') {
+            // Fruits & Vegetables: open dropdown on hover/focus and navigate on click
+            if (label === 'FRUITS & VEGETABLES') {
               return (
                 <li key={label}>
                   <button
                     type="button"
                     ref={fvTriggerRef}
-                    className="navLink navTrigger"
+                    className="navTrigger"
                     onMouseEnter={openFv}
                     onMouseLeave={scheduleCloseFv}
-                    onClick={() => setIsFvOpen((v) => !v)}
+                    onFocus={openFv}
+                    onBlur={scheduleCloseFv}
+                    onClick={() => { setIsFvOpen(false); router.push('/fruits') }}
                   >
                     {label}
                   </button>
@@ -318,13 +368,15 @@ export default function SiteHeader({ showTopHeader = true }) {
             } else {
               return (
                 <li key={label}>
-                  <button type="button">{label}</button>
+                  <button type="button" className="navTrigger">{label}</button>
                 </li>
               )
             }
           })}
         </ul>
-        <Link href="/account" className="accountBtn">Account</Link>
+        <Link href="/account" className="accountBtn">
+          {sessionUser ? `Hi, ${sessionUser.name?.split(' ')[0] || 'Me'}` : 'Account'}
+        </Link>
         </nav>
       </div>
   </div>{/* /headerShell */}
@@ -344,6 +396,10 @@ export default function SiteHeader({ showTopHeader = true }) {
             onMouseEnter={openFv}
             onMouseLeave={scheduleCloseFv}
           >
+            <Link href="/fruits" className="dropdownItem" role="menuitem" onClick={() => { setIsFvOpen(false); }}>
+              Fruits
+            </Link>
+
             <div
               className="dropdownItem dropdownItemWithSub"
               onMouseEnter={openVegSub}
@@ -387,7 +443,7 @@ export default function SiteHeader({ showTopHeader = true }) {
   .headerShell { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
 
         /* ── Black info banner ── */
-        .infoBanner { display: flex; align-items: center; justify-content: space-between; background: #1a1a1a; color: #d4d4d4; font-size: 12px; padding: 7px 24px; gap: 12px; }
+  .infoBanner { display: flex; align-items: center; justify-content: space-between; background: #1a1a1a; color: #d4d4d4; font-size: 12px; padding: 7px 24px 7px 90px; gap: 12px; position: relative; }
         .bannerLeft { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
         .bannerLink { color: #c8c8c8; text-decoration: none; font-size: 12px; transition: color 0.15s; }
         .bannerLink:hover { color: #fff; }
@@ -411,15 +467,24 @@ export default function SiteHeader({ showTopHeader = true }) {
           .infoBanner { padding: 6px 12px; }
           .bannerLeft { display: none; }
         }
-        .searchWrap { position: relative; display: inline-flex; align-items: center; }
-        .searchWrap input { padding: 10px 12px; border: 1px solid #e6e6e6; border-radius: 6px 0 0 6px; width: 280px; }
-        .searchBtn { padding: 10px 14px; border: 1px solid #e6e6e6; border-left: none; background: #619233; color: #fff; border-radius: 0 6px 6px 0; cursor: pointer; }
-        .searchSuggestions { position: absolute; left: 0; top: calc(100% + 4px); width: 100%; min-width: 320px; background: #fff; border: 1.5px solid #d4e8b0; box-shadow: 0 8px 28px rgba(0,0,0,0.13); z-index: 1400; border-radius: 10px; overflow: hidden; }
-        .suggestion { padding: 11px 16px; cursor: pointer; display: flex; flex-direction: column; border-bottom: 1px solid #f3f3f3; transition: background 0.15s; }
-        .suggestion:last-child { border-bottom: none; }
+        .searchContainer { position: relative; display: inline-flex; flex-direction: column; }
+        .searchWrap { display: inline-flex; align-items: center; }
+        .searchInputWrap { position: relative; display: inline-flex; background: #fff; border-radius: 24px 0 0 24px; }
+        .searchWrap input { padding: 11px 16px; border: 1.5px solid #e0e0e0; border-right: none; border-radius: 24px 0 0 24px; width: 320px; background: transparent; position: relative; z-index: 1; font-size: 14px; font-family: inherit; outline: none; transition: border-color 0.2s; }
+        .searchWrap input:focus { border-color: #619233; }
+        .ghostText { position: absolute; left: 0; top: 0; width: 100%; height: 100%; padding: 11px 16px; font-size: 14px; font-family: inherit; letter-spacing: normal; pointer-events: none; white-space: pre; overflow: hidden; z-index: 0; display: flex; align-items: center; box-sizing: border-box; }
+        .ghostTyped { color: transparent; }
+        .ghostSuffix { color: #bbb; }
+        .searchBtn { padding: 10px 16px; border: 1.5px solid #619233; border-left: none; background: #619233; color: #fff; border-radius: 0 24px 24px 0; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+        .searchBtn:hover { background: #4e7828; }
+        .searchSuggestions { position: absolute; left: 0; top: calc(100% + 6px); width: 100%; min-width: 340px; background: #fff; border: 1px solid #e0e0e0; box-shadow: 0 4px 24px rgba(0,0,0,0.13); z-index: 1400; border-radius: 14px; overflow-y: auto; max-height: 400px; padding: 6px 0; }
+        .suggestion { padding: 10px 16px; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: background 0.12s; }
         .suggestion:hover, .suggestion.active { background: #f3f9eb; }
-        .suggestion strong { font-size: 14px; color: #222; }
-        .suggestion .small { font-size: 12px; color: #619233; margin-top: 2px; font-weight: 500; }
+        .suggestionIcon { color: #aaa; flex-shrink: 0; }
+        .suggestionText { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+        .suggestionName { font-size: 14px; color: #111; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .suggestionCat { font-size: 11px; color: #619233; font-weight: 500; }
+        .suggestionPrice { font-size: 13px; color: #555; font-weight: 600; white-space: nowrap; flex-shrink: 0; }
         .topActions { display: flex; align-items: center; gap: 16px; }
         .headerInfo { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
         .headerInfoRow { font-size: 12px; color: #555; white-space: nowrap; }

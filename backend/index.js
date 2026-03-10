@@ -8,11 +8,14 @@ const path = require('path')
 const { query, checkConnection, dbConfig } = require('./config/db')
 const authRoutes           = require('./routes/authRoutes')
 const adminAuthRoutes      = require('./routes/adminAuthRoutes')
+const otpAuthRoutes        = require('./routes/otpAuthRoutes')   // OTP signup + login
 const productRoutes        = require('./routes/productRoutes')
 const orderRoutes          = require('./routes/orderRoutes')
 const adminRoutes          = require('./routes/adminRoutes')
 const adminDashboardRoutes = require('./routes/adminDashboardRoutes')
 const deliveryRoutes       = require('./routes/deliveryRoutes')
+const userDashRoutes       = require('./routes/userDashRoutes')    // user dashboard
+const paymentRoutes        = require('./routes/paymentRoutes')     // razorpay payment
 const { requireAdminAuth } = require('./middleware/adminAuthMiddleware')
 const { initSocket }       = require('./utils/socketServer')
 
@@ -36,10 +39,13 @@ app.get('/health', async (_req, res) => {
 
 app.use('/api/auth',       authRoutes)
 app.use('/api/admin/auth', adminAuthRoutes)
+app.use('/api/otp-auth',   otpAuthRoutes)        // OTP signup + login
 app.use('/products',       productRoutes)
 app.use('/',               orderRoutes)
 app.use('/admin',          requireAdminAuth, adminRoutes)
 app.use('/api',            adminDashboardRoutes)
+app.use('/api',            userDashRoutes)          // user dashboard routes
+app.use('/api',            paymentRoutes)           // payment: create-order, verify
 app.use('/delivery',       deliveryRoutes)
 
 const publicDir = path.join(__dirname, 'public')

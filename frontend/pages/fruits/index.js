@@ -69,17 +69,6 @@ const products = fruitProducts.map((product) => ({
 export default function FreshFruitsPage() {
   return (
     <ShopLayout>
-      <div className={styles.hero}>
-        <div className={styles.heroText}>
-          <h1>Fresh Groceries for Everyday Needs</h1>
-          <p className={styles.lead}>Shop fruits, pantry staples, dairy, snacks and more — delivered fresh from farms to your door.</p>
-          <a className={styles.cta} href="/fruits">Shop Now</a>
-        </div>
-        <div className={styles.heroImageWrap}>
-          <img src={fruitProducts[0].image} alt="Fresh fruits" className={styles.heroImage} />
-        </div>
-      </div>
-
       <div className={styles.container}>
         <CategoryPage
           title="Fruits"

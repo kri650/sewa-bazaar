@@ -1,8 +1,8 @@
 import { useRouter } from 'next/router'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useCart } from '../contexts/CartContext'
-import styles from '../styles/product.module.css'
-import { useDelivery } from '../contexts/DeliveryContext'
+import ProductCard from './ProductCard'
+import FilterBar from './FilterBar'
 
 const parseRupees = (price) => Number(String(price ?? '').replace(/[^\d.]/g, '')) || 0
 const formatRupees = (amount) =>
@@ -18,7 +18,11 @@ export default function CategoryPage({
   const router = useRouter()
   const { addToCart } = useCart()
   const [quantities, setQuantities] = useState(() => products.map(() => 1))
-  const { deliveryType, estimatedTime, estimatedMinutesMin, estimatedMinutesMax } = useDelivery()
+  const [filters, setFilters] = useState({
+    sort: 'popularity',
+    rating: null,
+    priceRange: 'all'
+  })
 
   const changeQty = (index, delta) => {
     setQuantities((prev) =>
@@ -41,6 +45,56 @@ export default function CategoryPage({
     })
   }
 
+  // Filter and sort products
+  const filteredProducts = useMemo(() => {
+    let result = [...products]
+
+    // Apply price range filter
+    if (filters.priceRange !== 'all') {
+      result = result.filter(product => {
+        const price = parseRupees(product.price)
+        switch (filters.priceRange) {
+          case '0-50': return price < 50
+          case '50-100': return price >= 50 && price < 100
+          case '100-200': return price >= 100 && price < 200
+          case '200+': return price >= 200
+          default: return true
+        }
+      })
+    }
+
+    // Apply rating filter (mock - you can add real ratings to products later)
+    if (filters.rating) {
+      // For now, this is a placeholder - add rating property to products
+      result = result.filter(product => (product.rating || 4) >= filters.rating)
+    }
+
+    // Apply sorting
+    switch (filters.sort) {
+      case 'price-low':
+        result.sort((a, b) => parseRupees(a.price) - parseRupees(b.price))
+        break
+      case 'price-high':
+        result.sort((a, b) => parseRupees(b.price) - parseRupees(a.price))
+        break
+      case 'discount':
+        result.sort((a, b) => {
+          const getDiscount = (p) => {
+            if (p.discount) return parseFloat(p.discount)
+            return 0
+          }
+          return getDiscount(b) - getDiscount(a)
+        })
+        break
+      case 'popularity':
+      default:
+        // Keep original order for popularity (most purchased)
+        break
+    }
+
+    return result
+  }, [products, filters])
+
   return (
     <main className="categoryMain">
       <div className="categoryInner">
@@ -49,83 +103,53 @@ export default function CategoryPage({
           {description ? <p className="categoryDescription">{description}</p> : null}
         </header>
 
-        <div className="productGrid categoryProductGrid">
-          {products.map((product, index) => {
-            const qty = quantities[index]
-            const routeId = getRouteId ? getRouteId(product) : String(product.id)
-            const normalizedPrice = parseRupees(product.price)
-            const normalizedSize = product.size || product.unit || ''
+        <div className="categoryContent">
+          <FilterBar onFilterChange={setFilters} />
+          
+          <div className="productGrid categoryProductGrid">
+            {filteredProducts.map((product, index) => {
+              const originalIndex = products.findIndex(p => p.id === product.id)
+              const qty = quantities[originalIndex] || 1
+              const routeId = getRouteId ? getRouteId(product) : String(product.id)
+              const normalizedPrice = parseRupees(product.price)
+              const normalizedSize = product.size || product.unit || ''
 
-            return (
-              <article className={styles.productCard || 'productCard'} key={routeId}>
-                  {/* Delivery ETA badge – Flipkart style */}
-                  {deliveryType && estimatedTime && (
-                    <div className={styles.etaBadge || 'etaBadge'} style={{
-                      background: deliveryType === 'fast' ? '#e6f9f0' : '#fff8e1',
-                      color: deliveryType === 'fast' ? '#0a7c42' : '#b45309',
-                      border: `1px solid ${deliveryType === 'fast' ? '#86efac' : '#fcd34d'}`,
-                      borderRadius: 5,
-                      padding: '3px 7px',
-                      fontSize: 11,
-                      fontWeight: 700,
-                      display: 'inline-block',
-                      marginBottom: 4,
-                    }}>
-                      {deliveryType === 'fast'
-                        ? `Delivery in ${estimatedTime}`
-                        : `Delivery ${estimatedTime}`}
-                    </div>
-                  )}
-                <div
-                  className="productImageWrap"
+              return (
+                <ProductCard
+                  key={routeId}
+                  name={product.name}
+                  price={normalizedPrice}
+                  originalPrice={product.originalPrice}
+                  discount={product.discount}
+                  size={normalizedSize}
+                  image={product.image}
+                  showQty={true}
+                  qty={qty}
+                  onQtyChange={(delta) => changeQty(originalIndex, delta)}
+                  onAdd={() => addToCart({ ...product, price: normalizedPrice, size: normalizedSize }, qty)}
                   onClick={() => handleProductClick(product, routeId)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <img src={product.image} alt={product.name} loading="lazy" />
-                </div>
-
-                <p
-                  className="productName"
-                  onClick={() => handleProductClick(product, routeId)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  {product.name}
-                </p>
-
-                <p className="productPrice">{formatRupees(normalizedPrice * qty)}</p>
-                <span className="productSize">{normalizedSize}</span>
-
-                <div className="qtyRow">
-                  <button type="button" onClick={() => changeQty(index, -1)}>
-                    -
-                  </button>
-                  <span>{qty}</span>
-                  <button type="button" onClick={() => changeQty(index, 1)}>
-                    +
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  className="pickNowBtn"
-                  onClick={() =>
-                    addToCart(
-                      {
-                        ...product,
-                        price: normalizedPrice,
-                        size: normalizedSize,
-                      },
-                      qty
-                    )
-                  }
-                >
-                  Add to Cart
-                </button>
-              </article>
-            )
-          })}
+                />
+              )
+            })}
+          </div>
         </div>
       </div>
+
+      <style jsx>{`
+        .categoryContent {
+          display: grid;
+          grid-template-columns: 230px 1fr;
+          gap: 15px;
+          margin-top: 20px;
+          align-items: start;
+        }
+
+        @media (max-width: 968px) {
+          .categoryContent {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
     </main>
   )
 }
