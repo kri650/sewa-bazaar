@@ -60,6 +60,13 @@ export default function SiteHeader({ showTopHeader = true }) {
   const inputRef = useRef(null)
   const [inlineCompletion, setInlineCompletion] = useState('')
   const [liveProducts] = useState(staticProducts)
+  const [sessionUser, setSessionUser] = useState(null)
+
+  // read user session from localStorage after mount
+  useEffect(() => {
+    const raw = localStorage.getItem('sbUserData')
+    if (raw) { try { setSessionUser(JSON.parse(raw)) } catch (_) {} }
+  }, [])
 
   const handleSearch = (e) => {
     e.preventDefault()
@@ -367,7 +374,9 @@ export default function SiteHeader({ showTopHeader = true }) {
             }
           })}
         </ul>
-        <Link href="/account" className="accountBtn">Account</Link>
+        <Link href="/account" className="accountBtn">
+          {sessionUser ? `Hi, ${sessionUser.name?.split(' ')[0] || 'Me'}` : 'Account'}
+        </Link>
         </nav>
       </div>
   </div>{/* /headerShell */}
@@ -428,6 +437,8 @@ export default function SiteHeader({ showTopHeader = true }) {
       <style jsx>{`
   /* ── Header outer shell (banner + header) — not sticky ── */
   .headerShell { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+
+        .accountBtn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; background: #619233; color: #fff; border-radius: 20px; text-decoration: none; font-size: 13px; font-weight: 600; transition: background 0.2s; white-space: nowrap; }
 
         /* ── Black info banner ── */
         .infoBanner { display: flex; align-items: center; justify-content: space-between; background: #1a1a1a; color: #d4d4d4; font-size: 12px; padding: 7px 24px; gap: 12px; }

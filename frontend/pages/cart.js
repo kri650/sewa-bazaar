@@ -2,7 +2,7 @@
 import { useCart } from '../contexts/CartContext'
 import ShopLayout from '../components/ShopLayout'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useDelivery } from '../contexts/DeliveryContext'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
@@ -25,6 +25,22 @@ export default function CartPage() {
     paymentMethod: 'cod',
   })
 
+  // Pre-fill from logged-in user session
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const raw = localStorage.getItem('sbUserData')
+    if (!raw) return
+    try {
+      const u = JSON.parse(raw)
+      setForm(prev => ({
+        ...prev,
+        fullName: prev.fullName || u.name || '',
+        email:    prev.email    || u.email || '',
+        phone:    prev.phone    || u.phone || '',
+      }))
+    } catch (_) {}
+  }, [])
+
   const handleQuantityChange = (id, delta) => {
     const item = cart.find((i) => i.id === id)
     if (item) {
@@ -38,7 +54,7 @@ export default function CartPage() {
 
   const getAuthHeader = () => {
     if (typeof window === 'undefined') return {}
-    const token = localStorage.getItem('authToken') || ''
+    const token = localStorage.getItem('sbUserToken') || localStorage.getItem('authToken') || ''
     return token ? { Authorization: `Bearer ${token}` } : {}
   }
 
