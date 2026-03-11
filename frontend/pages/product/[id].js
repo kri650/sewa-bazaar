@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import ShopLayout from '../../components/ShopLayout';
 import { useCart } from '../../contexts/CartContext';
+import { useDelivery } from '../../contexts/DeliveryContext';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
 
@@ -63,6 +64,10 @@ export default function ProductDetailPage() {
   const router = useRouter();
   const { id } = router.query;
   const { addToCart } = useCart();
+  const { userLocation, deliveryType, estimatedTime } = useDelivery();
+  const deliveryBadge = userLocation && deliveryType
+    ? (deliveryType === 'fast' ? `Delivery in ${estimatedTime}` : `Delivery ${estimatedTime}`)
+    : null;
   
   const [product, setProduct] = useState(null);
   const [quantity, setQuantity] = useState(1);
@@ -305,6 +310,16 @@ export default function ProductDetailPage() {
                   {formatRupees(product.price)} per {product.size}
                 </div>
               </div>
+
+              {/* Delivery estimate from LocationContext */}
+              {deliveryBadge && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, marginBottom: 4 }}>
+                  <span style={{ fontSize: 15 }}>🚚</span>
+                  <span style={{ fontSize: 13, color: deliveryType === 'fast' ? '#619233' : '#1565c0', fontWeight: 600 }}>
+                    {deliveryBadge}
+                  </span>
+                </div>
+              )}
 
               {/* Quantity Selector */}
               <div className="quantity-section">
