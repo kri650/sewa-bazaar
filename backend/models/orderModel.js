@@ -91,7 +91,13 @@ async function createOrder({ userId, items, customer, addressLine1, addressLine2
     let activeCartId = null
 
     if (Array.isArray(items) && items.length > 0) {
-      effectiveItems = items.map((item) => ({ productId: Number(item.id || item.productId), qty: Number(item.qty || 1) }))
+      effectiveItems = items.map((item) => ({
+        productId: Number(item.id || item.productId) || null,
+        slug:      String(item.id || item.productId || ''),
+        qty:       Number(item.qty || 1),
+        name:      item.name  || null,
+        price:     item.price != null ? Number(item.price) : null,
+      }))
     } else if (userId) {
       const [rows] = await conn.query(
         `SELECT c.id AS cartId, ci.product_id AS productId, ci.qty
@@ -113,19 +119,27 @@ async function createOrder({ userId, items, customer, addressLine1, addressLine2
       throw err
     }
 
-    const productIds = effectiveItems.map((item) => item.productId)
-    const placeholders = productIds.map(() => '?').join(',')
-    const [products] = await conn.query(`SELECT id, name, price FROM products WHERE id IN (${placeholders})`, productIds)
+    // Only look up products in DB if they have valid numeric IDs
+    const numericItems = effectiveItems.filter((i) => i.productId && !isNaN(i.productId))
+    let productMap = new Map()
 
-    const productMap = new Map(products.map((p) => [Number(p.id), p]))
+    if (numericItems.length > 0) {
+      const productIds  = numericItems.map((i) => i.productId)
+      const placeholders = productIds.map(() => '?').join(',')
+      const [products]  = await conn.query(
+        `SELECT id, name, price FROM products WHERE id IN (${placeholders})`,
+        productIds
+      )
+      productMap = new Map(products.map((p) => [Number(p.id), p]))
+    }
 
     const normalizedItems = effectiveItems.map((item) => {
-      const prod = productMap.get(Number(item.productId))
+      const dbProd = item.productId ? productMap.get(Number(item.productId)) : null
       return {
-        productId: Number(item.productId),
-        qty: Number(item.qty || 1),
-        name: prod ? prod.name : 'Unknown',
-        price: prod ? Number(prod.price) : 0,
+        productId: item.productId || null,
+        qty:       Number(item.qty || 1),
+        name:      (dbProd ? dbProd.name  : item.name)  || 'Unknown',
+        price:     (dbProd ? Number(dbProd.price) : item.price) || 0,
       }
     })
 
@@ -168,7 +182,7 @@ async function createOrder({ userId, items, customer, addressLine1, addressLine2
       await conn.query(
         `INSERT INTO order_items (order_id, product_id, product_name, qty, price)
          VALUES (?, ?, ?, ?, ?)`,
-        [orderId, item.productId, item.name, item.qty, item.price]
+        [orderId, item.productId || null, item.name, item.qty, item.price]
       )
     }
 

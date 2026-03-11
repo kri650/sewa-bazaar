@@ -63,7 +63,12 @@ export default function CartPage() {
     setOrderError('')
     setLoading(true)
 
-    const cartItems = cart.map((item) => ({ id: item.id, qty: item.quantity }))
+    const cartItems = cart.map((item) => ({
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      qty: item.quantity,
+    }))
     const customer = { name: form.fullName, phone: form.phone, email: form.email }
     const addressPayload = {
       addressLine1: form.addressLine1,
