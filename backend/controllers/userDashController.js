@@ -198,6 +198,44 @@ async function getAddress(req, res) {
   }
 }
 
+/**
+ * PUT /api/user/addresses/:id/default
+ * Marks an address as the default for the user.
+ */
+async function setAddressDefault(req, res) {
+  try {
+    const address = await userAddressModel.findById(req.userId, req.params.id)
+    if (!address) return res.status(404).json({ error: 'address not found' })
+    await userAddressModel.setDefault(req.userId, req.params.id)
+    return res.json({ ok: true })
+  } catch (error) {
+    return res.status(500).json({ error: error.message })
+  }
+}
+
+/**
+ * PUT /api/user/addresses/:id
+ * Updates an existing address.
+ */
+async function updateAddress(req, res) {
+  try {
+    const address = await userAddressModel.findById(req.userId, req.params.id)
+    if (!address) return res.status(404).json({ error: 'address not found' })
+
+    const { full_name, phone, street, city, state, pincode, country } = req.body || {}
+    if (!full_name || !phone || !street || !city || !state || !pincode) {
+      return res.status(400).json({ error: 'full_name, phone, street, city, state and pincode are required' })
+    }
+
+    await userAddressModel.updateAddress(req.userId, req.params.id, {
+      full_name, phone, street, city, state, pincode, country: country || 'India',
+    })
+    return res.json({ ok: true })
+  } catch (error) {
+    return res.status(500).json({ error: error.message })
+  }
+}
+
 module.exports = {
   getDashboard,
   getAddresses,
@@ -205,4 +243,6 @@ module.exports = {
   addAddress,
   deleteAddress,
   getOrders,
+  setAddressDefault,
+  updateAddress,
 }

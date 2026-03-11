@@ -83,6 +83,7 @@ export default function AccountPage() {
   const [addrForm, setAddrForm]     = useState({ full_name: '', phone: '', street: '', city: '', state: '', pincode: '' })
   const [addrErr, setAddrErr]       = useState('')
   const [addrLoading, setAddrLoading] = useState(false)
+  const [editingAddrId, setEditingAddrId] = useState(null)  // null = adding, id = editing
 
   /* orders */
   const [orders, setOrders]     = useState([])
@@ -182,18 +183,53 @@ export default function AccountPage() {
     e.preventDefault()
     setAddrErr(''); setAddrLoading(true)
     try {
-      await apiFetch('/api/user/addresses', {
-        method: 'POST',
-        headers: jsonHead(),
-        body: JSON.stringify(addrForm),
-      })
+      if (editingAddrId) {
+        // Update existing address
+        await apiFetch(`/api/user/addresses/${editingAddrId}`, {
+          method: 'PUT',
+          headers: jsonHead(),
+          body: JSON.stringify(addrForm),
+        })
+        setSuccess('Address updated!')
+      } else {
+        // Create new address
+        await apiFetch('/api/user/addresses', {
+          method: 'POST',
+          headers: jsonHead(),
+          body: JSON.stringify(addrForm),
+        })
+        setSuccess('Address saved successfully!')
+      }
       setAddrForm({ full_name: '', phone: '', street: '', city: '', state: '', pincode: '' })
       setShowAddrForm(false)
+      setEditingAddrId(null)
       await loadAddresses()
-      setSuccess('Address saved successfully!')
       setTimeout(() => setSuccess(''), 3000)
     } catch (err) { setAddrErr(err.message) }
     setAddrLoading(false)
+  }
+
+  const handleEditAddress = (addr) => {
+    setAddrForm({
+      full_name: addr.full_name,
+      phone: addr.phone,
+      street: addr.street,
+      city: addr.city,
+      state: addr.state,
+      pincode: addr.pincode,
+    })
+    setEditingAddrId(addr.id)
+    setShowAddrForm(true)
+    setAddrErr('')
+  }
+
+  const handleSetDefault = async (id) => {
+    try {
+      await apiFetch(`/api/user/addresses/${id}/default`, { method: 'PUT', headers: authHead() })
+      await loadAddresses()
+      setSuccess('Default address updated!')
+      setTimeout(() => setSuccess(''), 3000)
+    } catch (err) { alert(err.message) }
   }
 
   const handleDeleteAddress = async (id) => {
@@ -797,16 +833,19 @@ export default function AccountPage() {
                 <div className="sectionHeader">
                   <h2 className="sectionTitle">My Addresses</h2>
                   {!showAddrForm && (
-                    <button className="addBtn" onClick={() => { setShowAddrForm(true); setAddrErr('') }}>
+                    <button className="addBtn" onClick={() => {
+                      setShowAddrForm(true); setAddrErr(''); setEditingAddrId(null)
+                      setAddrForm({ full_name: '', phone: '', street: '', city: '', state: '', pincode: '' })
+                    }}>
                       + Add New Address
                     </button>
                   )}
                 </div>
 
-                {/* Add Address Form */}
+                {/* Add / Edit Address Form */}
                 {showAddrForm && (
                   <div className="addrFormCard">
-                    <h3>New Delivery Address</h3>
+                    <h3>{editingAddrId ? 'Edit Address' : 'New Delivery Address'}</h3>
                     {addrErr && <div className="inlineErr"><span>⚠</span> {addrErr}</div>}
                     <form onSubmit={handleAddAddress} className="addrForm">
                       <div className="addrRow2">
@@ -850,10 +889,10 @@ export default function AccountPage() {
                       </div>
                       <div className="addrFormActions">
                         <button type="submit" className="saveAddrBtn" disabled={addrLoading}>
-                          {addrLoading ? 'Saving…' : 'Save Address'}
+                          {addrLoading ? 'Saving…' : editingAddrId ? 'Update Address' : 'Save Address'}
                         </button>
                         <button type="button" className="cancelAddrBtn"
-                          onClick={() => { setShowAddrForm(false); setAddrErr('') }}>
+                          onClick={() => { setShowAddrForm(false); setAddrErr(''); setEditingAddrId(null) }}>
                           Cancel
                         </button>
                       </div>
@@ -872,15 +911,30 @@ export default function AccountPage() {
                 ) : (
                   <div className="addrGrid">
                     {addresses.map(addr => (
-                      <div key={addr.id} className="addrCard">
+                      <div key={addr.id} className={`addrCard${addr.isDefault ? ' addrCardDefault' : ''}`}>
                         <div className="addrCardTop">
-                          <div className="addrName">{addr.full_name}</div>
+                          <div className="addrNameWrap">
+                            <div className="addrName">{addr.full_name}</div>
+                            {addr.isDefault ? (
+                              <span className="defaultBadge">✓ Default</span>
+                            ) : null}
+                          </div>
                           <button className="addrDelete" onClick={() => handleDeleteAddress(addr.id)}
                             title="Remove address">✕</button>
                         </div>
                         <p className="addrLine">{addr.street}</p>
                         <p className="addrLine">{addr.city}, {addr.state} — {addr.pincode}</p>
                         <p className="addrPhone">📞 {addr.phone}</p>
+                        <div className="addrCardActions">
+                          {!addr.isDefault && (
+                            <button className="addrActionBtn" onClick={() => handleSetDefault(addr.id)}>
+                              Set as Default
+                            </button>
+                          )}
+                          <button className="addrActionBtn addrEditBtn" onClick={() => handleEditAddress(addr)}>
+                            ✏️ Edit
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1143,14 +1197,22 @@ export default function AccountPage() {
           .emptyState h3 { margin: 0 0 8px; font-size: 18px; color: #212121; }
           .emptyState p { margin: 0 0 20px; color: #888; font-size: 14px; }
           .addrGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
-          .addrCard { border: 1.5px solid #e0e0e0; border-radius: 8px; padding: 18px; position: relative; transition: box-shadow 0.2s; }
+          .addrCard { border: 1.5px solid #e0e0e0; border-radius: 8px; padding: 18px; position: relative; transition: box-shadow 0.2s, border-color 0.2s; }
           .addrCard:hover { box-shadow: 0 4px 16px rgba(97,146,51,0.12); border-color: #b8d98a; }
+          .addrCardDefault { border-color: #619233; background: #f8faf5; }
+          .addrCardDefault:hover { border-color: #619233; }
           .addrCardTop { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+          .addrNameWrap { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
           .addrName { font-size: 15px; font-weight: 700; color: #212121; }
+          .defaultBadge { display: inline-flex; align-items: center; gap: 3px; background: #619233; color: #fff; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; letter-spacing: 0.3px; }
           .addrDelete { background: none; border: none; cursor: pointer; color: #ccc; font-size: 14px; padding: 2px 4px; transition: color 0.2s; }
           .addrDelete:hover { color: #e53935; }
           .addrLine { margin: 0 0 4px; font-size: 13px; color: #555; }
           .addrPhone { margin: 8px 0 0; font-size: 13px; color: #619233; font-weight: 500; }
+          .addrCardActions { display: flex; gap: 10px; margin-top: 12px; border-top: 1px solid #eee; padding-top: 12px; }
+          .addrActionBtn { background: none; border: 1px solid #d4d4d4; color: #555; font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 5px; cursor: pointer; transition: all 0.2s; }
+          .addrActionBtn:hover { border-color: #619233; color: #619233; background: #f8faf5; }
+          .addrEditBtn { border-color: #d4d4d4; }
 
           /* ORDERS */
           .loadingMsg { text-align: center; padding: 40px; color: #888; font-size: 15px; }

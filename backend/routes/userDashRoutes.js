@@ -35,6 +35,8 @@ router.get('/user/dashboard', userDashController.getDashboard)
 router.get('/user/addresses',     userDashController.getAddresses)
 router.post('/user/addresses',    userDashController.addAddress)
 router.get('/user/addresses/:id', userDashController.getAddress)    // checkout
+router.put('/user/addresses/:id', userDashController.updateAddress)
+router.put('/user/addresses/:id/default', userDashController.setAddressDefault)
 router.delete('/user/addresses/:id', userDashController.deleteAddress)
 
 // ── Order History ─────────────────────────────────────────────────────

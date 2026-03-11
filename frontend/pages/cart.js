@@ -3,7 +3,7 @@ import { useCart } from '../contexts/CartContext'
 import { useWishlist } from '../contexts/WishlistContext'
 import ShopLayout from '../components/ShopLayout'
 import Link from 'next/link'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useDelivery } from '../contexts/DeliveryContext'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
@@ -15,6 +15,8 @@ export default function CartPage() {
   const [orderResult, setOrderResult] = useState(null)
   const [loading, setLoading] = useState(false)
   const [orderError, setOrderError] = useState('')
+  const [savedAddresses, setSavedAddresses] = useState([])
+  const [selectedAddrId, setSelectedAddrId] = useState('new') // 'new' or address id
   const [form, setForm] = useState({
     fullName: '',
     phone: '',
@@ -42,6 +44,65 @@ export default function CartPage() {
       }))
     } catch (_) {}
   }, [])
+
+  // Fetch saved addresses when entering checkout
+  const fetchSavedAddresses = useCallback(async () => {
+    if (typeof window === 'undefined') return
+    const token = localStorage.getItem('sbUserToken') || localStorage.getItem('authToken') || ''
+    if (!token) return
+    try {
+      const res = await fetch(`${API_BASE}/api/user/addresses`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) return
+      const data = await res.json()
+      setSavedAddresses(data)
+      // Auto-select default address
+      const defaultAddr = data.find(a => a.isDefault)
+      if (defaultAddr) {
+        setSelectedAddrId(String(defaultAddr.id))
+        applyAddress(defaultAddr)
+      } else if (data.length > 0) {
+        setSelectedAddrId(String(data[0].id))
+        applyAddress(data[0])
+      }
+    } catch (_) {}
+  }, [])
+
+  useEffect(() => {
+    if (checkoutStep === 'details') fetchSavedAddresses()
+  }, [checkoutStep, fetchSavedAddresses])
+
+  const applyAddress = (addr) => {
+    setForm(prev => ({
+      ...prev,
+      fullName: addr.full_name || prev.fullName,
+      phone:    addr.phone     || prev.phone,
+      addressLine1: addr.street || '',
+      addressLine2: '',
+      city:    addr.city    || '',
+      state:   addr.state   || '',
+      pincode: addr.pincode || '',
+    }))
+  }
+
+  const handleAddressSelect = (addrId) => {
+    setSelectedAddrId(addrId)
+    if (addrId === 'new') {
+      // Clear address fields for manual entry, keep name/phone/email
+      setForm(prev => ({
+        ...prev,
+        addressLine1: '',
+        addressLine2: '',
+        city: '',
+        state: '',
+        pincode: '',
+      }))
+    } else {
+      const addr = savedAddresses.find(a => String(a.id) === addrId)
+      if (addr) applyAddress(addr)
+    }
+  }
 
   const handleQuantityChange = (id, delta) => {
     const item = cart.find((i) => i.id === id)
@@ -316,6 +377,53 @@ export default function CartPage() {
               {/* Delivery form */}
               <section className="checkoutForm">
                 <h2>Delivery Details</h2>
+
+                {/* Saved addresses picker */}
+                {savedAddresses.length > 0 && (
+                  <div className="savedAddrSection">
+                    <h3 className="savedAddrTitle">📍 Select a Delivery Address</h3>
+                    <div className="savedAddrList">
+                      {savedAddresses.map(addr => (
+                        <label
+                          key={addr.id}
+                          className={`savedAddrOption${selectedAddrId === String(addr.id) ? ' savedAddrSelected' : ''}`}
+                        >
+                          <input
+                            type="radio"
+                            name="savedAddr"
+                            value={String(addr.id)}
+                            checked={selectedAddrId === String(addr.id)}
+                            onChange={() => handleAddressSelect(String(addr.id))}
+                          />
+                          <div className="savedAddrInfo">
+                            <div className="savedAddrHead">
+                              <strong>{addr.full_name}</strong>
+                              {addr.isDefault ? <span className="savedAddrDefault">Default</span> : null}
+                            </div>
+                            <p>{addr.street}, {addr.city}, {addr.state} — {addr.pincode}</p>
+                            <p className="savedAddrPhone">📞 {addr.phone}</p>
+                          </div>
+                        </label>
+                      ))}
+                      <label
+                        className={`savedAddrOption savedAddrNew${selectedAddrId === 'new' ? ' savedAddrSelected' : ''}`}
+                      >
+                        <input
+                          type="radio"
+                          name="savedAddr"
+                          value="new"
+                          checked={selectedAddrId === 'new'}
+                          onChange={() => handleAddressSelect('new')}
+                        />
+                        <div className="savedAddrInfo">
+                          <strong>+ Use a New Address</strong>
+                          <p>Enter address details manually below</p>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+                )}
+
                 <form onSubmit={handlePlaceOrder}>
                   <div className="formRow2">
                     <div className="formGroup">
@@ -445,6 +553,25 @@ export default function CartPage() {
             .summaryRow { display: flex; justify-content: space-between; font-size: 15px; color: #444; padding: 5px 0; }
             .summaryRow.total { font-size: 17px; font-weight: 600; color: #212121; padding-top: 8px; }
             .green { color: #388e3c; font-weight: 500; }
+
+            /* Saved address picker */
+            .savedAddrSection { margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px dashed #e0e0e0; }
+            .savedAddrTitle { font-size: 15px; font-weight: 600; color: #212121; margin: 0 0 14px; }
+            .savedAddrList { display: flex; flex-direction: column; gap: 10px; }
+            .savedAddrOption { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border: 2px solid #e8e8e8; border-radius: 8px; cursor: pointer; transition: all 0.2s; background: #fff; }
+            .savedAddrOption:hover { border-color: #b8d98a; background: #fcfdf9; }
+            .savedAddrSelected { border-color: #619233 !important; background: #f8faf5 !important; }
+            .savedAddrOption input[type="radio"] { margin-top: 3px; accent-color: #619233; width: 18px; height: 18px; flex-shrink: 0; }
+            .savedAddrInfo { flex: 1; min-width: 0; }
+            .savedAddrHead { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; }
+            .savedAddrHead strong { font-size: 15px; color: #212121; }
+            .savedAddrDefault { background: #619233; color: #fff; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; letter-spacing: 0.3px; text-transform: uppercase; }
+            .savedAddrInfo p { margin: 0; font-size: 13px; color: #555; line-height: 1.5; }
+            .savedAddrPhone { color: #619233 !important; font-weight: 500; margin-top: 2px !important; }
+            .savedAddrNew { border-style: dashed; }
+            .savedAddrNew strong { color: #619233; font-size: 14px; }
+            .savedAddrNew p { font-size: 12px; color: #888; }
+
             @media (max-width: 860px) { .checkoutLayout { grid-template-columns: 1fr; } .checkoutSummary { position: static; order: -1; } .formRow2 { grid-template-columns: 1fr; } .formRow3 { grid-template-columns: 1fr 1fr; } }
             @media (max-width: 480px) { .formRow3 { grid-template-columns: 1fr; } .checkoutForm { padding: 20px 16px; } }
           `}</style>
