@@ -1102,28 +1102,24 @@ main > section {
 /* ── Delivery / product badge on card image ── */
 .mangoBadge {
 	position:absolute;
-	bottom:6px;
+	top:7px;
 	left:50%;
 	transform:translateX(-50%);
-	background:#e8f5e9;
-	color:#2e7d32;
+	background:rgba(97,146,51,0.92);
+	color:#fff;
 	font-size:10px;
 	font-weight:700;
-	padding:3px 8px;
+	padding:3px 10px;
 	border-radius:20px;
 	white-space:nowrap;
 	pointer-events:none;
-	border:1px solid #c8e6c9;
+	letter-spacing:0.2px;
 }
 .mangoBadge.badgeFast {
-	background:#fff8e1;
-	color:#e65100;
-	border-color:#ffe0b2;
+	background:rgba(230,81,0,0.9);
 }
 .mangoBadge.badgeNormal {
-	background:#e3f2fd;
-	color:#1565c0;
-	border-color:#bbdefb;
+	background:rgba(21,101,192,0.9);
 }
 .productImageWrap img {
 	width:100%;

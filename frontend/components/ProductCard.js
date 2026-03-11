@@ -72,9 +72,7 @@ export default function ProductCard({
           loading="lazy"
         />
         {badge ? (
-          <span className={`mangoBadge ${String(badge).startsWith('⚡') ? 'badgeFast' : String(badge).startsWith('🚚') ? 'badgeNormal' : ''}`}>
-            {badge}
-          </span>
+          <span className="mangoBadge">{badge}</span>
         ) : null}
       </div>
 

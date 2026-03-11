@@ -23,8 +23,8 @@ export default function CategoryPage({
   // Build delivery badge shown on every card when location is known
   const deliveryBadge = useMemo(() => {
     if (!userLocation || !deliveryType) return null
-    if (deliveryType === 'fast') return `⚡ ${estimatedTime}`
-    return `🚚 ${estimatedTime}`
+    if (deliveryType === 'fast') return `Delivery in ${estimatedTime}`
+    return `Delivery ${estimatedTime}`
   }, [userLocation, deliveryType, estimatedTime])
   const [quantities, setQuantities] = useState(() => products.map(() => 1))
   const [filters, setFilters] = useState({
