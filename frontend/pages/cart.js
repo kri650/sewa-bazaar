@@ -1,5 +1,6 @@
 'use client'
 import { useCart } from '../contexts/CartContext'
+import { useWishlist } from '../contexts/WishlistContext'
 import ShopLayout from '../components/ShopLayout'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
@@ -9,6 +10,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
 
 export default function CartPage() {
   const { cart, removeFromCart, updateQuantity, getCartTotal, clearCart } = useCart()
+  const { add: addToWishlist } = useWishlist()
   const [checkoutStep, setCheckoutStep] = useState('cart') // cart | details | success
   const [orderResult, setOrderResult] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -511,7 +513,13 @@ export default function CartPage() {
                       </div>
 
                       <div className="itemButtons">
-                        <button className="saveForLater">
+                        <button
+                          className="saveForLater"
+                          onClick={() => {
+                            addToWishlist(item)
+                            removeFromCart(item.id)
+                          }}
+                        >
                           Save for later
                         </button>
                         <button
