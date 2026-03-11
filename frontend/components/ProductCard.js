@@ -67,7 +67,7 @@ export default function ProductCard({
       <div
         className="productImageWrap"
         onClick={() => onClick && onClick()}
-        style={{ cursor: onClick ? 'pointer' : undefined }}
+        style={{ cursor: onClick ? 'pointer' : undefined, position: 'relative' }}
       >
         <img
           className={name && name.includes('Potato') ? 'forceCover' : ''}
@@ -75,6 +75,24 @@ export default function ProductCard({
           alt={name}
           loading="lazy"
         />
+        {/* Wishlist heart — top-right of image */}
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); toggle({ id: myId, name, price, size, image }) }}
+          aria-label={isWished ? 'Remove from wishlist' : 'Add to wishlist'}
+          style={{
+            position: 'absolute', top: 8, right: 8, zIndex: 2,
+            width: 32, height: 32, borderRadius: '50%',
+            background: 'rgba(255,255,255,0.92)', border: 'none',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', fontSize: 17,
+            color: isWished ? '#e63946' : '#9ca3af',
+            boxShadow: '0 1px 6px rgba(0,0,0,0.12)',
+            transition: 'color 0.2s, transform 0.2s',
+          }}
+        >
+          {isWished ? '♥' : '♡'}
+        </button>
       </div>
 
       <p
@@ -91,22 +109,7 @@ export default function ProductCard({
 
       {description ? <p className="productDescription">{description}</p> : null}
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', width: '100%' }}>
-        <p className="productPrice" style={{ margin: 0, textAlign: 'center', flex: 1 }}>{displayPrice}</p>
-        <button
-          type="button"
-          className="wishlistBtn"
-          onClick={() => toggle({ id: myId, name, price, size, image })}
-          aria-label="Add to wishlist"
-          style={{
-            position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)',
-            border: 'none', background: 'transparent', cursor: 'pointer',
-            color: isWished ? '#e63946' : '#9ca3af', fontSize: 18, padding: 4,
-          }}
-        >
-          {isWished ? '♥' : '♡'}
-        </button>
-      </div>
+      <p className="productPrice" style={{ margin: 0, textAlign: 'center' }}>{displayPrice}</p>
 
       {hasDiscount ? (
         <div className="priceRow">

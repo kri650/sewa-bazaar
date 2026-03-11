@@ -285,8 +285,30 @@ export default function ProductDetailPage() {
 
           {/* Main Product Section */}
           <div className="product-main-section">
-            <div className="product-image-section">
+            <div className="product-image-section" style={{ position: 'relative' }}>
               <img src={product.image} alt={product.name} className="main-product-image" />
+              {/* Wishlist heart — top-right of image */}
+              {(() => {
+                const wished = wishlistItems.find((p) => String(p.id) === String(product.id))
+                return (
+                  <button
+                    onClick={(e) => { e.preventDefault(); toggleWishlist(product) }}
+                    aria-label={wished ? 'Remove from wishlist' : 'Add to wishlist'}
+                    style={{
+                      position: 'absolute', top: 14, right: 14, zIndex: 2,
+                      width: 40, height: 40, borderRadius: '50%',
+                      background: 'rgba(255,255,255,0.92)', border: 'none',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      cursor: 'pointer', fontSize: 22,
+                      color: wished ? '#e63946' : '#9ca3af',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                      transition: 'color 0.2s, transform 0.2s',
+                    }}
+                  >
+                    {wished ? '♥' : '♡'}
+                  </button>
+                )
+              })()}
             </div>
 
             <div className="product-info-section">
@@ -341,19 +363,6 @@ export default function ProductDetailPage() {
                   Add to Cart
                 </button>
                 <button className="buy-now-btn" onClick={handleBuyNow}>Buy Now</button>
-                {/* Wishlist toggle button */}
-                {(() => {
-                  const wished = wishlistItems.find((p) => String(p.id) === String(product.id))
-                  return (
-                    <button
-                      className={"wishlistBtn " + (wished ? 'wished' : '')}
-                      onClick={(e) => { e.preventDefault(); toggleWishlist(product) }}
-                      title={wished ? 'Remove from wishlist' : 'Add to wishlist'}
-                    >
-                      {wished ? '♥' : '♡'}
-                    </button>
-                  )
-                })()}
               </div>
 
               {/* ── Sewa Bazaar Minutes Delivery Badge ── */}
