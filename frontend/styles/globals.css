@@ -1089,6 +1089,7 @@ main > section {
 	overflow:hidden;
 }
 .productImageWrap {
+	position:relative;
 	height:140px;
 	border-radius:10px;
 	background:#f5faf7;
@@ -1097,6 +1098,32 @@ main > section {
 	justify-content:center;
 	overflow:hidden;
 	margin-bottom:10px;
+}
+/* ── Delivery / product badge on card image ── */
+.mangoBadge {
+	position:absolute;
+	bottom:6px;
+	left:50%;
+	transform:translateX(-50%);
+	background:#e8f5e9;
+	color:#2e7d32;
+	font-size:10px;
+	font-weight:700;
+	padding:3px 8px;
+	border-radius:20px;
+	white-space:nowrap;
+	pointer-events:none;
+	border:1px solid #c8e6c9;
+}
+.mangoBadge.badgeFast {
+	background:#fff8e1;
+	color:#e65100;
+	border-color:#ffe0b2;
+}
+.mangoBadge.badgeNormal {
+	background:#e3f2fd;
+	color:#1565c0;
+	border-color:#bbdefb;
 }
 .productImageWrap img {
 	width:100%;

@@ -1,6 +1,7 @@
 import { useRouter } from 'next/router'
 import { useState, useMemo } from 'react'
 import { useCart } from '../contexts/CartContext'
+import { useDelivery } from '../contexts/DeliveryContext'
 import ProductCard from './ProductCard'
 import FilterBar from './FilterBar'
 
@@ -17,6 +18,14 @@ export default function CategoryPage({
 }) {
   const router = useRouter()
   const { addToCart } = useCart()
+  const { userLocation, deliveryType, estimatedTime } = useDelivery()
+
+  // Build delivery badge shown on every card when location is known
+  const deliveryBadge = useMemo(() => {
+    if (!userLocation || !deliveryType) return null
+    if (deliveryType === 'fast') return `⚡ ${estimatedTime}`
+    return `🚚 ${estimatedTime}`
+  }, [userLocation, deliveryType, estimatedTime])
   const [quantities, setQuantities] = useState(() => products.map(() => 1))
   const [filters, setFilters] = useState({
     sort: 'popularity',
@@ -123,6 +132,7 @@ export default function CategoryPage({
                   discount={product.discount}
                   size={normalizedSize}
                   image={product.image}
+                  badge={deliveryBadge || product.badge || undefined}
                   showQty={true}
                   qty={qty}
                   onQtyChange={(delta) => changeQty(originalIndex, delta)}
