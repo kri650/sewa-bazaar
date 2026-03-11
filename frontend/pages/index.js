@@ -622,7 +622,6 @@ export default function Home() {
                             ? <img src={item.image} alt={item.name} loading="lazy" />
                             : <div style={{ width: '100%', height: '100%', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: '#888' }}>No image</div>
                           }
-                          {deliveryBadge && <span className="mangoBadge">{deliveryBadge}</span>}
                         </div>
                         {/* Sewa Bazaar Minutes badge */}
                         {sewaMinutesMap[item.id] === true && (
@@ -639,6 +638,7 @@ export default function Home() {
                         )}
                         {item.category && <span style={{ fontSize: 11, color: '#4caf50', fontWeight: 600, textTransform: 'uppercase', marginBottom: 2, display: 'block' }}>{item.category}</span>}
                         <p className="productName" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>{item.name}</p>
+                        {deliveryBadge && <span className="mangoBadge">{deliveryBadge}</span>}
                         <p className="productPrice">{formatRupees(currentPrice)}</p>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
                           <span style={{ fontSize: 12, color: '#888', textDecoration: 'line-through' }}>
@@ -690,9 +690,9 @@ export default function Home() {
                 <article className="productCard" key={item.name}>
                   <div className="productImageWrap" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
                     <img className={item.name && item.name.includes('Potato') ? 'forceCover' : ''} src={item.image} alt={item.name} loading="lazy" />
-                    {deliveryBadge && <span className="mangoBadge">{deliveryBadge}</span>}
                   </div>
                   <p className="productName" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>{item.name}</p>
+                  {deliveryBadge && <span className="mangoBadge">{deliveryBadge}</span>}
                   <p className="productPrice">{formatRupees(currentPrice)}</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
                     <span style={{ fontSize: 12, color: '#888', textDecoration: 'line-through' }}>
@@ -741,9 +741,9 @@ export default function Home() {
                 <article className="productCard" key={item.name}>
                   <div className="productImageWrap" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
                     <img src={item.image} alt={item.name} loading="lazy" />
-                    {deliveryBadge && <span className="mangoBadge">{deliveryBadge}</span>}
                   </div>
                   <p className="productName" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>{item.name}</p>
+                  {deliveryBadge && <span className="mangoBadge">{deliveryBadge}</span>}
                   <p className="productPrice">{formatRupees(currentPrice)}</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
                     <span style={{ fontSize: 12, color: '#888', textDecoration: 'line-through' }}>
@@ -792,9 +792,9 @@ export default function Home() {
                 <article className="productCard" key={item.name}>
                   <div className="productImageWrap" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
                     <img src={item.image} alt={item.name} loading="lazy" />
-                    {deliveryBadge && <span className="mangoBadge">{deliveryBadge}</span>}
                   </div>
                   <p className="productName" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>{item.name}</p>
+                  {deliveryBadge && <span className="mangoBadge">{deliveryBadge}</span>}
                   <p className="productPrice">{formatRupees(currentPrice)}</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
                     <span style={{ fontSize: 12, color: '#888', textDecoration: 'line-through' }}>
@@ -843,9 +843,9 @@ export default function Home() {
                 <article className="productCard" key={item.name}>
                   <div className="productImageWrap" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
                     <img src={item.image} alt={item.name} loading="lazy" />
-                    {deliveryBadge && <span className="mangoBadge">{deliveryBadge}</span>}
                   </div>
                   <p className="productName" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>{item.name}</p>
+                  {deliveryBadge && <span className="mangoBadge">{deliveryBadge}</span>}
                   <p className="productPrice">{formatRupees(currentPrice)}</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
                     <span style={{ fontSize: 12, color: '#888', textDecoration: 'line-through' }}>
@@ -894,9 +894,9 @@ export default function Home() {
                 <article className="productCard" key={item.name}>
                   <div className="productImageWrap" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
                     <img src={item.image} alt={item.name} loading="lazy" />
-                    {deliveryBadge && <span className="mangoBadge">{deliveryBadge}</span>}
                   </div>
                   <p className="productName" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>{item.name}</p>
+                  {deliveryBadge && <span className="mangoBadge">{deliveryBadge}</span>}
                   <p className="productPrice">{formatRupees(currentPrice)}</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
                     <span style={{ fontSize: 12, color: '#888', textDecoration: 'line-through' }}>
@@ -945,9 +945,9 @@ export default function Home() {
                 <article className="productCard" key={item.name}>
                   <div className="productImageWrap" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
                     <img src={item.image} alt={item.name} loading="lazy" />
-                    {deliveryBadge && <span className="mangoBadge">{deliveryBadge}</span>}
                   </div>
                   <p className="productName" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>{item.name}</p>
+                  {deliveryBadge && <span className="mangoBadge">{deliveryBadge}</span>}
                   <p className="productPrice">{formatRupees(currentPrice)}</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
                     <span style={{ fontSize: 12, color: '#888', textDecoration: 'line-through' }}>
@@ -996,9 +996,9 @@ export default function Home() {
                 <article className="productCard" key={item.name}>
                   <div className="productImageWrap" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
                     <img src={item.image} alt={item.name} loading="lazy" />
-                    {deliveryBadge && <span className="mangoBadge">{deliveryBadge}</span>}
                   </div>
                   <p className="productName" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>{item.name}</p>
+                  {deliveryBadge && <span className="mangoBadge">{deliveryBadge}</span>}
                   <p className="productPrice">{formatRupees(currentPrice)}</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
                     <span style={{ fontSize: 12, color: '#888', textDecoration: 'line-through' }}>
@@ -1047,9 +1047,9 @@ export default function Home() {
                 <article className="productCard" key={item.name}>
                   <div className="productImageWrap" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
                     <img src={item.image} alt={item.name} loading="lazy" />
-                    {deliveryBadge && <span className="mangoBadge">{deliveryBadge}</span>}
                   </div>
                   <p className="productName" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>{item.name}</p>
+                  {deliveryBadge && <span className="mangoBadge">{deliveryBadge}</span>}
                   <p className="productPrice">{formatRupees(currentPrice)}</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
                     <span style={{ fontSize: 12, color: '#888', textDecoration: 'line-through' }}>
@@ -1094,9 +1094,9 @@ export default function Home() {
                 <article className="productCard" key={item.name}>
                   <div className="productImageWrap" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
                     <img src={item.image} alt={item.name} loading="lazy" />
-                    {deliveryBadge && <span className="mangoBadge">{deliveryBadge}</span>}
                   </div>
                   <p className="productName" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>{item.name}</p>
+                  {deliveryBadge && <span className="mangoBadge">{deliveryBadge}</span>}
                   <p className="productPrice">{formatRupees(parseRupees(item.price) * poojaQty[index])}</p>
                   <span className="productSize">{item.size}</span>
                   <div className="qtyRow">
@@ -1164,9 +1164,9 @@ export default function Home() {
               <article className="productCard" key={item.name}>
                 <div className="productImageWrap" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
                   <img src={item.image} alt={item.name} loading="lazy" />
-                  {deliveryBadge && <span className="mangoBadge">{deliveryBadge}</span>}
                 </div>
                 <p className="productName" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>{item.name}</p>
+                {deliveryBadge && <span className="mangoBadge">{deliveryBadge}</span>}
                 <p className="productPrice">{formatRupees(parseRupees(item.price) * bestQty[index])}</p>
                 <span className="productSize">{item.size}</span>
                 <div className="qtyRow">

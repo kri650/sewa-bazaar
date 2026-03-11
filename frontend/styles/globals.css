@@ -1099,27 +1099,22 @@ main > section {
 	overflow:hidden;
 	margin-bottom:10px;
 }
-/* ── Delivery / product badge on card image ── */
+/* ── Delivery badge under product name ── */
 .mangoBadge {
-	position:absolute;
-	top:7px;
-	left:50%;
-	transform:translateX(-50%);
-	background:rgba(97,146,51,0.92);
-	color:#fff;
+	display:block;
+	color:#619233;
 	font-size:10px;
-	font-weight:700;
-	padding:3px 10px;
-	border-radius:20px;
+	font-weight:600;
+	margin:2px 0 4px;
 	white-space:nowrap;
 	pointer-events:none;
-	letter-spacing:0.2px;
+	letter-spacing:0.1px;
 }
 .mangoBadge.badgeFast {
-	background:rgba(230,81,0,0.9);
+	color:#e65100;
 }
 .mangoBadge.badgeNormal {
-	background:rgba(21,101,192,0.9);
+	color:#1565c0;
 }
 .productImageWrap img {
 	width:100%;

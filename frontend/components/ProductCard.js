@@ -71,9 +71,6 @@ export default function ProductCard({
           alt={name}
           loading="lazy"
         />
-        {badge ? (
-          <span className="mangoBadge">{badge}</span>
-        ) : null}
       </div>
 
       <p
@@ -83,6 +80,10 @@ export default function ProductCard({
       >
         {name}
       </p>
+
+      {badge ? (
+        <span className="mangoBadge">{badge}</span>
+      ) : null}
 
       {description ? <p className="productDescription">{description}</p> : null}
 
