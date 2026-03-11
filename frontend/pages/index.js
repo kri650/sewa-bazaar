@@ -3,6 +3,7 @@ import { useRouter } from 'next/router'
 import Link from 'next/link'
 import SiteHeader from '../components/SiteHeader'
 import { useCart } from '../contexts/CartContext'
+import { useDelivery } from '../contexts/DeliveryContext'
 
 const CATEGORY_ROUTES = {
   'Best Deal': '/best-deal',
@@ -230,6 +231,10 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
 
 export default function Home() {
   const { addToCart } = useCart()
+  const { userLocation, deliveryType, estimatedTime } = useDelivery()
+  const deliveryBadge = userLocation && deliveryType
+    ? (deliveryType === 'fast' ? `Delivery in ${estimatedTime}` : `Delivery ${estimatedTime}`)
+    : null
   const router = useRouter()
   const bannerWithEmbeddedText = '/hero/IMG_20260307_152821_357.jpg (1).jpeg'
   const safeDecode = (value) => {
@@ -617,6 +622,7 @@ export default function Home() {
                             ? <img src={item.image} alt={item.name} loading="lazy" />
                             : <div style={{ width: '100%', height: '100%', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: '#888' }}>No image</div>
                           }
+                          {deliveryBadge && <span className="mangoBadge">{deliveryBadge}</span>}
                         </div>
                         {/* Sewa Bazaar Minutes badge */}
                         {sewaMinutesMap[item.id] === true && (
@@ -684,6 +690,7 @@ export default function Home() {
                 <article className="productCard" key={item.name}>
                   <div className="productImageWrap" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
                     <img className={item.name && item.name.includes('Potato') ? 'forceCover' : ''} src={item.image} alt={item.name} loading="lazy" />
+                    {deliveryBadge && <span className="mangoBadge">{deliveryBadge}</span>}
                   </div>
                   <p className="productName" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>{item.name}</p>
                   <p className="productPrice">{formatRupees(currentPrice)}</p>
@@ -734,6 +741,7 @@ export default function Home() {
                 <article className="productCard" key={item.name}>
                   <div className="productImageWrap" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
                     <img src={item.image} alt={item.name} loading="lazy" />
+                    {deliveryBadge && <span className="mangoBadge">{deliveryBadge}</span>}
                   </div>
                   <p className="productName" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>{item.name}</p>
                   <p className="productPrice">{formatRupees(currentPrice)}</p>
@@ -784,6 +792,7 @@ export default function Home() {
                 <article className="productCard" key={item.name}>
                   <div className="productImageWrap" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
                     <img src={item.image} alt={item.name} loading="lazy" />
+                    {deliveryBadge && <span className="mangoBadge">{deliveryBadge}</span>}
                   </div>
                   <p className="productName" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>{item.name}</p>
                   <p className="productPrice">{formatRupees(currentPrice)}</p>
@@ -834,6 +843,7 @@ export default function Home() {
                 <article className="productCard" key={item.name}>
                   <div className="productImageWrap" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
                     <img src={item.image} alt={item.name} loading="lazy" />
+                    {deliveryBadge && <span className="mangoBadge">{deliveryBadge}</span>}
                   </div>
                   <p className="productName" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>{item.name}</p>
                   <p className="productPrice">{formatRupees(currentPrice)}</p>
@@ -884,6 +894,7 @@ export default function Home() {
                 <article className="productCard" key={item.name}>
                   <div className="productImageWrap" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
                     <img src={item.image} alt={item.name} loading="lazy" />
+                    {deliveryBadge && <span className="mangoBadge">{deliveryBadge}</span>}
                   </div>
                   <p className="productName" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>{item.name}</p>
                   <p className="productPrice">{formatRupees(currentPrice)}</p>
@@ -934,6 +945,7 @@ export default function Home() {
                 <article className="productCard" key={item.name}>
                   <div className="productImageWrap" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
                     <img src={item.image} alt={item.name} loading="lazy" />
+                    {deliveryBadge && <span className="mangoBadge">{deliveryBadge}</span>}
                   </div>
                   <p className="productName" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>{item.name}</p>
                   <p className="productPrice">{formatRupees(currentPrice)}</p>
@@ -984,6 +996,7 @@ export default function Home() {
                 <article className="productCard" key={item.name}>
                   <div className="productImageWrap" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
                     <img src={item.image} alt={item.name} loading="lazy" />
+                    {deliveryBadge && <span className="mangoBadge">{deliveryBadge}</span>}
                   </div>
                   <p className="productName" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>{item.name}</p>
                   <p className="productPrice">{formatRupees(currentPrice)}</p>
@@ -1034,6 +1047,7 @@ export default function Home() {
                 <article className="productCard" key={item.name}>
                   <div className="productImageWrap" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
                     <img src={item.image} alt={item.name} loading="lazy" />
+                    {deliveryBadge && <span className="mangoBadge">{deliveryBadge}</span>}
                   </div>
                   <p className="productName" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>{item.name}</p>
                   <p className="productPrice">{formatRupees(currentPrice)}</p>
@@ -1080,6 +1094,7 @@ export default function Home() {
                 <article className="productCard" key={item.name}>
                   <div className="productImageWrap" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
                     <img src={item.image} alt={item.name} loading="lazy" />
+                    {deliveryBadge && <span className="mangoBadge">{deliveryBadge}</span>}
                   </div>
                   <p className="productName" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>{item.name}</p>
                   <p className="productPrice">{formatRupees(parseRupees(item.price) * poojaQty[index])}</p>
@@ -1149,6 +1164,7 @@ export default function Home() {
               <article className="productCard" key={item.name}>
                 <div className="productImageWrap" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
                   <img src={item.image} alt={item.name} loading="lazy" />
+                  {deliveryBadge && <span className="mangoBadge">{deliveryBadge}</span>}
                 </div>
                 <p className="productName" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>{item.name}</p>
                 <p className="productPrice">{formatRupees(parseRupees(item.price) * bestQty[index])}</p>
