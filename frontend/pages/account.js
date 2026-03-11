@@ -695,10 +695,10 @@ export default function AccountPage() {
 
   /* ── LOGGED IN – DASHBOARD ─── */
   const sideNavItems = [
-    { key: 'overview',   label: 'Overview',    icon: '⊞' },
-  { key: 'addresses',  label: 'My Addresses', icon: '⊙' },
-    { key: 'orders',     label: 'My Orders',    icon: '☰' },
-  { key: 'wishlist',   label: 'Wishlist',     icon: '♡' },
+    { key: 'overview',   label: 'Overview',     icon: '🏠' },
+    { key: 'orders',     label: 'My Orders',    icon: '📦' },
+    { key: 'addresses',  label: 'Addresses',    icon: '📍' },
+    { key: 'wishlist',   label: 'Wishlist',     icon: '♡' },
   ]
 
   return (
@@ -941,27 +941,33 @@ export default function AccountPage() {
             {/* WISHLIST */}
             {tab === 'wishlist' && (
               <div className="dashSection">
-                <h2 className="sectionTitle">My Wishlist</h2>
+                <div className="sectionHeader">
+                  <h2 className="sectionTitle">My Wishlist</h2>
+                  <span style={{ fontSize: 13, color: '#888', fontWeight: 500 }}>{wishlistItems.length} item{wishlistItems.length !== 1 ? 's' : ''}</span>
+                </div>
                 {wishlistItems.length === 0 ? (
                   <div className="emptyState">
                     <div className="emptyIcon">♡</div>
                     <h3>Your wishlist is empty</h3>
-                    <p>Tap the ♥ on any product to add it here.</p>
+                    <p>Tap the ♥ on any product to save it here.</p>
+                    <button className="addBtn" onClick={() => window.location.href = '/'}>Browse Products</button>
                   </div>
                 ) : (
-                  <div className="wishlistGrid">
+                  <div className="wishGrid">
                     {wishlistItems.map(item => (
                       <div key={item.id} className="wishCard">
-                        <img src={item.image} alt={item.name} />
-                        <div className="wishInfo">
-                          <strong>{item.name}</strong>
-                          <div className="wishPrice">{formatRupees(item.price)}</div>
-                          <div className="wishActions">
-                            <button className="addBtn" onClick={() => { addToCart(item, 1); removeFromWishlist(item.id); setSuccess('Added to cart') }}>
-                              Add to Cart
-                            </button>
-                            <button className="cancelAddrBtn" onClick={() => removeFromWishlist(item.id)}>Remove</button>
-                          </div>
+                        <div className="wishImgWrap">
+                          <img src={item.image} alt={item.name} />
+                          <button className="wishRemoveBtn" onClick={() => removeFromWishlist(item.id)} title="Remove">✕</button>
+                        </div>
+                        <div className="wishBody">
+                          <p className="wishName">{item.name}</p>
+                          {item.size && <span className="wishSize">{item.size}</span>}
+                          <p className="wishPrice">{formatRupees(item.price)}</p>
+                          <button className="wishCartBtn" onClick={() => { addToCart(item, 1); removeFromWishlist(item.id); setSuccess('Moved to cart!'); setTimeout(() => setSuccess(''), 3000) }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+                            Move to Cart
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -974,83 +980,120 @@ export default function AccountPage() {
 
         <style jsx>{`
           .dashPage {
-            background: #f1f3f6;
-            min-height: calc(100vh - 120px);
-            padding: 28px 0 60px;
+            background: #f6f7f9;
+            min-height: calc(100vh - 70px);
+            padding: 32px 0 60px;
           }
           .globalSuccess {
-            background: #e8f5e9;
-            border: 1px solid #a5d6a7;
-            color: #2e7d32;
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 999;
+            background: #fff;
+            border: 1.5px solid #86efac;
+            color: #15803d;
             text-align: center;
-            padding: 10px;
+            padding: 12px 28px;
             font-size: 14px;
             font-weight: 600;
-            margin-bottom: 4px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(22,163,74,0.15);
+            animation: slideDown 0.3s ease;
+          }
+          @keyframes slideDown {
+            from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
           }
           .dashContainer {
-            max-width: 1160px;
+            max-width: 1120px;
             margin: 0 auto;
-            padding: 0 16px;
+            padding: 0 20px;
             display: grid;
-            grid-template-columns: 260px 1fr;
-            gap: 24px;
+            grid-template-columns: 240px 1fr;
+            gap: 28px;
             align-items: start;
           }
 
           /* ── SIDEBAR ── */
           .dashSidebar {
             background: #fff;
-            border-radius: 10px;
+            border-radius: 14px;
             overflow: hidden;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            box-shadow: 0 1px 8px rgba(0,0,0,0.05);
             position: sticky;
-            top: 20px;
+            top: 90px;
+            border: 1px solid #eee;
           }
           .sideProfile {
             background: linear-gradient(135deg, #619233 0%, #4a7125 100%);
-            padding: 24px 20px;
+            padding: 22px 18px;
             display: flex;
             align-items: center;
-            gap: 14px;
+            gap: 12px;
           }
           .sideAvatar {
-            width: 48px; height: 48px;
-            background: rgba(255,255,255,0.25);
+            width: 44px; height: 44px;
+            background: rgba(255,255,255,0.22);
             border-radius: 50%;
             display: grid; place-items: center;
-            font-size: 20px; font-weight: 700; color: #fff;
+            font-size: 18px; font-weight: 700; color: #fff;
             flex-shrink: 0;
           }
           .sideUserInfo { overflow: hidden; }
           .sideUserInfo strong {
-            display: block; color: #fff; font-size: 15px;
+            display: block; color: #fff; font-size: 14px;
             font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
           }
-          .sideUserInfo span { display: block; color: rgba(255,255,255,0.75); font-size: 12px; }
-          .sideNav { padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
+          .sideUserInfo span { display: block; color: rgba(255,255,255,0.7); font-size: 11px; margin-top: 2px; }
+          .sideNav { padding: 8px 0; }
           .sideNavBtn {
             width: 100%; background: none; border: none; cursor: pointer;
             display: flex; align-items: center; gap: 10px;
-            padding: 12px 20px; font-size: 14px; font-weight: 500; color: #444;
+            padding: 11px 18px; font-size: 13.5px; font-weight: 500; color: #555;
             text-align: left; transition: all 0.15s;
+            border-left: 3px solid transparent;
           }
           .sideNavBtn:hover { background: #f8faf5; color: #619233; }
-          .sideNavBtn.active { background: #f0f7e8; color: #619233; font-weight: 700; border-right: 3px solid #619233; }
-          .sideNavIcon { font-size: 16px; width: 20px; text-align: center; }
+          .sideNavBtn.active {
+            background: #f0f7e8; color: #619233; font-weight: 700;
+            border-left-color: #619233;
+          }
+          .sideNavIcon { font-size: 15px; width: 20px; text-align: center; }
           .sideLogout {
             width: 100%; background: none; border: none; cursor: pointer;
             display: flex; align-items: center; gap: 10px;
-            padding: 14px 20px; font-size: 14px; font-weight: 500;
+            padding: 13px 18px; font-size: 13.5px; font-weight: 500;
             color: #e53935; transition: background 0.15s;
+            border-top: 1px solid #f0f0f0;
           }
           .sideLogout:hover { background: #fff5f5; }
 
           /* ── MAIN ── */
           .dashMain { min-width: 0; }
-          .dashSection { background: #fff; border-radius: 10px; padding: 28px 28px 32px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
-          .sectionTitle { margin: 0 0 24px; font-size: 20px; font-weight: 700; color: #212121; border-bottom: 2px solid #f0f0f0; padding-bottom: 14px; }
-          .sectionHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 2px solid #f0f0f0; padding-bottom: 14px; }
+          .dashSection {
+            background: #fff;
+            border-radius: 14px;
+            padding: 28px 28px 32px;
+            box-shadow: 0 1px 8px rgba(0,0,0,0.05);
+            border: 1px solid #eee;
+          }
+          .sectionTitle {
+            margin: 0 0 20px;
+            font-size: 18px;
+            font-weight: 700;
+            color: #1a1a1a;
+            border-bottom: none;
+            padding-bottom: 0;
+          }
+          .sectionHeader {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 14px;
+            border-bottom: 1.5px solid #f0f0f0;
+          }
           .sectionHeader .sectionTitle { margin: 0; border: none; padding: 0; }
 
           /* OVERVIEW */
@@ -1127,19 +1170,134 @@ export default function AccountPage() {
           .orderItemPrice { font-weight: 600; color: #212121; }
           .orderCardFooter { padding: 10px 18px; background: #fafafa; border-top: 1px solid #f0f0f0; font-size: 12px; color: #777; }
 
+          /* WISHLIST */
+          .wishGrid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 18px;
+          }
+          .wishCard {
+            background: #fff;
+            border: 1.5px solid #eee;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: box-shadow 0.2s, border-color 0.2s;
+          }
+          .wishCard:hover {
+            box-shadow: 0 6px 24px rgba(97,146,51,0.12);
+            border-color: #c8e0a8;
+          }
+          .wishImgWrap {
+            position: relative;
+            background: #f8f9f5;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            aspect-ratio: 1;
+          }
+          .wishImgWrap img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 6px;
+          }
+          .wishRemoveBtn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(0,0,0,0.06);
+            color: #999;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, color 0.2s;
+          }
+          .wishRemoveBtn:hover {
+            background: #fee2e2;
+            color: #e53935;
+          }
+          .wishBody {
+            padding: 14px 14px 16px;
+          }
+          .wishName {
+            margin: 0 0 4px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #212121;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+          }
+          .wishSize {
+            display: inline-block;
+            font-size: 11px;
+            color: #888;
+            background: #f3f4f6;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-bottom: 6px;
+          }
+          .wishPrice {
+            margin: 0 0 10px;
+            font-size: 16px;
+            font-weight: 800;
+            color: #619233;
+          }
+          .wishCartBtn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            background: linear-gradient(135deg, #619233 0%, #4f7a29 100%);
+            color: #fff;
+            border: none;
+            padding: 9px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.15s;
+          }
+          .wishCartBtn:hover {
+            opacity: 0.92;
+            transform: translateY(-1px);
+          }
+
           /* RESPONSIVE */
           @media (max-width: 900px) {
-            .dashContainer { grid-template-columns: 1fr; }
+            .dashContainer { grid-template-columns: 1fr; gap: 16px; }
             .dashSidebar { position: static; }
-            .sideNav { display: flex; flex-wrap: wrap; padding: 0; }
-            .sideNavBtn { flex: 1; justify-content: center; border-right: none; border-bottom: 3px solid transparent; }
-            .sideNavBtn.active { border-right: none; border-bottom-color: #619233; }
+            .sideProfile { padding: 16px; }
+            .sideNav { display: flex; flex-wrap: wrap; padding: 4px 0; }
+            .sideNavBtn {
+              flex: 1; min-width: 0; justify-content: center;
+              padding: 10px 8px; font-size: 12px;
+              border-left: none; border-bottom: 3px solid transparent;
+            }
+            .sideNavBtn.active { border-left: none; border-bottom-color: #619233; background: transparent; }
+            .sideLogout { justify-content: center; border-top: none; }
             .overviewGrid { grid-template-columns: 1fr; }
+            .wishGrid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
           }
           @media (max-width: 600px) {
-            .dashSection { padding: 20px 16px; }
+            .dashPage { padding: 16px 0 40px; }
+            .dashContainer { padding: 0 12px; }
+            .dashSection { padding: 20px 16px; border-radius: 10px; }
             .addrRow2, .addrRow3 { grid-template-columns: 1fr; }
             .addrFormActions { flex-direction: column; }
+            .wishGrid { grid-template-columns: 1fr 1fr; gap: 10px; }
+            .wishBody { padding: 10px 10px 14px; }
+            .wishName { font-size: 13px; }
+            .wishPrice { font-size: 14px; }
           }
         `}</style>
       </main>
