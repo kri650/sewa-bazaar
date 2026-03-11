@@ -5,6 +5,7 @@ import { useRouter } from 'next/router'
 import { CartProvider } from '../contexts/CartContext'
 import { LocationProvider } from '../contexts/LocationContext'
 import { DeliveryProvider } from '../contexts/DeliveryContext'
+import { WishlistProvider } from '../contexts/WishlistContext'
 
 const SITE_NAME = 'Sewa Bazaar'
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://sewabazaar.in'
@@ -307,7 +308,9 @@ export default function App({ Component, pageProps }) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </Head>
-      <Component {...pageProps} />
+      <WishlistProvider>
+        <Component {...pageProps} />
+      </WishlistProvider>
     </DeliveryProvider>
       </LocationProvider>
     </CartProvider>

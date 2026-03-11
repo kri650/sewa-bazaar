@@ -1130,6 +1130,16 @@ main > section {
 	transition: transform 160ms ease;
 }
 
+/* wishlist button beside price */
+.wishlistBtn {
+	background: transparent;
+	border: none;
+	cursor: pointer;
+	font-size: 14px;
+	line-height: 1;
+	padding: 2px 6px;
+}
+
 /* Make section images cover their container (fills full area) */
 .cover-section img,
 .promoCard img,

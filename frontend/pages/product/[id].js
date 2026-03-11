@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import ShopLayout from '../../components/ShopLayout';
 import { useCart } from '../../contexts/CartContext';
 import { useDelivery } from '../../contexts/DeliveryContext';
+import { useWishlist } from '../../contexts/WishlistContext';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
 
@@ -266,6 +267,9 @@ export default function ProductDetailPage() {
 
   const totalAmount = product.price * quantity;
 
+  // Wishlist hook
+  const { items: wishlistItems, toggle: toggleWishlist } = useWishlist();
+
   return (
     <ShopLayout>
       <div className="product-detail-page">
@@ -337,6 +341,19 @@ export default function ProductDetailPage() {
                   Add to Cart
                 </button>
                 <button className="buy-now-btn" onClick={handleBuyNow}>Buy Now</button>
+                {/* Wishlist toggle button */}
+                {(() => {
+                  const wished = wishlistItems.find((p) => String(p.id) === String(product.id))
+                  return (
+                    <button
+                      className={"wishlistBtn " + (wished ? 'wished' : '')}
+                      onClick={(e) => { e.preventDefault(); toggleWishlist(product) }}
+                      title={wished ? 'Remove from wishlist' : 'Add to wishlist'}
+                    >
+                      {wished ? '♥' : '♡'}
+                    </button>
+                  )
+                })()}
               </div>
 
               {/* ── Sewa Bazaar Minutes Delivery Badge ── */}

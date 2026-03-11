@@ -1,5 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useWishlist } from '../contexts/WishlistContext'
+import { useCart } from '../contexts/CartContext'
 import ShopLayout from '../components/ShopLayout'
 
 const MSG91_WIDGET_ID  = '36636a6d6143363732333330'
@@ -61,7 +63,7 @@ function StatusBadge({ status }) {
 export default function AccountPage() {
   const [token, setToken] = useState('')
   const [user, setUser]   = useState(null)
-  const [tab, setTab]     = useState('overview')   // overview | addresses | orders
+  const [tab, setTab]     = useState('overview')   // overview | addresses | orders | wishlist
   const [authMode, setAuthMode] = useState('login') // login | register
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
@@ -230,6 +232,10 @@ export default function AccountPage() {
   }, [])
 
   useEffect(() => { if (token && tab === 'addresses') loadAddresses() }, [token, tab, loadAddresses])
+
+  // wishlist
+  const { items: wishlistItems, remove: removeFromWishlist } = useWishlist()
+  const { addToCart } = useCart()
 
   const handleAddAddress = async (e) => {
     e.preventDefault()
@@ -683,8 +689,9 @@ export default function AccountPage() {
   /* ── LOGGED IN – DASHBOARD ─── */
   const sideNavItems = [
     { key: 'overview',   label: 'Overview',    icon: '⊞' },
-    { key: 'addresses',  label: 'My Addresses', icon: '⊙' },
+  { key: 'addresses',  label: 'My Addresses', icon: '⊙' },
     { key: 'orders',     label: 'My Orders',    icon: '☰' },
+  { key: 'wishlist',   label: 'Wishlist',     icon: '♡' },
   ]
 
   return (
@@ -916,6 +923,38 @@ export default function AccountPage() {
                           <span className="paymentMethod">
                             {order.paymentMethod === 'online' ? '💳 Online Payment' : '💵 Cash on Delivery'}
                           </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* WISHLIST */}
+            {tab === 'wishlist' && (
+              <div className="dashSection">
+                <h2 className="sectionTitle">My Wishlist</h2>
+                {wishlistItems.length === 0 ? (
+                  <div className="emptyState">
+                    <div className="emptyIcon">♡</div>
+                    <h3>Your wishlist is empty</h3>
+                    <p>Tap the ♥ on any product to add it here.</p>
+                  </div>
+                ) : (
+                  <div className="wishlistGrid">
+                    {wishlistItems.map(item => (
+                      <div key={item.id} className="wishCard">
+                        <img src={item.image} alt={item.name} />
+                        <div className="wishInfo">
+                          <strong>{item.name}</strong>
+                          <div className="wishPrice">{formatRupees(item.price)}</div>
+                          <div className="wishActions">
+                            <button className="addBtn" onClick={() => { addToCart(item, 1); removeFromWishlist(item.id); setSuccess('Added to cart') }}>
+                              Add to Cart
+                            </button>
+                            <button className="cancelAddrBtn" onClick={() => removeFromWishlist(item.id)}>Remove</button>
+                          </div>
                         </div>
                       </div>
                     ))}

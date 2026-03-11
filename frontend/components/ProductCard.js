@@ -1,4 +1,5 @@
 import React from 'react'
+import { useWishlist } from '../contexts/WishlistContext'
 
 const parseRupees = (price) => Number(String(price || '').replace(/[^\d.]/g, '')) || 0
 
@@ -29,6 +30,9 @@ export default function ProductCard({
   onAdd,
   onClick,
 }) {
+  const { items: wishlistItems, toggle } = useWishlist()
+  const myId = String(name || image || '')
+  const isWished = wishlistItems.some((p) => String(p.id) === myId)
   const numeric = parseRupees(price)
   const displayPrice =
     showQty
@@ -87,7 +91,12 @@ export default function ProductCard({
 
       {description ? <p className="productDescription">{description}</p> : null}
 
-      <p className="productPrice">{displayPrice}</p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <p className="productPrice" style={{ margin: 0 }}>{displayPrice}</p>
+        <button type="button" className="wishlistBtn" onClick={() => toggle({ id: myId, name, price, size, image })} aria-label="Add to wishlist" style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: isWished ? '#e63946' : '#9ca3af', fontSize: 16 }}>
+          {isWished ? '♥' : '♡'}
+        </button>
+      </div>
 
       {hasDiscount ? (
         <div className="priceRow">
