@@ -91,9 +91,19 @@ export default function ProductCard({
 
       {description ? <p className="productDescription">{description}</p> : null}
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <p className="productPrice" style={{ margin: 0 }}>{displayPrice}</p>
-        <button type="button" className="wishlistBtn" onClick={() => toggle({ id: myId, name, price, size, image })} aria-label="Add to wishlist" style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: isWished ? '#e63946' : '#9ca3af', fontSize: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', width: '100%' }}>
+        <p className="productPrice" style={{ margin: 0, textAlign: 'center', flex: 1 }}>{displayPrice}</p>
+        <button
+          type="button"
+          className="wishlistBtn"
+          onClick={() => toggle({ id: myId, name, price, size, image })}
+          aria-label="Add to wishlist"
+          style={{
+            position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)',
+            border: 'none', background: 'transparent', cursor: 'pointer',
+            color: isWished ? '#e63946' : '#9ca3af', fontSize: 18, padding: 4,
+          }}
+        >
           {isWished ? '♥' : '♡'}
         </button>
       </div>
