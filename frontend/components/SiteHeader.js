@@ -228,18 +228,23 @@ export default function SiteHeader({ showTopHeader = true }) {
   return (
     <>
   <div className="headerShell">
-      {/* ── Black top banner (only on home page) ── */}
-      {(showTopHeader && (router.pathname === '/' || router.asPath === '/')) && (
+      {/* ── Black top banner (all pages) ── */}
+      {showTopHeader && (
         <div className="infoBanner">
           <div className="bannerLeft">
-            {deliveryType && estimatedTime && (
-              <span style={{ marginLeft: 12, fontWeight: 700, fontSize: 13 }}>
+            {deliveryType && estimatedTime ? (
+              <span style={{ marginLeft: 12, fontWeight: 700, fontSize: 13, color: '#a3d55f' }}>
+                🚚&nbsp;
                 {deliveryType === 'fast'
-                  ? `Fast delivery in ${estimatedTime}`
+                  ? `Delivery in ${estimatedTime}`
                   : `Delivery ${estimatedTime}`}
-                {distanceKm ? ` • ${distanceKm} km away` : ''}
+                {distanceKm ? ` • ${distanceKm} km` : ''}
               </span>
-            )}
+            ) : location && !deliveryType ? (
+              <span style={{ marginLeft: 12, fontSize: 12, color: '#888' }}>
+                Calculating delivery…
+              </span>
+            ) : null}
           </div>
           <button
             className="bannerLocation"

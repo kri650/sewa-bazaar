@@ -96,6 +96,38 @@ export function DeliveryProvider({ children }) {
     }, (err) => reject(err), { timeout: 10000 })
   })
 
+  // Sync userLocation from saved sb_location on mount AND whenever it changes in localStorage
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const syncFromStorage = () => {
+      const saved = localStorage.getItem('sb_location')
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved)
+          if (parsed && parsed.lat && parsed.lng) {
+            setUserLocation({ lat: parsed.lat, lng: parsed.lng })
+          }
+        } catch (_) {}
+      }
+    }
+
+    // Run on mount
+    syncFromStorage()
+
+    // Listen for changes (cross-tab via native storage event, same-tab via custom event)
+    const handleStorage = (e) => {
+      if (!e.key || e.key === 'sb_location') syncFromStorage()
+    }
+    window.addEventListener('storage', handleStorage)
+    window.addEventListener('sb_location_updated', syncFromStorage)
+
+    return () => {
+      window.removeEventListener('storage', handleStorage)
+      window.removeEventListener('sb_location_updated', syncFromStorage)
+    }
+  }, [])
+
   // Auto-detect on first visit if user has not saved a location
   useEffect(() => {
     if (typeof window === 'undefined') return

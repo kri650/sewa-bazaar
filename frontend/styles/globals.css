@@ -1078,10 +1078,20 @@ main > section {
 	background:#fff;
 	border:1px solid #d8e6de;
 	border-radius:12px;
+	/* make card a column flex container so inner parts keep a consistent layout/height */
+	display:flex;
+	flex-direction:column;
+	align-items:stretch;
+	background:#fff;
+	border:1px solid #d8e6de;
+	border-radius:12px;
 	/* add a small bottom padding so controls and buttons have room */
 	padding:14px 12px 12px;
 	text-align:center;
 	overflow:hidden;
+	/* reserved minimum height keeps cards visually consistent when some items (like description)
+	   are present/absent due to filtering */
+	min-height:360px;
 }
 .productImageWrap {
 	position:relative;
@@ -1201,7 +1211,8 @@ main > section {
 .pickNowBtn {
 	/* make button span the card width without negative margins */
 	width:100%;
-	margin-top:12px;
+	/* push the button to the bottom of the card when space is available */
+	margin-top:auto;
 	height:42px;
 	border:0;
 	background:var(--theme-green);
@@ -1211,6 +1222,17 @@ main > section {
 	letter-spacing:.01em;
 	cursor:pointer;
 	border-radius:6px;
+}
+
+/* Reserve space for the description so cards don't collapse when some items lack a description */
+.productCard .productDescription {
+    flex: 1 1 auto;
+    min-height: 36px; /* ensures a consistent visual block even when empty */
+}
+
+/* Ensure the image area keeps a fixed footprint inside the flex layout */
+.productCard .productImageWrap {
+    flex: 0 0 auto;
 }
 
 @media (max-width: 1200px) {
