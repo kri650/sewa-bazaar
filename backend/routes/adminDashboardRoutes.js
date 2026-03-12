@@ -6,13 +6,13 @@ const { requireRole } = require('../middleware/roleMiddleware')
 
 const router = express.Router()
 
-router.use(requireAuth, requireRole('admin'))
+const adminGuard = [requireAuth, requireRole('admin')]
 
-router.post('/products/add', productController.adminAddProduct)
-router.put('/products/update', productController.adminUpdateProduct)
-router.delete('/products/delete', productController.adminDeleteProduct)
-router.get('/orders', orderController.adminGetOrders)
-router.put('/orders/assign-delivery', orderController.adminAssignDeliveryPartner)
-router.put('/orders/status', orderController.adminUpdateOrderStatus)
+router.post('/products/add',             adminGuard, productController.adminAddProduct)
+router.put('/products/update',           adminGuard, productController.adminUpdateProduct)
+router.delete('/products/delete',        adminGuard, productController.adminDeleteProduct)
+router.get('/orders',                    adminGuard, orderController.adminGetOrders)
+router.put('/orders/assign-delivery',    adminGuard, orderController.adminAssignDeliveryPartner)
+router.put('/orders/status',             adminGuard, orderController.adminUpdateOrderStatus)
 
 module.exports = router

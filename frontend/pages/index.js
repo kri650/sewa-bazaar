@@ -460,16 +460,16 @@ export default function Home() {
           {/* duplicate items so the loop is seamless */}
           {[...Array(2)].map((_, set) => (
             [
-              { icon: '⚡', text: 'Sewa Bazaar Minutes — Delivered in 10 Minutes' },
-              { icon: '📍', text: 'Ultra-fast delivery within your area' },
-              { icon: '⚡', text: 'Same groceries. 10× faster.' },
-              { icon: '🛒', text: 'Order now & get it in 10 minutes' },
-              { icon: '⚡', text: 'Sewa Bazaar Minutes — India\'s fastest grocery delivery' },
-              { icon: '🌿', text: 'Fresh, fast & at your door in minutes' },
+              { text: 'Sewa Bazaar Minutes — delivered in 10 minutes' },
+              { text: 'Fast delivery within your area' },
+              { text: 'Same groceries. Delivered faster.' },
+              { text: 'Order now and receive in 10 minutes' },
+              { text: 'Sewa Bazaar Minutes — express grocery delivery' },
+              { text: 'Fresh essentials delivered in minutes' },
             ].map((item, i) => (
               <span key={`${set}-${i}`} className="marqueeItem">
                 <span className="marqueeDot" />
-                {item.icon} {item.text}
+                {item.text}
               </span>
             ))
           ))}
@@ -482,14 +482,13 @@ export default function Home() {
           {/* Left visual */}
           <div className="sbmVisual" aria-hidden="true">
             <div className="sbmPing" />
-            <div className="sbmBolt">⚡</div>
             <div className="sbmMinLabel">10 MIN</div>
           </div>
 
           {/* Right content */}
           <div className="sbmContent">
             <div className="sbmEyebrow">
-              <span>⚡</span> NEW FEATURE
+              NEW FEATURE
             </div>
             <h2 className="sbmHeadline">
               Introducing<br />
@@ -503,21 +502,21 @@ export default function Home() {
 
             <div className="sbmSteps">
               <div className="sbmStep">
-                <div className="sbmStepIcon">🛒</div>
+                <div className="sbmStepIcon">1</div>
                 <div className="sbmStepText">
                   <strong>Add to Cart</strong>
                   <span>Pick your products</span>
                 </div>
               </div>
               <div className="sbmStep">
-                <div className="sbmStepIcon">📍</div>
+                <div className="sbmStepIcon">2</div>
                 <div className="sbmStepText">
                   <strong>Share Location</strong>
                   <span>We check your zone</span>
                 </div>
               </div>
               <div className="sbmStep">
-                <div className="sbmStepIcon">⚡</div>
+                <div className="sbmStepIcon">3</div>
                 <div className="sbmStepText">
                   <strong>10-Min Delivery</strong>
                   <span>If you're in the zone</span>
@@ -526,7 +525,6 @@ export default function Home() {
             </div>
 
             <div className="sbmNotice">
-              <span>📍</span>
               Available within the express delivery zone set by our team · Check eligibility on any product page
             </div>
           </div>
@@ -633,7 +631,7 @@ export default function Home() {
                             margin: '4px 0 2px', letterSpacing: 0.5,
                             width: 'fit-content',
                           }}>
-                            ⚡ Sewa Bazaar Minutes · 10 min
+                            Sewa Bazaar Minutes · 10 min
                           </div>
                         )}
                         {item.category && <span style={{ fontSize: 11, color: '#4caf50', fontWeight: 600, textTransform: 'uppercase', marginBottom: 2, display: 'block' }}>{item.category}</span>}

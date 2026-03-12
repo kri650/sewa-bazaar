@@ -89,6 +89,10 @@ export default function AccountPage() {
   const [orders, setOrders]     = useState([])
   const [ordersLoaded, setOrdersLoaded] = useState(false)
 
+  /* profile from API */
+  const [profile, setProfile] = useState(null)
+  const [profileLoaded, setProfileLoaded] = useState(false)
+
   /* restore session */
   useEffect(() => {
     const t = localStorage.getItem(TOKEN_KEY) || ''
@@ -173,6 +177,41 @@ export default function AccountPage() {
     } catch (_) {}
   }, [])
 
+  /* ── load profile from API ────────────────────────────────────────── */
+  const loadProfile = useCallback(async () => {
+    try {
+      const d = await apiFetch('/api/user/dashboard', { headers: authHead() })
+      setProfile(d)
+      setProfileLoaded(true)
+      // Merge into user state so overview always has fresh data
+      setUser(prev => prev ? { ...prev, ...d } : d)
+      // Also update localStorage so next reload has fresh data
+      const stored = localStorage.getItem(USER_KEY)
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored)
+          localStorage.setItem(USER_KEY, JSON.stringify({ ...parsed, ...d }))
+        } catch (_) {}
+      }
+    } catch (err) {
+      setProfileLoaded(true)
+      // If token is invalid/expired, auto-logout
+      if (err.message && (err.message.includes('401') || err.message.includes('token') || err.message.includes('authorization'))) {
+        localStorage.removeItem(TOKEN_KEY)
+        localStorage.removeItem(USER_KEY)
+        setToken(''); setUser(null)
+      }
+    }
+  }, [])
+
+  /* Load everything when user is logged in */
+  useEffect(() => {
+    if (token) {
+      loadProfile()
+      loadAddresses()
+    }
+  }, [token, loadProfile, loadAddresses])
+
   useEffect(() => { if (token && tab === 'addresses') loadAddresses() }, [token, tab, loadAddresses])
 
   // wishlist
@@ -248,7 +287,7 @@ export default function AccountPage() {
     } catch (_) { setOrdersLoaded(true) }
   }, [])
 
-  useEffect(() => { if (token && tab === 'orders' && !ordersLoaded) loadOrders() }, [token, tab, ordersLoaded, loadOrders])
+  useEffect(() => { if (token && !ordersLoaded) loadOrders() }, [token, ordersLoaded, loadOrders])
 
   /* ══════════════════════ RENDER ════════════════════════════════════ */
 
@@ -269,8 +308,8 @@ export default function AccountPage() {
               </div>
 
               <div className="authHeader">
-                <h1>{authMode === 'login' ? 'Welcome back 👋' : 'Create your account'}</h1>
-                <p>{authMode === 'login' ? 'Sign in to track orders & manage your profile' : 'Join thousands of happy customers'}</p>
+                <h1>{authMode === 'login' ? 'Welcome back' : 'Create your account'}</h1>
+                <p>{authMode === 'login' ? 'Sign in to track orders and manage your profile' : 'Create an account to manage your orders'}</p>
               </div>
 
               <div className="authTabs">
@@ -310,7 +349,7 @@ export default function AccountPage() {
                     </div>
                   </div>
                   <button type="submit" className="authPrimaryBtn" disabled={loading}>
-                    {loading ? <span className="btnLoader">Signing in…</span> : 'Sign In →'}
+                    {loading ? <span className="btnLoader">Signing in…</span> : 'Sign In'}
                   </button>
                   <p className="authSwitch">
                     Don't have an account?{' '}
@@ -324,7 +363,7 @@ export default function AccountPage() {
                   <div style={{ textAlign: 'center', marginBottom: 8 }}>
                     <div style={{
                       width: 56, height: 56, borderRadius: '50%',
-                      background: 'linear-gradient(135deg, #619233 0%, #4f7a29 100%)',
+                      background: '#2f6f3e',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       margin: '0 auto 14px', boxShadow: '0 4px 14px rgba(97,146,51,0.3)',
                     }}>
@@ -355,7 +394,7 @@ export default function AccountPage() {
                       border: '1px solid #bbf7d0', borderLeft: '4px solid #22c55e',
                       borderRadius: 8, color: '#15803d', fontSize: 13, marginBottom: 4,
                     }}>
-                      ✓ {success}
+                      {success}
                     </div>
                   )}
 
@@ -393,7 +432,7 @@ export default function AccountPage() {
 
                   {/* Verify Button */}
                   <button type="submit" className="authPrimaryBtn" disabled={loading || otpValue.length < 4}>
-                    {loading ? <span className="btnLoader">Verifying…</span> : 'Verify & Create Account →'}
+                    {loading ? <span className="btnLoader">Verifying…</span> : 'Verify and Create Account'}
                   </button>
 
                   {/* Resend */}
@@ -488,7 +527,7 @@ export default function AccountPage() {
                     </div>
                   </div>
                   <button type="submit" className="authPrimaryBtn" disabled={loading}>
-                    {loading ? <span className="btnLoader">Creating account…</span> : 'Create Account →'}
+                    {loading ? <span className="btnLoader">Creating account…</span> : 'Create Account'}
                   </button>
                   <p className="authSwitch">
                     Already have an account?{' '}
@@ -499,9 +538,9 @@ export default function AccountPage() {
 
               {/* Trust badges */}
               <div className="authTrust">
-                <span>🔒 Secure login</span>
-                <span>🌱 100% Organic</span>
-                <span>🚚 Fast Delivery</span>
+                <span>Secure login</span>
+                <span>Quality products</span>
+                <span>Reliable delivery</span>
               </div>
 
             </div>
@@ -511,7 +550,7 @@ export default function AccountPage() {
             /* ── Page ── */
             .authPage {
               min-height: calc(100vh - 70px);
-              background: #f7f8f5;
+              background: #fff;
               display: flex;
               align-items: center;
               justify-content: center;
@@ -731,16 +770,16 @@ export default function AccountPage() {
 
   /* ── LOGGED IN – DASHBOARD ─── */
   const sideNavItems = [
-    { key: 'overview',   label: 'Overview',     icon: '🏠' },
-    { key: 'orders',     label: 'My Orders',    icon: '📦' },
-    { key: 'addresses',  label: 'Addresses',    icon: '📍' },
-    { key: 'wishlist',   label: 'Wishlist',     icon: '♡' },
+    { key: 'overview',   label: 'Overview' },
+    { key: 'orders',     label: 'My Orders' },
+    { key: 'addresses',  label: 'Addresses' },
+    { key: 'wishlist',   label: 'Wishlist' },
   ]
 
   return (
     <ShopLayout>
       <main className="dashPage">
-        {success && <div className="globalSuccess">✓ {success}</div>}
+        {success && <div className="globalSuccess">{success}</div>}
 
         <div className="dashContainer">
           {/* ── SIDEBAR ── */}
@@ -760,14 +799,13 @@ export default function AccountPage() {
                   className={tab === item.key ? 'sideNavBtn active' : 'sideNavBtn'}
                   onClick={() => setTab(item.key)}
                 >
-                  <span className="sideNavIcon">{item.icon}</span>
                   {item.label}
                 </button>
               ))}
             </nav>
 
             <button className="sideLogout" onClick={handleLogout}>
-              <span>↩</span> Sign Out
+              Sign Out
             </button>
           </aside>
 
@@ -778,6 +816,26 @@ export default function AccountPage() {
             {tab === 'overview' && (
               <div className="dashSection">
                 <h2 className="sectionTitle">Account Overview</h2>
+
+                {/* Stats Row */}
+                <div className="statsRow">
+                  <div className="statCard">
+                    <div className="statNum">{orders.length}</div>
+                    <div className="statLabel">Orders</div>
+                  </div>
+                  <div className="statCard">
+                    <div className="statNum">{addresses.length}</div>
+                    <div className="statLabel">Addresses</div>
+                  </div>
+                  <div className="statCard">
+                    <div className="statNum">{wishlistItems.length}</div>
+                    <div className="statLabel">Wishlist</div>
+                  </div>
+                  <div className="statCard">
+                    <div className="statNum">{orders.filter(o => o.status === 'delivered').length}</div>
+                    <div className="statLabel">Delivered</div>
+                  </div>
+                </div>
 
                 <div className="overviewGrid">
                   <div className="profileCard">
@@ -795,11 +853,17 @@ export default function AccountPage() {
                       </div>
                       <div className="profileRow">
                         <span className="profileLabel">Phone</span>
-                        <span className="profileValue">{user?.phone || '—'}</span>
+                        <span className="profileValue">{user?.phone || '-'}</span>
                       </div>
                       <div className="profileRow">
                         <span className="profileLabel">Account Type</span>
                         <span className="profileValue capitalize">{user?.role || 'customer'}</span>
+                      </div>
+                      <div className="profileRow">
+                        <span className="profileLabel">Member Since</span>
+                        <span className="profileValue">
+                          {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -807,23 +871,59 @@ export default function AccountPage() {
                   <div className="quickLinks">
                     <h4>Quick Actions</h4>
                     <button className="quickBtn" onClick={() => setTab('addresses')}>
-                      <span className="quickIcon">📍</span>
                       <div>
                         <strong>Manage Addresses</strong>
-                        <p>Add or remove delivery addresses</p>
+                        <p>{addresses.length > 0 ? `${addresses.length} saved address${addresses.length > 1 ? 'es' : ''}` : 'Add or remove delivery addresses'}</p>
                       </div>
-                      <span className="quickArrow">›</span>
+                      <span className="quickArrow">View</span>
                     </button>
                     <button className="quickBtn" onClick={() => setTab('orders')}>
-                      <span className="quickIcon">📦</span>
                       <div>
                         <strong>Order History</strong>
-                        <p>Track and reorder your items</p>
+                        <p>{orders.length > 0 ? `${orders.length} order${orders.length > 1 ? 's' : ''} placed` : 'Track and reorder your items'}</p>
                       </div>
-                      <span className="quickArrow">›</span>
+                      <span className="quickArrow">View</span>
+                    </button>
+                    <button className="quickBtn" onClick={() => setTab('wishlist')}>
+                      <div>
+                        <strong>My Wishlist</strong>
+                        <p>{wishlistItems.length > 0 ? `${wishlistItems.length} item${wishlistItems.length > 1 ? 's' : ''} saved` : 'Save products for later'}</p>
+                      </div>
+                      <span className="quickArrow">View</span>
                     </button>
                   </div>
                 </div>
+
+                {/* Recent Orders */}
+                {orders.length > 0 && (
+                  <div className="recentSection">
+                    <div className="recentHeader">
+                      <h3>Recent Orders</h3>
+                      <button className="viewAllBtn" onClick={() => setTab('orders')}>View All</button>
+                    </div>
+                    <div className="recentOrders">
+                      {orders.slice(0, 3).map(order => (
+                        <div key={order.orderId} className="recentOrderCard">
+                          <div className="recentOrderLeft">
+                            <span className="recentOrderNum">#{order.orderId}</span>
+                            <span className="recentOrderDate">
+                              {new Date(order.orderDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                            </span>
+                          </div>
+                          <div className="recentOrderMid">
+                            <span className="recentOrderItems">
+                              {order.items.map(i => i.productName).join(', ')}
+                            </span>
+                          </div>
+                          <div className="recentOrderRight">
+                            <StatusBadge status={order.status} />
+                            <span className="recentOrderTotal">₹{Number(order.total).toFixed(0)}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -846,7 +946,7 @@ export default function AccountPage() {
                 {showAddrForm && (
                   <div className="addrFormCard">
                     <h3>{editingAddrId ? 'Edit Address' : 'New Delivery Address'}</h3>
-                    {addrErr && <div className="inlineErr"><span>⚠</span> {addrErr}</div>}
+                    {addrErr && <div className="inlineErr">{addrErr}</div>}
                     <form onSubmit={handleAddAddress} className="addrForm">
                       <div className="addrRow2">
                         <div className="fld">
@@ -903,7 +1003,7 @@ export default function AccountPage() {
                 {/* Address list */}
                 {addresses.length === 0 && !showAddrForm ? (
                   <div className="emptyState">
-                    <div className="emptyIcon">📍</div>
+                    <div className="emptyIcon">Addresses</div>
                     <h3>No saved addresses</h3>
                     <p>Add a delivery address to get started.</p>
                     <button className="addBtn" onClick={() => setShowAddrForm(true)}>+ Add Address</button>
@@ -916,15 +1016,15 @@ export default function AccountPage() {
                           <div className="addrNameWrap">
                             <div className="addrName">{addr.full_name}</div>
                             {addr.isDefault ? (
-                              <span className="defaultBadge">✓ Default</span>
+                              <span className="defaultBadge">Default</span>
                             ) : null}
                           </div>
                           <button className="addrDelete" onClick={() => handleDeleteAddress(addr.id)}
-                            title="Remove address">✕</button>
+                            title="Remove address">Remove</button>
                         </div>
                         <p className="addrLine">{addr.street}</p>
                         <p className="addrLine">{addr.city}, {addr.state} — {addr.pincode}</p>
-                        <p className="addrPhone">📞 {addr.phone}</p>
+                        <p className="addrPhone">{addr.phone}</p>
                         <div className="addrCardActions">
                           {!addr.isDefault && (
                             <button className="addrActionBtn" onClick={() => handleSetDefault(addr.id)}>
@@ -932,7 +1032,7 @@ export default function AccountPage() {
                             </button>
                           )}
                           <button className="addrActionBtn addrEditBtn" onClick={() => handleEditAddress(addr)}>
-                            ✏️ Edit
+                            Edit
                           </button>
                         </div>
                       </div>
@@ -951,7 +1051,7 @@ export default function AccountPage() {
                   <div className="loadingMsg">Loading orders…</div>
                 ) : orders.length === 0 ? (
                   <div className="emptyState">
-                    <div className="emptyIcon">📦</div>
+                    <div className="emptyIcon">Orders</div>
                     <h3>No orders yet</h3>
                     <p>Your past orders will appear here once you place one.</p>
                   </div>
@@ -974,7 +1074,7 @@ export default function AccountPage() {
                           {order.items.map((item, i) => (
                             <div key={i} className="orderItem">
                               <span className="orderItemName">{item.productName}</span>
-                              <span className="orderItemQty">× {item.qty}</span>
+                              <span className="orderItemQty">x {item.qty}</span>
                               <span className="orderItemPrice">₹{Number(item.price).toFixed(2)}</span>
                             </div>
                           ))}
@@ -982,7 +1082,7 @@ export default function AccountPage() {
 
                         <div className="orderCardFooter">
                           <span className="paymentMethod">
-                            {order.paymentMethod === 'online' ? '💳 Online Payment' : '💵 Cash on Delivery'}
+                            {order.paymentMethod === 'online' ? 'Online Payment' : 'Cash on Delivery'}
                           </span>
                         </div>
                       </div>
@@ -1001,9 +1101,9 @@ export default function AccountPage() {
                 </div>
                 {wishlistItems.length === 0 ? (
                   <div className="emptyState">
-                    <div className="emptyIcon">♡</div>
+                    <div className="emptyIcon">Wishlist</div>
                     <h3>Your wishlist is empty</h3>
-                    <p>Tap the ♥ on any product to save it here.</p>
+                    <p>Save products to review them later.</p>
                     <button className="addBtn" onClick={() => window.location.href = '/'}>Browse Products</button>
                   </div>
                 ) : (
@@ -1012,7 +1112,7 @@ export default function AccountPage() {
                       <div key={item.id} className="wishCard">
                         <div className="wishImgWrap">
                           <img src={item.image} alt={item.name} />
-                          <button className="wishRemoveBtn" onClick={() => removeFromWishlist(item.id)} title="Remove">✕</button>
+                          <button className="wishRemoveBtn" onClick={() => removeFromWishlist(item.id)} title="Remove">Remove</button>
                         </div>
                         <div className="wishBody">
                           <p className="wishName">{item.name}</p>
@@ -1034,7 +1134,7 @@ export default function AccountPage() {
 
         <style jsx>{`
           .dashPage {
-            background: #f6f7f9;
+            background: #fff;
             min-height: calc(100vh - 70px);
             padding: 32px 0 60px;
           }
@@ -1044,15 +1144,15 @@ export default function AccountPage() {
             left: 50%;
             transform: translateX(-50%);
             z-index: 999;
-            background: #fff;
-            border: 1.5px solid #86efac;
-            color: #15803d;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            color: #0f172a;
             text-align: center;
             padding: 12px 28px;
             font-size: 14px;
             font-weight: 600;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(22,163,74,0.15);
+            border-radius: 8px;
+            box-shadow: 0 6px 22px rgba(15,23,42,0.08);
             animation: slideDown 0.3s ease;
           }
           @keyframes slideDown {
@@ -1072,34 +1172,35 @@ export default function AccountPage() {
           /* ── SIDEBAR ── */
           .dashSidebar {
             background: #fff;
-            border-radius: 14px;
+            border-radius: 10px;
             overflow: hidden;
-            box-shadow: 0 1px 8px rgba(0,0,0,0.05);
+            box-shadow: 0 1px 6px rgba(15,23,42,0.06);
             position: sticky;
             top: 90px;
-            border: 1px solid #eee;
+            border: 1px solid #e6e8ec;
           }
           .sideProfile {
-            background: linear-gradient(135deg, #619233 0%, #4a7125 100%);
-            padding: 22px 18px;
+            background: #f8fafc;
+            padding: 20px 18px;
             display: flex;
             align-items: center;
             gap: 12px;
+            border-bottom: 1px solid #eef2f7;
           }
           .sideAvatar {
             width: 44px; height: 44px;
-            background: rgba(255,255,255,0.22);
+            background: #0f172a;
             border-radius: 50%;
             display: grid; place-items: center;
-            font-size: 18px; font-weight: 700; color: #fff;
+            font-size: 16px; font-weight: 700; color: #fff;
             flex-shrink: 0;
           }
           .sideUserInfo { overflow: hidden; }
           .sideUserInfo strong {
-            display: block; color: #fff; font-size: 14px;
+            display: block; color: #0f172a; font-size: 14px;
             font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
           }
-          .sideUserInfo span { display: block; color: rgba(255,255,255,0.7); font-size: 11px; margin-top: 2px; }
+          .sideUserInfo span { display: block; color: #64748b; font-size: 11px; margin-top: 2px; }
           .sideNav { padding: 8px 0; }
           .sideNavBtn {
             width: 100%; background: none; border: none; cursor: pointer;
@@ -1108,29 +1209,28 @@ export default function AccountPage() {
             text-align: left; transition: all 0.15s;
             border-left: 3px solid transparent;
           }
-          .sideNavBtn:hover { background: #f8faf5; color: #619233; }
+          .sideNavBtn:hover { background: #f8fafc; color: #0f172a; }
           .sideNavBtn.active {
-            background: #f0f7e8; color: #619233; font-weight: 700;
-            border-left-color: #619233;
+            background: #f1f5f9; color: #0f172a; font-weight: 700;
+            border-left-color: #0f172a;
           }
-          .sideNavIcon { font-size: 15px; width: 20px; text-align: center; }
           .sideLogout {
             width: 100%; background: none; border: none; cursor: pointer;
             display: flex; align-items: center; gap: 10px;
             padding: 13px 18px; font-size: 13.5px; font-weight: 500;
-            color: #e53935; transition: background 0.15s;
-            border-top: 1px solid #f0f0f0;
+            color: #b42318; transition: background 0.15s;
+            border-top: 1px solid #eef2f7;
           }
-          .sideLogout:hover { background: #fff5f5; }
+          .sideLogout:hover { background: #fff7f7; }
 
           /* ── MAIN ── */
           .dashMain { min-width: 0; }
           .dashSection {
             background: #fff;
-            border-radius: 14px;
+            border-radius: 10px;
             padding: 28px 28px 32px;
-            box-shadow: 0 1px 8px rgba(0,0,0,0.05);
-            border: 1px solid #eee;
+            box-shadow: 0 1px 6px rgba(15,23,42,0.06);
+            border: 1px solid #e6e8ec;
           }
           .sectionTitle {
             margin: 0 0 20px;
@@ -1151,86 +1251,190 @@ export default function AccountPage() {
           .sectionHeader .sectionTitle { margin: 0; border: none; padding: 0; }
 
           /* OVERVIEW */
+          .statsRow {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin-bottom: 24px;
+          }
+          .statCard {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 18px 14px;
+            text-align: center;
+            transition: border-color 0.2s, box-shadow 0.2s;
+          }
+          .statCard:hover {
+            border-color: #cbd5e1;
+            box-shadow: 0 6px 16px rgba(15,23,42,0.08);
+          }
+          .statNum { font-size: 24px; font-weight: 800; color: #0f172a; line-height: 1; }
+          .statLabel { font-size: 12px; color: #64748b; font-weight: 500; margin-top: 4px; }
           .overviewGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-          .profileCard { border: 1px solid #e8f0de; border-radius: 8px; overflow: hidden; }
-          .profileCardHeader { background: linear-gradient(135deg, #f0f7e8, #e8f0de); padding: 20px; display: flex; align-items: center; gap: 16px; }
-          .bigAvatar { width: 60px; height: 60px; background: #619233; border-radius: 50%; display: grid; place-items: center; font-size: 26px; font-weight: 700; color: #fff; flex-shrink: 0; }
+          .profileCard { border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+          .profileCardHeader { background: #f8fafc; padding: 20px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #eef2f7; }
+          .bigAvatar { width: 56px; height: 56px; background: #0f172a; border-radius: 50%; display: grid; place-items: center; font-size: 22px; font-weight: 700; color: #fff; flex-shrink: 0; }
           .profileCardHeader h3 { margin: 0 0 4px; font-size: 18px; font-weight: 700; color: #212121; }
-          .memberBadge { margin: 0; font-size: 12px; color: #619233; font-weight: 600; background: rgba(97,146,51,0.15); padding: 2px 10px; border-radius: 20px; display: inline-block; }
+          .memberBadge { margin: 0; font-size: 12px; color: #0f172a; font-weight: 600; background: #e2e8f0; padding: 2px 10px; border-radius: 20px; display: inline-block; }
           .profileFields { padding: 16px 20px; }
           .profileRow { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f4f4f4; font-size: 14px; }
           .profileRow:last-child { border-bottom: none; }
-          .profileLabel { color: #888; font-weight: 500; }
+          .profileLabel { color: #64748b; font-weight: 500; }
           .profileValue { color: #212121; font-weight: 600; }
           .capitalize { text-transform: capitalize; }
-          .quickLinks { border: 1px solid #f0f0f0; border-radius: 8px; overflow: hidden; }
-          .quickLinks h4 { margin: 0; background: #f8faf5; padding: 14px 18px; font-size: 14px; font-weight: 700; color: #444; border-bottom: 1px solid #f0f0f0; }
-          .quickBtn { width: 100%; background: none; border: none; border-bottom: 1px solid #f5f5f5; cursor: pointer; display: flex; align-items: center; gap: 14px; padding: 16px 18px; text-align: left; transition: background 0.15s; }
+          .quickLinks { border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+          .quickLinks h4 { margin: 0; background: #f8fafc; padding: 14px 18px; font-size: 14px; font-weight: 700; color: #0f172a; border-bottom: 1px solid #eef2f7; }
+          .quickBtn { width: 100%; background: none; border: none; border-bottom: 1px solid #f1f5f9; cursor: pointer; display: flex; align-items: center; gap: 14px; padding: 16px 18px; text-align: left; transition: background 0.15s; }
           .quickBtn:last-child { border-bottom: none; }
-          .quickBtn:hover { background: #f8faf5; }
-          .quickIcon { font-size: 22px; flex-shrink: 0; }
+          .quickBtn:hover { background: #f8fafc; }
           .quickBtn div strong { display: block; font-size: 14px; color: #212121; }
-          .quickBtn div p { margin: 2px 0 0; font-size: 12px; color: #888; }
-          .quickArrow { margin-left: auto; font-size: 20px; color: #619233; font-weight: 700; }
+          .quickBtn div p { margin: 2px 0 0; font-size: 12px; color: #64748b; }
+          .quickArrow { margin-left: auto; font-size: 12px; color: #64748b; font-weight: 600; letter-spacing: 0.04em; }
+
+          /* Recent Orders on Overview */
+          .recentSection {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1.5px solid #f0f0f0;
+          }
+          .recentHeader {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+          }
+          .recentHeader h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 700;
+            color: #1a1a1a;
+          }
+          .viewAllBtn {
+            background: none;
+            border: 1px solid transparent;
+            color: #0f172a;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: background 0.15s, border-color 0.15s;
+          }
+          .viewAllBtn:hover { background: #f8fafc; border-color: #e2e8f0; }
+          .recentOrders {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+          }
+          .recentOrderCard {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 14px 16px;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            transition: border-color 0.2s;
+          }
+          .recentOrderCard:hover { border-color: #cbd5e1; }
+          .recentOrderLeft {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 60px;
+          }
+          .recentOrderNum {
+            font-size: 14px;
+            font-weight: 700;
+            color: #212121;
+          }
+          .recentOrderDate {
+            font-size: 11px;
+            color: #888;
+          }
+          .recentOrderMid {
+            flex: 1;
+            min-width: 0;
+          }
+          .recentOrderItems {
+            font-size: 13px;
+            color: #555;
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+          }
+          .recentOrderRight {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+          }
+          .recentOrderTotal {
+            font-size: 15px;
+            font-weight: 700;
+            color: #0f172a;
+          }
 
           /* ADDRESSES */
-          .addBtn { background: #619233; color: #fff; border: none; padding: 9px 18px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
-          .addBtn:hover { background: #4f7a29; }
-          .addrFormCard { background: #f8faf5; border: 1.5px solid #d4e8b8; border-radius: 8px; padding: 22px; margin-bottom: 24px; }
+          .addBtn { background: #0f172a; color: #fff; border: none; padding: 9px 18px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+          .addBtn:hover { background: #111827; }
+          .addrFormCard { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 22px; margin-bottom: 24px; }
           .addrFormCard h3 { margin: 0 0 16px; font-size: 16px; font-weight: 700; color: #333; }
-          .inlineErr { margin-bottom: 14px; padding: 9px 12px; background: #fff2f2; border: 1px solid #fcc; border-radius: 6px; color: #c0392b; font-size: 13px; display: flex; gap: 8px; }
+          .inlineErr { margin-bottom: 14px; padding: 9px 12px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; color: #b42318; font-size: 13px; }
           .addrForm { display: flex; flex-direction: column; gap: 14px; }
           .addrRow2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
           .addrRow3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
           .fld { display: flex; flex-direction: column; gap: 5px; }
           .fld label { font-size: 12px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.4px; }
-          .fld input, .fld select { padding: 9px 12px; border: 1.5px solid #d4d4d4; border-radius: 6px; font-size: 14px; color: #212121; background: #fff; outline: none; transition: border-color 0.2s; }
-          .fld input:focus, .fld select:focus { border-color: #619233; }
+          .fld input, .fld select { padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; color: #212121; background: #fff; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+          .fld input:focus, .fld select:focus { border-color: #0f172a; box-shadow: 0 0 0 3px rgba(15,23,42,0.08); }
           .addrFormActions { display: flex; gap: 12px; }
-          .saveAddrBtn { background: #619233; color: #fff; border: none; padding: 10px 24px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; }
-          .saveAddrBtn:hover:not(:disabled) { background: #4f7a29; }
+          .saveAddrBtn { background: #0f172a; color: #fff; border: none; padding: 10px 24px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; }
+          .saveAddrBtn:hover:not(:disabled) { background: #111827; }
           .saveAddrBtn:disabled { opacity: 0.6; cursor: not-allowed; }
-          .cancelAddrBtn { background: none; border: 1.5px solid #ddd; color: #555; padding: 10px 20px; border-radius: 6px; font-size: 14px; cursor: pointer; }
-          .cancelAddrBtn:hover { border-color: #999; }
+          .cancelAddrBtn { background: none; border: 1px solid #cbd5e1; color: #334155; padding: 10px 20px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+          .cancelAddrBtn:hover { border-color: #94a3b8; }
           .emptyState { text-align: center; padding: 50px 20px; }
-          .emptyIcon { font-size: 48px; margin-bottom: 12px; }
+          .emptyIcon { font-size: 12px; margin-bottom: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #64748b; font-weight: 700; }
           .emptyState h3 { margin: 0 0 8px; font-size: 18px; color: #212121; }
-          .emptyState p { margin: 0 0 20px; color: #888; font-size: 14px; }
+          .emptyState p { margin: 0 0 20px; color: #64748b; font-size: 14px; }
           .addrGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
-          .addrCard { border: 1.5px solid #e0e0e0; border-radius: 8px; padding: 18px; position: relative; transition: box-shadow 0.2s, border-color 0.2s; }
-          .addrCard:hover { box-shadow: 0 4px 16px rgba(97,146,51,0.12); border-color: #b8d98a; }
-          .addrCardDefault { border-color: #619233; background: #f8faf5; }
-          .addrCardDefault:hover { border-color: #619233; }
+          .addrCard { border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px; position: relative; transition: box-shadow 0.2s, border-color 0.2s; background: #fff; }
+          .addrCard:hover { box-shadow: 0 6px 18px rgba(15,23,42,0.08); border-color: #cbd5e1; }
+          .addrCardDefault { border-color: #0f172a; background: #f8fafc; }
+          .addrCardDefault:hover { border-color: #0f172a; }
           .addrCardTop { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
           .addrNameWrap { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
           .addrName { font-size: 15px; font-weight: 700; color: #212121; }
-          .defaultBadge { display: inline-flex; align-items: center; gap: 3px; background: #619233; color: #fff; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; letter-spacing: 0.3px; }
-          .addrDelete { background: none; border: none; cursor: pointer; color: #ccc; font-size: 14px; padding: 2px 4px; transition: color 0.2s; }
-          .addrDelete:hover { color: #e53935; }
+          .defaultBadge { display: inline-flex; align-items: center; gap: 3px; background: #0f172a; color: #fff; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; letter-spacing: 0.3px; }
+          .addrDelete { background: none; border: none; cursor: pointer; color: #64748b; font-size: 12px; padding: 2px 4px; transition: color 0.2s; }
+          .addrDelete:hover { color: #b42318; }
           .addrLine { margin: 0 0 4px; font-size: 13px; color: #555; }
-          .addrPhone { margin: 8px 0 0; font-size: 13px; color: #619233; font-weight: 500; }
+          .addrPhone { margin: 8px 0 0; font-size: 13px; color: #0f172a; font-weight: 600; }
           .addrCardActions { display: flex; gap: 10px; margin-top: 12px; border-top: 1px solid #eee; padding-top: 12px; }
-          .addrActionBtn { background: none; border: 1px solid #d4d4d4; color: #555; font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 5px; cursor: pointer; transition: all 0.2s; }
-          .addrActionBtn:hover { border-color: #619233; color: #619233; background: #f8faf5; }
+          .addrActionBtn { background: none; border: 1px solid #cbd5e1; color: #334155; font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 5px; cursor: pointer; transition: all 0.2s; }
+          .addrActionBtn:hover { border-color: #0f172a; color: #0f172a; background: #f8fafc; }
           .addrEditBtn { border-color: #d4d4d4; }
 
           /* ORDERS */
           .loadingMsg { text-align: center; padding: 40px; color: #888; font-size: 15px; }
           .ordersList { display: flex; flex-direction: column; gap: 16px; }
-          .orderCard { border: 1.5px solid #e8e8e8; border-radius: 8px; overflow: hidden; }
-          .orderCardHeader { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; background: #fafafa; border-bottom: 1px solid #f0f0f0; }
+          .orderCard { border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+          .orderCardHeader { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; background: #f8fafc; border-bottom: 1px solid #eef2f7; }
           .orderMeta { display: flex; flex-direction: column; gap: 3px; }
           .orderNum { font-size: 15px; font-weight: 700; color: #212121; }
           .orderDate { font-size: 12px; color: #888; }
           .orderRight { display: flex; align-items: center; gap: 14px; }
-          .orderTotal { font-size: 16px; font-weight: 700; color: #619233; }
+          .orderTotal { font-size: 16px; font-weight: 700; color: #0f172a; }
           .orderItems { padding: 12px 18px; }
           .orderItem { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center; padding: 7px 0; border-bottom: 1px solid #f8f8f8; font-size: 14px; color: #444; }
           .orderItem:last-child { border-bottom: none; }
           .orderItemName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
           .orderItemQty { color: #888; }
           .orderItemPrice { font-weight: 600; color: #212121; }
-          .orderCardFooter { padding: 10px 18px; background: #fafafa; border-top: 1px solid #f0f0f0; font-size: 12px; color: #777; }
+          .orderCardFooter { padding: 10px 18px; background: #f8fafc; border-top: 1px solid #eef2f7; font-size: 12px; color: #64748b; }
 
           /* WISHLIST */
           .wishGrid {
@@ -1240,18 +1444,18 @@ export default function AccountPage() {
           }
           .wishCard {
             background: #fff;
-            border: 1.5px solid #eee;
-            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
             overflow: hidden;
             transition: box-shadow 0.2s, border-color 0.2s;
           }
           .wishCard:hover {
-            box-shadow: 0 6px 24px rgba(97,146,51,0.12);
-            border-color: #c8e0a8;
+            box-shadow: 0 8px 24px rgba(15,23,42,0.12);
+            border-color: #cbd5e1;
           }
           .wishImgWrap {
             position: relative;
-            background: #f8f9f5;
+            background: #f8fafc;
             padding: 12px;
             display: flex;
             align-items: center;
@@ -1268,13 +1472,12 @@ export default function AccountPage() {
             position: absolute;
             top: 8px;
             right: 8px;
-            width: 26px;
-            height: 26px;
-            border-radius: 50%;
+            padding: 4px 8px;
+            border-radius: 6px;
             border: none;
             background: rgba(0,0,0,0.06);
             color: #999;
-            font-size: 12px;
+            font-size: 11px;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -1301,8 +1504,8 @@ export default function AccountPage() {
           .wishSize {
             display: inline-block;
             font-size: 11px;
-            color: #888;
-            background: #f3f4f6;
+            color: #64748b;
+            background: #f1f5f9;
             padding: 2px 8px;
             border-radius: 4px;
             margin-bottom: 6px;
@@ -1311,7 +1514,7 @@ export default function AccountPage() {
             margin: 0 0 10px;
             font-size: 16px;
             font-weight: 800;
-            color: #619233;
+            color: #0f172a;
           }
           .wishCartBtn {
             width: 100%;
@@ -1319,11 +1522,11 @@ export default function AccountPage() {
             align-items: center;
             justify-content: center;
             gap: 6px;
-            background: linear-gradient(135deg, #619233 0%, #4f7a29 100%);
+            background: #0f172a;
             color: #fff;
             border: none;
             padding: 9px 14px;
-            border-radius: 8px;
+            border-radius: 6px;
             font-size: 13px;
             font-weight: 600;
             cursor: pointer;
@@ -1348,6 +1551,7 @@ export default function AccountPage() {
             .sideNavBtn.active { border-left: none; border-bottom-color: #619233; background: transparent; }
             .sideLogout { justify-content: center; border-top: none; }
             .overviewGrid { grid-template-columns: 1fr; }
+            .statsRow { grid-template-columns: repeat(2, 1fr); }
             .wishGrid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
           }
           @media (max-width: 600px) {

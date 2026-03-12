@@ -590,11 +590,6 @@ body, input, button, textarea, select, h1, h2, h3, h4, h5, h6 {
 	box-shadow: 0 8px 40px rgba(79,133,37,0.28);
 	position: relative;
 }
-.sbmVisual .sbmBolt {
-	font-size: 58px;
-	line-height: 1;
-	filter: drop-shadow(0 2px 8px rgba(106,163,51,0.55));
-}
 .sbmVisual .sbmMinLabel {
   font-size: 17px;
   font-weight: 900;
@@ -619,7 +614,6 @@ body, input, button, textarea, select, h1, h2, h3, h4, h5, h6 {
 .sbmEyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
 	background: var(--theme-green-dark);
 	color: var(--theme-green-soft);
   font-size: 11px;
@@ -674,7 +668,9 @@ body, input, button, textarea, select, h1, h2, h3, h4, h5, h6 {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 17px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
   flex-shrink: 0;
 }
 .sbmStepText strong { font-size: 13px; color: var(--theme-green-dark); display: block; margin-bottom: 2px; }
@@ -694,7 +690,6 @@ body, input, button, textarea, select, h1, h2, h3, h4, h5, h6 {
 @media (max-width: 780px) {
   .sbmInner { flex-direction: column; gap: 28px; text-align: center; }
   .sbmVisual { width: 150px; height: 150px; }
-  .sbmVisual .sbmBolt { font-size: 40px; }
   .sbmHeadline { font-size: 26px; }
   .sbmSteps { justify-content: center; }
   .sbmStep { border-right: none; margin-right: 0; padding-right: 0; }

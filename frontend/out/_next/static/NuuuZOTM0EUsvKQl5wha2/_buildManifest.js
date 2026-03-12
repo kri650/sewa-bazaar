@@ -6,7 +6,7 @@ self.__BUILD_MANIFEST = {
     "static/chunks/091c16191d4566d0.js"
   ],
   "/account": [
-    "static/chunks/7cfd41d4175890d0.js"
+    "static/chunks/00c5690be9368842.js"
   ],
   "/admin": [
     "static/chunks/625d6274a4c58d1a.js"
@@ -27,7 +27,7 @@ self.__BUILD_MANIFEST = {
     "static/chunks/2f9a07a5acfeec6d.js"
   ],
   "/cart": [
-    "static/chunks/a23f1e474dceb86e.js"
+    "static/chunks/27d15617e6e87698.js"
   ],
   "/chips-biscuits": [
     "static/chunks/4cb643711d88a866.js"

@@ -26,11 +26,24 @@ export function LocationProvider({ children }) {
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState(null)
 
-  // Restore saved location on mount
+  // Restore saved location on mount — if label looks like raw coords, re-resolve it
   useEffect(() => {
     try {
       const saved = localStorage.getItem('sb_location')
-      if (saved) setLocation(JSON.parse(saved))
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        setLocation(parsed)
+        // If label looks like raw coordinates (e.g. "30.7562, 77.2993"), re-resolve
+        if (parsed && parsed.lat && parsed.lng && parsed.label && /^\d+\.\d+,\s*\d+\.\d+$/.test(parsed.label.trim())) {
+          reverseGeocodeNominatim(parsed.lat, parsed.lng).then((newLabel) => {
+            if (newLabel) {
+              const updated = { ...parsed, label: newLabel }
+              setLocation(updated)
+              try { localStorage.setItem('sb_location', JSON.stringify(updated)) } catch (_) {}
+            }
+          })
+        }
+      }
     } catch (_) {}
   }, [])
 
@@ -39,7 +52,27 @@ export function LocationProvider({ children }) {
     try { localStorage.setItem('sb_location', JSON.stringify(loc)) } catch (_) {}
   }
 
-  // Option A — browser geolocation → reverse-geocode via Google Maps
+  // Reverse-geocode via free Nominatim (OpenStreetMap) — no API key needed
+  const reverseGeocodeNominatim = async (lat, lng) => {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&zoom=14`,
+        { headers: { 'Accept-Language': 'en' } }
+      )
+      const data = await res.json()
+      if (data && data.address) {
+        const a = data.address
+        return (
+          a.suburb || a.neighbourhood || a.village || a.town || a.city ||
+          a.county || a.state_district || a.state ||
+          data.display_name?.split(',')[0] || ''
+        )
+      }
+    } catch (_) {}
+    return ''
+  }
+
+  // Browser geolocation → reverse-geocode (Google Maps if key exists, otherwise Nominatim)
   const detectAuto = () => {
     if (typeof window === 'undefined' || !navigator.geolocation) {
       setError('Geolocation is not supported by your browser.')
@@ -50,20 +83,32 @@ export function LocationProvider({ children }) {
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const { latitude: lat, longitude: lng } = pos.coords
-        try {
-          const res  = await fetch(
-            `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${GMAPS_KEY}`
-          )
-          const data = await res.json()
-          if (data.status === 'OK' && data.results?.length) {
-            const label = labelFromGoogleResult(data.results[0]) || `${lat.toFixed(4)}, ${lng.toFixed(4)}`
-            saveLocation({ lat, lng, label })
-          } else {
-            saveLocation({ lat, lng, label: `${lat.toFixed(4)}, ${lng.toFixed(4)}` })
-          }
-        } catch (_) {
-          saveLocation({ lat, lng, label: `${lat.toFixed(4)}, ${lng.toFixed(4)}` })
+        let label = ''
+
+        // Try Google Maps first if key is available
+        if (GMAPS_KEY && GMAPS_KEY !== 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
+          try {
+            const res  = await fetch(
+              `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${GMAPS_KEY}`
+            )
+            const data = await res.json()
+            if (data.status === 'OK' && data.results?.length) {
+              label = labelFromGoogleResult(data.results[0])
+            }
+          } catch (_) {}
         }
+
+        // Fallback: use free Nominatim reverse geocoding
+        if (!label) {
+          label = await reverseGeocodeNominatim(lat, lng)
+        }
+
+        // Last resort: show coords
+        if (!label) {
+          label = `${lat.toFixed(4)}, ${lng.toFixed(4)}`
+        }
+
+        saveLocation({ lat, lng, label })
         setLoading(false)
       },
       (err) => {

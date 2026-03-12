@@ -96,7 +96,7 @@ async function createOrder({ userId, items, customer, addressLine1, addressLine2
         slug:      String(item.id || item.productId || ''),
         qty:       Number(item.qty || 1),
         name:      item.name  || null,
-        price:     item.price != null ? Number(item.price) : null,
+        price:     item.price != null ? parseFloat(String(item.price).replace(/[^\d.]/g, '')) || 0 : null,
       }))
     } else if (userId) {
       const [rows] = await conn.query(
@@ -136,7 +136,8 @@ async function createOrder({ userId, items, customer, addressLine1, addressLine2
     const normalizedItems = effectiveItems.map((item) => {
       const dbProd = item.productId ? productMap.get(Number(item.productId)) : null
       return {
-        productId: item.productId || null,
+        productId: dbProd ? Number(item.productId) : null,
+        slug:      item.slug || null,
         qty:       Number(item.qty || 1),
         name:      (dbProd ? dbProd.name  : item.name)  || 'Unknown',
         price:     (dbProd ? Number(dbProd.price) : item.price) || 0,
@@ -180,9 +181,9 @@ async function createOrder({ userId, items, customer, addressLine1, addressLine2
 
     for (const item of normalizedItems) {
       await conn.query(
-        `INSERT INTO order_items (order_id, product_id, product_name, qty, price)
-         VALUES (?, ?, ?, ?, ?)`,
-        [orderId, item.productId || null, item.name, item.qty, item.price]
+        `INSERT INTO order_items (order_id, product_id, product_slug, product_name, qty, price)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [orderId, item.productId || null, item.slug || null, item.name, item.qty, item.price]
       )
     }
 

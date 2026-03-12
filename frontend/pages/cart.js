@@ -11,6 +11,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
 export default function CartPage() {
   const { cart, removeFromCart, updateQuantity, getCartTotal, clearCart } = useCart()
   const { add: addToWishlist } = useWishlist()
+  const { deliveryType, estimatedTime } = useDelivery()
   const [checkoutStep, setCheckoutStep] = useState('cart') // cart | details | success
   const [orderResult, setOrderResult] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -470,14 +471,14 @@ export default function CartPage() {
                       <label className={`paymentOption ${form.paymentMethod === 'cod' ? 'selected' : ''}`}>
                         <input type="radio" name="paymentMethod" value="cod" checked={form.paymentMethod === 'cod'} onChange={handleFormChange} />
                         <div className="paymentOptionContent">
-                          <span className="paymentIcon">💵</span>
+                          <span className="paymentIcon">COD</span>
                           <div><strong>Cash on Delivery</strong><p>Pay when your order arrives</p></div>
                         </div>
                       </label>
                       <label className={`paymentOption ${form.paymentMethod === 'online' ? 'selected' : ''}`}>
                         <input type="radio" name="paymentMethod" value="online" checked={form.paymentMethod === 'online'} onChange={handleFormChange} />
                         <div className="paymentOptionContent">
-                          <span className="paymentIcon">💳</span>
+                          <span className="paymentIcon">ONLINE</span>
                           <div><strong>Pay Online</strong><p>UPI, Cards, Net Banking via Razorpay</p></div>
                         </div>
                       </label>
@@ -532,11 +533,20 @@ export default function CartPage() {
             .paymentSection { margin-top: 28px; }
             .paymentSection h3 { font-size: 16px; font-weight: 600; color: #212121; margin: 0 0 14px; }
             .paymentOptions { display: flex; flex-direction: column; gap: 10px; }
-            .paymentOption { display: flex; align-items: center; padding: 14px 18px; border: 2px solid #e0e0e0; border-radius: 8px; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
+            .paymentOption { display: flex; align-items: center; padding: 14px 18px; border: 1.5px solid #e0e0e0; border-radius: 8px; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
             .paymentOption input[type="radio"] { margin-right: 14px; accent-color: #619233; width: 18px; height: 18px; flex-shrink: 0; }
             .paymentOption.selected { border-color: #619233; background: #f8faf5; }
             .paymentOptionContent { display: flex; align-items: center; gap: 12px; }
-            .paymentIcon { font-size: 22px; }
+            .paymentIcon {
+              background: #f1f5f9;
+              border: 1px solid #e2e8f0;
+              color: #334155;
+              border-radius: 6px;
+              padding: 6px 8px;
+              font-size: 11px;
+              font-weight: 800;
+              letter-spacing: 0.06em;
+            }
             .paymentOptionContent strong { display: block; font-size: 15px; color: #212121; }
             .paymentOptionContent p { margin: 2px 0 0; font-size: 13px; color: #666; }
             .errorMsg { margin: 16px 0; padding: 12px 16px; background: #fff2f2; border: 1px solid #fcc; border-radius: 6px; color: #c0392b; font-size: 14px; }
@@ -617,7 +627,16 @@ export default function CartPage() {
                       </div>
 
                       <p className="deliveryInfo">
-                        Delivery by {cartTotal > 500 ? 'Fri Mar 6' : 'Mon Mar 10'}
+                        {deliveryType === 'fast' && estimatedTime
+                          ? `⚡ Delivered in ${estimatedTime}`
+                          : deliveryType === 'normal' && estimatedTime
+                            ? `🚚 Delivery ${estimatedTime}`
+                            : (() => {
+                                const d = new Date()
+                                d.setDate(d.getDate() + (cartTotal > 500 ? 1 : 3))
+                                return `🚚 Delivery by ${d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}`
+                              })()}
+                        {cartTotal > 500 && !deliveryType ? ' | FREE Delivery' : ''}
                       </p>
                     </div>
 
