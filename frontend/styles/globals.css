@@ -954,11 +954,13 @@ main > section {
 	font-size: 15px;
 }
 /* Category pages: force grid (not horizontal slider) */
+/* Use auto-fill (not auto-fit) so empty column tracks are preserved —
+   this prevents a single card from stretching to fill the whole row */
 .productGrid.categoryProductGrid {
 	display: grid;
 	overflow: visible;
 	padding-bottom: 0;
-	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	grid-template-columns: repeat(auto-fill, minmax(200px, 240px));
 	gap: 20px;
 }
 
@@ -1023,7 +1025,7 @@ main > section {
 	display: grid;
 	overflow: visible;
 	padding-bottom: 0;
-	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	grid-template-columns: repeat(auto-fill, minmax(200px, 240px));
 	gap: 20px;
 }
 
