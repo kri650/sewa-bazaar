@@ -115,6 +115,13 @@ async function updateUserRole(userId, role) {
 
 async function updateOrderStatus(orderId, status) {
   const result = await query('UPDATE orders SET status = ? WHERE id = ?', [status, orderId])
+  if (result.affectedRows > 0) {
+    await query(
+      `INSERT INTO order_status_events (order_id, status, note)
+       VALUES (?, ?, ?)`,
+      [orderId, status, 'Status updated by admin']
+    )
+  }
   return result.affectedRows > 0
 }
 
@@ -153,6 +160,11 @@ async function assignOrderToDeliveryPartner(orderId, deliveryPartnerId) {
   await query(
     `UPDATE orders SET delivery_partner_id = ?, status = 'confirmed' WHERE id = ?`,
     [deliveryPartnerId, orderId]
+  )
+  await query(
+    `INSERT INTO order_status_events (order_id, status, note)
+     VALUES (?, 'confirmed', ?)`,
+    [orderId, 'Assigned to delivery partner']
   )
   return { ok: true, order: orders[0] }
 }

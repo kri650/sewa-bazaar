@@ -41,5 +41,7 @@ router.delete('/user/addresses/:id', userDashController.deleteAddress)
 
 // ── Order History ─────────────────────────────────────────────────────
 router.get('/user/orders', userDashController.getOrders)
+router.get('/user/orders/:id', userDashController.getOrderById)
+router.put('/user/orders/:id/cancel', userDashController.cancelOrder)
 
 module.exports = router

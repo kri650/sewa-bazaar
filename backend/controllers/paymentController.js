@@ -58,6 +58,9 @@ async function verifyPayment(req, res) {
       city,
       state,
       pincode,
+      deliveryType,
+      estimatedTime,
+      deliverySlot,
     } = req.body || {}
 
     if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
@@ -90,6 +93,11 @@ async function verifyPayment(req, res) {
       state,
       pincode,
       paymentMethod: 'online',
+      paymentStatus: 'paid',
+      paymentTxnId: razorpayPaymentId,
+      deliveryType,
+      estimatedTime,
+      deliverySlot,
     })
 
     // Broadcast new-order notification to admin Socket.io clients

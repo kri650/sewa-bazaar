@@ -138,22 +138,36 @@ async function getOrders(req, res) {
   try {
     const rows = await query(
       `SELECT
-         o.id             AS order_id,
+         o.id                     AS order_id,
          o.status,
          o.total,
-         o.payment_method AS payment_method,
-         o.created_at     AS order_date,
-         oi.product_name,
+         o.payment_method         AS payment_method,
+         o.payment_status         AS payment_status,
+         o.payment_txn_id         AS payment_txn_id,
+         o.delivery_type          AS delivery_type,
+         o.expected_delivery_date AS expected_delivery_date,
+         o.delivery_slot          AS delivery_slot,
+         o.customer_name          AS customer_name,
+         o.customer_phone         AS customer_phone,
+         o.address_line1          AS address_line1,
+         o.address_line2          AS address_line2,
+         o.city,
+         o.state,
+         o.pincode,
+         o.created_at             AS order_date,
+         o.updated_at             AS updated_at,
+         oi.product_id            AS product_id,
+         oi.product_slug          AS product_slug,
+         oi.product_name          AS product_name,
          oi.qty,
          oi.price
        FROM orders o
        JOIN order_items oi ON oi.order_id = o.id
        WHERE o.user_id = ?
-       ORDER BY o.id DESC`,
+       ORDER BY o.id DESC, oi.id ASC`,
       [req.userId]
     )
 
-    // Group line items under their parent order
     const ordersMap = {}
     for (const row of rows) {
       if (!ordersMap[row.order_id]) {
@@ -162,18 +176,192 @@ async function getOrders(req, res) {
           status:        row.status,
           total:         row.total,
           paymentMethod: row.payment_method,
+          paymentStatus: row.payment_status,
+          paymentTxnId:  row.payment_txn_id,
+          deliveryType:  row.delivery_type,
+          expectedDeliveryDate: row.expected_delivery_date,
+          deliverySlot:  row.delivery_slot,
+          deliveryAddress: {
+            name: row.customer_name,
+            phone: row.customer_phone,
+            line1: row.address_line1,
+            line2: row.address_line2,
+            city: row.city,
+            state: row.state,
+            pincode: row.pincode,
+          },
           orderDate:     row.order_date,
+          updatedAt:     row.updated_at,
           items:         [],
+          events:        [],
         }
       }
       ordersMap[row.order_id].items.push({
+        productId: row.product_id,
+        productSlug: row.product_slug,
         productName: row.product_name,
         qty:         row.qty,
         price:       row.price,
       })
     }
 
+    const orderIds = Object.keys(ordersMap).map((id) => Number(id))
+    if (orderIds.length > 0) {
+      const placeholders = orderIds.map(() => '?').join(',')
+      const events = await query(
+        `SELECT order_id, status, note, created_at
+         FROM order_status_events
+         WHERE order_id IN (${placeholders})
+         ORDER BY created_at ASC`,
+        orderIds
+      )
+      for (const ev of events) {
+        const order = ordersMap[ev.order_id]
+        if (order) {
+          order.events.push({
+            status: ev.status,
+            notes: ev.note,
+            createdAt: ev.created_at,
+          })
+        }
+      }
+    }
+
     return res.json(Object.values(ordersMap))
+  } catch (error) {
+    return res.status(500).json({ error: error.message })
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Order Details + Actions                                            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * GET /api/user/orders/:id
+ * Returns a single order with items and status events.
+ */
+async function getOrderById(req, res) {
+  try {
+    const orderId = Number(req.params.id)
+    if (Number.isNaN(orderId)) return res.status(400).json({ error: 'valid order id required' })
+
+    const rows = await query(
+      `SELECT
+         o.id                     AS order_id,
+         o.status,
+         o.total,
+         o.payment_method         AS payment_method,
+         o.payment_status         AS payment_status,
+         o.payment_txn_id         AS payment_txn_id,
+         o.delivery_type          AS delivery_type,
+         o.expected_delivery_date AS expected_delivery_date,
+         o.delivery_slot          AS delivery_slot,
+         o.customer_name          AS customer_name,
+         o.customer_phone         AS customer_phone,
+         o.address_line1          AS address_line1,
+         o.address_line2          AS address_line2,
+         o.city,
+         o.state,
+         o.pincode,
+         o.created_at             AS order_date,
+         o.updated_at             AS updated_at,
+         oi.product_id            AS product_id,
+         oi.product_slug          AS product_slug,
+         oi.product_name          AS product_name,
+         oi.qty,
+         oi.price
+       FROM orders o
+       JOIN order_items oi ON oi.order_id = o.id
+       WHERE o.user_id = ? AND o.id = ?
+       ORDER BY oi.id ASC`,
+      [req.userId, orderId]
+    )
+
+    if (rows.length === 0) return res.status(404).json({ error: 'order not found' })
+
+    const first = rows[0]
+    const order = {
+      orderId:       first.order_id,
+      status:        first.status,
+      total:         first.total,
+      paymentMethod: first.payment_method,
+      paymentStatus: first.payment_status,
+      paymentTxnId:  first.payment_txn_id,
+      deliveryType:  first.delivery_type,
+      expectedDeliveryDate: first.expected_delivery_date,
+      deliverySlot:  first.delivery_slot,
+      deliveryAddress: {
+        name: first.customer_name,
+        phone: first.customer_phone,
+        line1: first.address_line1,
+        line2: first.address_line2,
+        city: first.city,
+        state: first.state,
+        pincode: first.pincode,
+      },
+      orderDate: first.order_date,
+      updatedAt: first.updated_at,
+      items: rows.map((row) => ({
+        productId: row.product_id,
+        productSlug: row.product_slug,
+        productName: row.product_name,
+        qty: row.qty,
+        price: row.price,
+      })),
+      events: [],
+    }
+
+    const events = await query(
+      `SELECT status, note, created_at
+       FROM order_status_events
+       WHERE order_id = ?
+       ORDER BY created_at ASC`,
+      [orderId]
+    )
+    order.events = events.map((ev) => ({
+      status: ev.status,
+      notes: ev.note,
+      createdAt: ev.created_at,
+    }))
+
+    return res.json(order)
+  } catch (error) {
+    return res.status(500).json({ error: error.message })
+  }
+}
+
+/**
+ * PUT /api/user/orders/:id/cancel
+ * Cancels an order if it is still pending or confirmed.
+ */
+async function cancelOrder(req, res) {
+  try {
+    const orderId = Number(req.params.id)
+    if (Number.isNaN(orderId)) return res.status(400).json({ error: 'valid order id required' })
+
+    const rows = await query(
+      `SELECT id, status
+       FROM orders
+       WHERE id = ? AND user_id = ?
+       LIMIT 1`,
+      [orderId, req.userId]
+    )
+    if (rows.length === 0) return res.status(404).json({ error: 'order not found' })
+
+    const currentStatus = rows[0].status
+    if (currentStatus !== 'pending' && currentStatus !== 'confirmed') {
+      return res.status(400).json({ error: 'order cannot be cancelled at this stage' })
+    }
+
+    await query('UPDATE orders SET status = ? WHERE id = ?', ['cancelled', orderId])
+    await query(
+      `INSERT INTO order_status_events (order_id, status, note)
+       VALUES (?, ?, ?)`,
+      [orderId, 'cancelled', 'Cancelled by customer']
+    )
+
+    return res.json({ ok: true })
   } catch (error) {
     return res.status(500).json({ error: error.message })
   }
@@ -243,6 +431,8 @@ module.exports = {
   addAddress,
   deleteAddress,
   getOrders,
+  getOrderById,
+  cancelOrder,
   setAddressDefault,
   updateAddress,
 }

@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useWishlist } from '../contexts/WishlistContext'
 import { useCart } from '../contexts/CartContext'
 import ShopLayout from '../components/ShopLayout'
+import Link from 'next/link'
 
 const API = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
 const TOKEN_KEY = 'sbUserToken'
@@ -21,6 +22,23 @@ const INDIAN_STATES = [
 function formatRupees(amount) {
   const n = Number(amount) || 0
   return `Rs. ${n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+function formatDateShort(value) {
+  if (!value) return ''
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+function titleCase(value) {
+  return String(value || '')
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+}
+function normalizeStatus(status) {
+  if (status === 'accepted') return 'packed'
+  if (status === 'picked_up') return 'out_for_delivery'
+  return status
 }
 function getToken() {
   if (typeof window === 'undefined') return ''
@@ -45,17 +63,20 @@ function StatusBadge({ status }) {
   const palette = {
     pending:   { bg: '#fff8e1', color: '#b45309' },
     confirmed: { bg: '#e8f5e9', color: '#2e7d32' },
+    packed: { bg: '#e0f2fe', color: '#0f5b8a' },
+    out_for_delivery: { bg: '#ede9fe', color: '#5b21b6' },
     delivered: { bg: '#e3f2fd', color: '#1565c0' },
     cancelled: { bg: '#fce4ec', color: '#c62828' },
   }
-  const s = palette[status] || { bg: '#f3f4f6', color: '#555' }
+  const normalized = normalizeStatus(status)
+  const s = palette[normalized] || { bg: '#f3f4f6', color: '#555' }
   return (
     <span style={{
       background: s.bg, color: s.color,
       padding: '3px 10px', borderRadius: 20,
       fontSize: 12, fontWeight: 600, textTransform: 'capitalize',
     }}>
-      {status || 'pending'}
+      {titleCase(normalized || 'pending')}
     </span>
   )
 }
@@ -88,6 +109,7 @@ export default function AccountPage() {
   /* orders */
   const [orders, setOrders]     = useState([])
   const [ordersLoaded, setOrdersLoaded] = useState(false)
+  const [trackOrder, setTrackOrder] = useState(null)
 
   /* profile from API */
   const [profile, setProfile] = useState(null)
@@ -288,6 +310,100 @@ export default function AccountPage() {
   }, [])
 
   useEffect(() => { if (token && !ordersLoaded) loadOrders() }, [token, ordersLoaded, loadOrders])
+
+  const handleReorder = (order) => {
+    if (!order?.items || order.items.length === 0) return
+    order.items.forEach((item) => {
+      const id = item.productId || item.productSlug
+      if (!id) return
+      addToCart({ id, name: item.productName, price: item.price }, Number(item.qty || 1))
+    })
+    setSuccess('Items added to cart for reorder.')
+    setTimeout(() => setSuccess(''), 3000)
+  }
+
+  const handleCancelOrder = async (orderId) => {
+    if (!confirm('Cancel this order?')) return
+    try {
+      await apiFetch(`/api/user/orders/${orderId}/cancel`, { method: 'PUT', headers: authHead() })
+      setOrders((prev) => prev.map((o) => (o.orderId === orderId ? { ...o, status: 'cancelled' } : o)))
+      setSuccess('Order cancelled.')
+      setTimeout(() => setSuccess(''), 3000)
+    } catch (err) {
+      alert(err.message)
+    }
+  }
+
+  const handleDownloadInvoice = (order) => {
+    if (typeof window === 'undefined') return
+    const win = window.open('', '_blank', 'width=900,height=700')
+    if (!win) return
+    const addr = order?.deliveryAddress || {}
+    const itemsHtml = (order?.items || []).map((item) => (
+      `<tr>
+         <td>${item.productName}</td>
+         <td style="text-align:right;">${item.qty}</td>
+         <td style="text-align:right;">Rs. ${Number(item.price).toFixed(2)}</td>
+       </tr>`
+    )).join('')
+
+    win.document.write(`
+      <html>
+        <head>
+          <title>Invoice #${order.orderId}</title>
+          <style>
+            body { font-family: Arial, sans-serif; color: #111; padding: 24px; }
+            h1 { font-size: 20px; margin: 0 0 6px; }
+            .muted { color: #666; font-size: 12px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+            th, td { border-bottom: 1px solid #ddd; padding: 8px 6px; font-size: 12px; }
+            th { text-align: left; background: #f6f7f9; }
+            .total { font-weight: 700; text-align: right; padding-top: 10px; }
+          </style>
+        </head>
+        <body>
+          <h1>Invoice</h1>
+          <div class="muted">Order #${order.orderId} - ${formatDateShort(order.orderDate)}</div>
+          <h3 style="margin-top:16px;">Delivery Address</h3>
+          <div>${addr.name || ''}</div>
+          <div>${addr.line1 || ''}${addr.line2 ? `, ${addr.line2}` : ''}</div>
+          <div>${addr.city || ''}, ${addr.state || ''} ${addr.pincode || ''}</div>
+          <div>Phone: ${addr.phone || ''}</div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th style="text-align:right;">Qty</th>
+                <th style="text-align:right;">Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsHtml}
+            </tbody>
+          </table>
+          <div class="total">Total: Rs. ${Number(order.total || 0).toFixed(2)}</div>
+        </body>
+      </html>
+    `)
+    win.document.close()
+    win.focus()
+    win.print()
+  }
+
+  const TRACKING_STEPS = [
+    { key: 'pending', label: 'Order Placed' },
+    { key: 'confirmed', label: 'Order Confirmed' },
+    { key: 'packed', label: 'Packed' },
+    { key: 'out_for_delivery', label: 'Out for Delivery' },
+    { key: 'delivered', label: 'Delivered' },
+  ]
+
+  const getStepIndex = (status) => {
+    const normalized = normalizeStatus(status)
+    const idx = TRACKING_STEPS.findIndex((s) => s.key === normalized)
+    return idx === -1 ? 0 : idx
+  }
 
   /* ══════════════════════ RENDER ════════════════════════════════════ */
 
@@ -1057,36 +1173,93 @@ export default function AccountPage() {
                   </div>
                 ) : (
                   <div className="ordersList">
-                    {orders.map(order => (
-                      <div key={order.orderId} className="orderCard">
-                        <div className="orderCardHeader">
-                          <div className="orderMeta">
-                            <span className="orderNum">Order #{order.orderId}</span>
-                            <span className="orderDate">{new Date(order.orderDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                          </div>
-                          <div className="orderRight">
-                            <StatusBadge status={order.status} />
-                            <span className="orderTotal">₹{Number(order.total).toFixed(2)}</span>
-                          </div>
-                        </div>
-
-                        <div className="orderItems">
-                          {order.items.map((item, i) => (
-                            <div key={i} className="orderItem">
-                              <span className="orderItemName">{item.productName}</span>
-                              <span className="orderItemQty">x {item.qty}</span>
-                              <span className="orderItemPrice">₹{Number(item.price).toFixed(2)}</span>
+                    {orders.map(order => {
+                      const stepIndex = getStepIndex(order.status)
+                      const deliveryTypeLabel = order.deliveryType === 'fast'
+                        ? 'Fast Delivery Available'
+                        : order.deliveryType === 'standard'
+                          ? 'Standard Delivery'
+                          : 'Delivery'
+                      const expectedDate = formatDateShort(order.expectedDeliveryDate || order.orderDate)
+                      const deliverySlot = order.deliverySlot || (order.deliveryType === 'fast' ? '2-4 Hours' : '10:00 AM - 12:00 PM')
+                      return (
+                        <div key={order.orderId} className="orderCard">
+                          <div className="orderCardHeader">
+                            <div className="orderMeta">
+                              <Link href={`/order/${order.orderId}`} className="orderNumLink">
+                                Order #{order.orderId}
+                              </Link>
+                              <span className="orderDate">{formatDateShort(order.orderDate)}</span>
                             </div>
-                          ))}
-                        </div>
+                            <div className="orderRight">
+                              <StatusBadge status={order.status} />
+                              <span className="orderTotal">₹{Number(order.total).toFixed(2)}</span>
+                            </div>
+                          </div>
 
-                        <div className="orderCardFooter">
-                          <span className="paymentMethod">
-                            {order.paymentMethod === 'online' ? 'Online Payment' : 'Cash on Delivery'}
-                          </span>
+                          <div className="orderSummaryGrid">
+                            <div className="orderSummaryBlock">
+                              <div className="summaryLabel">Expected Delivery</div>
+                              <div className="summaryValue">{expectedDate}</div>
+                              <div className="summaryMeta">{deliveryTypeLabel} - {deliverySlot}</div>
+                            </div>
+                            <div className="orderSummaryBlock">
+                              <div className="summaryLabel">Payment</div>
+                              <div className="summaryValue">{order.paymentMethod === 'online' ? 'Razorpay' : 'Cash on Delivery'}</div>
+                              <div className="summaryMeta">
+                                Status: {titleCase(order.paymentStatus || (order.paymentMethod === 'online' ? 'paid' : 'pending'))}
+                                {order.paymentTxnId ? ` - ${order.paymentTxnId}` : ''}
+                              </div>
+                            </div>
+                            <div className="orderSummaryBlock">
+                              <div className="summaryLabel">Delivery Address</div>
+                              <div className="summaryValue">{order.deliveryAddress?.name || 'Customer'}</div>
+                              <div className="summaryMeta">
+                                {order.deliveryAddress?.line1 || ''}{order.deliveryAddress?.line2 ? `, ${order.deliveryAddress.line2}` : ''}
+                                {order.deliveryAddress?.city ? `, ${order.deliveryAddress.city}` : ''}{order.deliveryAddress?.state ? `, ${order.deliveryAddress.state}` : ''}
+                                {order.deliveryAddress?.pincode ? ` ${order.deliveryAddress.pincode}` : ''}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="orderTracking">
+                            <div className="trackBar">
+                              {TRACKING_STEPS.map((step, idx) => {
+                                const isDone = idx <= stepIndex
+                                return (
+                                  <div key={step.key} className={`trackStep ${isDone ? 'done' : ''}`}>
+                                    <div className="trackDot"></div>
+                                    <div className="trackLabel">{step.label}</div>
+                                  </div>
+                                )
+                              })}
+                              <div className="trackLine" style={{ width: `${(stepIndex / (TRACKING_STEPS.length - 1)) * 100}%` }}></div>
+                            </div>
+                          </div>
+
+                          <div className="orderItems">
+                            {order.items.map((item, i) => (
+                              <div key={i} className="orderItem">
+                                <span className="orderItemName">{item.productName}</span>
+                                <span className="orderItemQty">x {item.qty}</span>
+                                <span className="orderItemPrice">₹{Number(item.price).toFixed(2)}</span>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="orderCardFooter">
+                            <div className="orderActions">
+                              <button className="orderActionBtn" onClick={() => setTrackOrder(order)}>Track Order</button>
+                              {(order.status === 'pending' || order.status === 'confirmed') && (
+                                <button className="orderActionBtn danger" onClick={() => handleCancelOrder(order.orderId)}>Cancel Order</button>
+                              )}
+                              <button className="orderActionBtn" onClick={() => handleReorder(order)}>Reorder</button>
+                              <button className="orderActionBtn" onClick={() => handleDownloadInvoice(order)}>Download Invoice</button>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </div>
@@ -1131,6 +1304,38 @@ export default function AccountPage() {
             )}
           </div>
         </div>
+
+        {trackOrder && (
+          <div className="trackModalWrap" onClick={() => setTrackOrder(null)}>
+            <div className="trackModal" onClick={(e) => e.stopPropagation()}>
+              <div className="trackModalHeader">
+                <div>
+                  <h3>Order #{trackOrder.orderId}</h3>
+                  <p>{formatDateShort(trackOrder.orderDate)}</p>
+                </div>
+                <button className="trackClose" onClick={() => setTrackOrder(null)}>Close</button>
+              </div>
+              <div className="trackTimeline">
+                {(trackOrder.events && trackOrder.events.length > 0 ? trackOrder.events : TRACKING_STEPS.slice(0, getStepIndex(trackOrder.status) + 1).map((s) => ({
+                  status: s.key,
+                  notes: s.label,
+                  createdAt: trackOrder.orderDate,
+                }))).map((ev, idx) => (
+                  <div key={`${ev.status}-${idx}`} className="trackRow">
+                    <div className="trackTime">{formatDateShort(ev.createdAt)} {new Date(ev.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</div>
+                    <div className="trackStatus">{titleCase(normalizeStatus(ev.status))}</div>
+                    <div className="trackNote">{ev.notes || titleCase(normalizeStatus(ev.status))}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="trackModalActions">
+                <Link href={`/order/${trackOrder.orderId}`} className="orderActionBtn">
+                  View Order Details
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
 
         <style jsx>{`
           .dashPage {
@@ -1424,17 +1629,69 @@ export default function AccountPage() {
           .orderCard { border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
           .orderCardHeader { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; background: #f8fafc; border-bottom: 1px solid #eef2f7; }
           .orderMeta { display: flex; flex-direction: column; gap: 3px; }
-          .orderNum { font-size: 15px; font-weight: 700; color: #212121; }
+          .orderNumLink { font-size: 15px; font-weight: 700; color: #212121; text-decoration: none; }
+          .orderNumLink:hover { text-decoration: underline; }
           .orderDate { font-size: 12px; color: #888; }
           .orderRight { display: flex; align-items: center; gap: 14px; }
           .orderTotal { font-size: 16px; font-weight: 700; color: #0f172a; }
+          .orderSummaryGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 16px 18px; background: #fff; border-bottom: 1px solid #eef2f7; }
+          .orderSummaryBlock { border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 12px; background: #fafafa; }
+          .summaryLabel { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #64748b; font-weight: 700; }
+          .summaryValue { margin-top: 6px; font-size: 14px; font-weight: 700; color: #1f2937; }
+          .summaryMeta { margin-top: 4px; font-size: 12px; color: #6b7280; line-height: 1.4; }
+          .orderTracking { padding: 10px 18px 6px; background: #fff; border-bottom: 1px solid #eef2f7; }
+          .trackBar { position: relative; display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; align-items: center; }
+          .trackLine { position: absolute; height: 2px; left: 0; top: 12px; background: #1f2937; z-index: 0; transition: width 0.2s; }
+          .trackStep { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+          .trackDot { width: 10px; height: 10px; border-radius: 50%; background: #cbd5e1; }
+          .trackStep.done .trackDot { background: #1f2937; }
+          .trackLabel { font-size: 11px; color: #6b7280; font-weight: 600; }
+          .trackStep.done .trackLabel { color: #1f2937; }
           .orderItems { padding: 12px 18px; }
           .orderItem { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center; padding: 7px 0; border-bottom: 1px solid #f8f8f8; font-size: 14px; color: #444; }
           .orderItem:last-child { border-bottom: none; }
           .orderItemName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
           .orderItemQty { color: #888; }
           .orderItemPrice { font-weight: 600; color: #212121; }
-          .orderCardFooter { padding: 10px 18px; background: #f8fafc; border-top: 1px solid #eef2f7; font-size: 12px; color: #64748b; }
+          .orderCardFooter { padding: 12px 18px; background: #f8fafc; border-top: 1px solid #eef2f7; }
+          .orderActions { display: flex; flex-wrap: wrap; gap: 10px; }
+          .orderActionBtn {
+            background: #fff;
+            border: 1px solid #cbd5e1;
+            color: #1f2937;
+            padding: 7px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+          }
+          .orderActionBtn:hover { border-color: #1f2937; color: #111827; }
+          .orderActionBtn.danger { border-color: #fecaca; color: #b91c1c; }
+          .orderActionBtn.danger:hover { border-color: #b91c1c; }
+
+          .trackModalWrap {
+            position: fixed; inset: 0; background: rgba(15, 23, 42, 0.35);
+            display: grid; place-items: center; z-index: 999;
+          }
+          .trackModal {
+            width: min(720px, 92vw);
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 16px 40px rgba(15,23,42,0.2);
+            border: 1px solid #e5e7eb;
+            padding: 20px;
+          }
+          .trackModalHeader { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eef2f7; padding-bottom: 12px; }
+          .trackModalHeader h3 { margin: 0; font-size: 16px; font-weight: 700; color: #111827; }
+          .trackModalHeader p { margin: 4px 0 0; font-size: 12px; color: #6b7280; }
+          .trackClose { background: none; border: 1px solid #cbd5e1; padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+          .trackTimeline { margin-top: 14px; display: grid; gap: 10px; }
+          .trackRow { display: grid; grid-template-columns: 120px 160px 1fr; gap: 10px; font-size: 12px; padding: 8px 10px; border: 1px solid #eef2f7; border-radius: 6px; }
+          .trackTime { color: #6b7280; }
+          .trackStatus { font-weight: 700; color: #111827; }
+          .trackNote { color: #334155; }
+          .trackModalActions { margin-top: 14px; display: flex; justify-content: flex-end; }
 
           /* WISHLIST */
           .wishGrid {
@@ -1553,6 +1810,8 @@ export default function AccountPage() {
             .overviewGrid { grid-template-columns: 1fr; }
             .statsRow { grid-template-columns: repeat(2, 1fr); }
             .wishGrid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+            .orderSummaryGrid { grid-template-columns: 1fr; }
+            .trackRow { grid-template-columns: 1fr; }
           }
           @media (max-width: 600px) {
             .dashPage { padding: 16px 0 40px; }
@@ -1564,6 +1823,8 @@ export default function AccountPage() {
             .wishBody { padding: 10px 10px 14px; }
             .wishName { font-size: 13px; }
             .wishPrice { font-size: 14px; }
+            .orderActions { flex-direction: column; align-items: stretch; }
+            .orderActionBtn { width: 100%; text-align: center; }
           }
         `}</style>
       </main>

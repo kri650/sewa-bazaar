@@ -99,9 +99,15 @@ CREATE TABLE IF NOT EXISTS orders (
   state VARCHAR(100) NULL,
   pincode VARCHAR(20) NULL,
   payment_method ENUM('cod', 'online') DEFAULT 'cod',
-  status ENUM('pending','confirmed','accepted','picked_up','out_for_delivery','delivered','cancelled') DEFAULT 'pending',
+  payment_status ENUM('pending','paid','failed') DEFAULT 'pending',
+  payment_txn_id VARCHAR(100) NULL,
+  delivery_type ENUM('fast','standard') NULL,
+  expected_delivery_date DATE NULL,
+  delivery_slot VARCHAR(50) NULL,
+  status ENUM('pending','confirmed','accepted','packed','picked_up','out_for_delivery','delivered','cancelled') DEFAULT 'pending',
   total DECIMAL(10,2) NOT NULL DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_order_user
     FOREIGN KEY (user_id) REFERENCES users(id)
     ON DELETE SET NULL,
@@ -115,8 +121,27 @@ ALTER TABLE orders
 
 -- Extend status ENUM to include delivery flow states
 ALTER TABLE orders MODIFY COLUMN status
-  ENUM('pending','confirmed','accepted','picked_up','out_for_delivery','delivered','cancelled')
+  ENUM('pending','confirmed','accepted','packed','picked_up','out_for_delivery','delivered','cancelled')
   DEFAULT 'pending';
+
+ALTER TABLE orders
+  ADD COLUMN IF NOT EXISTS payment_status ENUM('pending','paid','failed') DEFAULT 'pending' AFTER payment_method,
+  ADD COLUMN IF NOT EXISTS payment_txn_id VARCHAR(100) NULL AFTER payment_status,
+  ADD COLUMN IF NOT EXISTS delivery_type ENUM('fast','standard') NULL AFTER payment_txn_id,
+  ADD COLUMN IF NOT EXISTS expected_delivery_date DATE NULL AFTER delivery_type,
+  ADD COLUMN IF NOT EXISTS delivery_slot VARCHAR(50) NULL AFTER expected_delivery_date,
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+
+CREATE TABLE IF NOT EXISTS order_status_events (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  order_id BIGINT NOT NULL,
+  status VARCHAR(40) NOT NULL,
+  note VARCHAR(255) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_order_status_event_order
+    FOREIGN KEY (order_id) REFERENCES orders(id)
+    ON DELETE CASCADE
+);
 
 CREATE TABLE IF NOT EXISTS order_items (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,

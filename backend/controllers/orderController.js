@@ -100,6 +100,9 @@ async function createOrder(req, res) {
       state: req.body?.state,
       pincode: req.body?.pincode,
       paymentMethod: req.body?.paymentMethod,
+      deliveryType: req.body?.deliveryType,
+      estimatedTime: req.body?.estimatedTime,
+      deliverySlot: req.body?.deliverySlot,
     })
 
     // Broadcast new-order notification to all connected admin Socket.io clients
@@ -161,7 +164,7 @@ async function adminUpdateOrderStatus(req, res) {
   try {
     const orderId = Number(req.body?.orderId)
     const status = String(req.body?.status || '').trim()
-    const allowed = new Set(['pending', 'confirmed', 'packed', 'shipped', 'delivered', 'cancelled'])
+    const allowed = new Set(['pending', 'confirmed', 'packed', 'out_for_delivery', 'delivered', 'cancelled'])
 
     if (Number.isNaN(orderId) || !allowed.has(status)) {
       return res.status(400).json({ error: 'valid orderId and status are required' })

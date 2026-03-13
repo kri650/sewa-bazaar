@@ -83,7 +83,57 @@ async function removeWishlistItem(userId, productId) {
   await query('DELETE FROM wishlists WHERE user_id = ? AND product_id = ?', [userId, productId])
 }
 
-async function createOrder({ userId, items, customer, addressLine1, addressLine2, city, state, pincode, paymentMethod }) {
+function toSqlDate(date) {
+  const d = date instanceof Date ? date : new Date(date)
+  if (Number.isNaN(d.getTime())) return null
+  const yyyy = d.getFullYear()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
+}
+
+function normalizeDeliveryType(deliveryType) {
+  if (!deliveryType) return null
+  const t = String(deliveryType).toLowerCase().trim()
+  if (t === 'fast') return 'fast'
+  if (t === 'standard' || t === 'normal') return 'standard'
+  return null
+}
+
+function getDeliveryDefaults(deliveryType, estimatedTime) {
+  if (!deliveryType) return { expectedDeliveryDate: null, deliverySlot: null }
+  const today = new Date()
+  if (deliveryType === 'fast') {
+    return {
+      expectedDeliveryDate: toSqlDate(today),
+      deliverySlot: estimatedTime ? `Within ${estimatedTime}` : '2-4 Hours',
+    }
+  }
+  const nextDay = new Date()
+  nextDay.setDate(today.getDate() + 1)
+  return {
+    expectedDeliveryDate: toSqlDate(nextDay),
+    deliverySlot: estimatedTime ? `Delivery ${estimatedTime}` : '10:00 AM - 12:00 PM',
+  }
+}
+
+async function createOrder({
+  userId,
+  items,
+  customer,
+  addressLine1,
+  addressLine2,
+  city,
+  state,
+  pincode,
+  paymentMethod,
+  paymentStatus,
+  paymentTxnId,
+  deliveryType,
+  estimatedTime,
+  expectedDeliveryDate,
+  deliverySlot,
+}) {
   const conn = await pool.getConnection()
 
   try {
@@ -148,6 +198,12 @@ async function createOrder({ userId, items, customer, addressLine1, addressLine2
 
     await conn.beginTransaction()
 
+    const normalizedDeliveryType = normalizeDeliveryType(deliveryType)
+    const deliveryDefaults = getDeliveryDefaults(normalizedDeliveryType, estimatedTime)
+    const finalExpectedDate = expectedDeliveryDate ? toSqlDate(expectedDeliveryDate) : deliveryDefaults.expectedDeliveryDate
+    const finalDeliverySlot = deliverySlot || deliveryDefaults.deliverySlot
+    const finalPaymentStatus = paymentStatus || (paymentMethod === 'online' ? 'paid' : 'pending')
+
     const [orderResult] = await conn.query(
       `INSERT INTO orders (
         user_id,
@@ -160,8 +216,13 @@ async function createOrder({ userId, items, customer, addressLine1, addressLine2
         state,
         pincode,
         payment_method,
+        payment_status,
+        payment_txn_id,
+        delivery_type,
+        expected_delivery_date,
+        delivery_slot,
         total
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         userId,
         customer?.name || null,
@@ -173,6 +234,11 @@ async function createOrder({ userId, items, customer, addressLine1, addressLine2
         state || null,
         pincode || null,
         paymentMethod || 'cod',
+        finalPaymentStatus,
+        paymentTxnId || null,
+        normalizedDeliveryType,
+        finalExpectedDate,
+        finalDeliverySlot,
         total,
       ]
     )
@@ -186,6 +252,12 @@ async function createOrder({ userId, items, customer, addressLine1, addressLine2
         [orderId, item.productId || null, item.slug || null, item.name, item.qty, item.price]
       )
     }
+
+    await conn.query(
+      `INSERT INTO order_status_events (order_id, status, note)
+       VALUES (?, ?, ?)`,
+      [orderId, 'pending', 'Order placed']
+    )
 
     if (userId) {
       if (activeCartId) {
@@ -249,7 +321,15 @@ async function assignDeliveryPartner(orderId, deliveryPartnerId) {
 
 async function updateOrderStatus(orderId, status) {
   const result = await query('UPDATE orders SET status = ? WHERE id = ?', [status, orderId])
-  return result.affectedRows > 0
+  if (result.affectedRows > 0) {
+    await query(
+      `INSERT INTO order_status_events (order_id, status, note)
+       VALUES (?, ?, ?)`,
+      [orderId, status, 'Status updated']
+    )
+    return true
+  }
+  return false
 }
 
 module.exports = {

@@ -138,7 +138,7 @@ async function updateOrderStatus(req, res) {
   try {
     const orderId = parseInt(req.params.orderId, 10)
     const { status } = req.body
-    const allowed = ['pending', 'confirmed', 'delivered', 'cancelled']
+    const allowed = ['pending', 'confirmed', 'packed', 'out_for_delivery', 'delivered', 'cancelled']
     if (!allowed.includes(status)) {
       return res.status(400).json({ error: `status must be one of ${allowed.join(', ')}` })
     }

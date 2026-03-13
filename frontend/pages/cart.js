@@ -141,13 +141,19 @@ export default function CartPage() {
       state: form.state,
       pincode: form.pincode,
     }
+    const normalizedDeliveryType = deliveryType === 'fast' ? 'fast' : deliveryType === 'normal' ? 'standard' : null
+    const deliveryPayload = {
+      deliveryType: normalizedDeliveryType,
+      estimatedTime: estimatedTime || null,
+      deliverySlot: normalizedDeliveryType ? (normalizedDeliveryType === 'fast' ? (estimatedTime ? `Within ${estimatedTime}` : '2-4 Hours') : '10:00 AM - 12:00 PM') : null,
+    }
 
     try {
       if (form.paymentMethod === 'cod') {
         const res = await fetch(`${API_BASE}/orders`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
-          body: JSON.stringify({ items: cartItems, customer, ...addressPayload, paymentMethod: 'cod' }),
+          body: JSON.stringify({ items: cartItems, customer, ...addressPayload, paymentMethod: 'cod', ...deliveryPayload }),
         })
         const data = await res.json()
         if (!res.ok) throw new Error(data.error || 'Order placement failed')
@@ -190,6 +196,7 @@ export default function CartPage() {
                   cartItems,
                   customer,
                   ...addressPayload,
+                  ...deliveryPayload,
                 }),
               })
               const verifyData = await verifyRes.json()

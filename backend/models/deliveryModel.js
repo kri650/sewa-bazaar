@@ -63,6 +63,11 @@ async function updateOrderStatus(orderId, deliveryUserId, newStatus) {
   if (newIdx < currentIdx) return { ok: false, reason: 'cannot_go_backwards' }
 
   await query('UPDATE orders SET status = ? WHERE id = ?', [newStatus, orderId])
+  await query(
+    `INSERT INTO order_status_events (order_id, status, note)
+     VALUES (?, ?, ?)`,
+    [orderId, newStatus, 'Status updated by delivery partner']
+  )
   return { ok: true, orderId, newStatus, customerUserId: rows[0].userId }
 }
 
