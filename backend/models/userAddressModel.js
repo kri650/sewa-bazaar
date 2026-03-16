@@ -81,35 +81,9 @@ async function deleteAddress(userId, addressId) {
   )
 }
 
-/**
- * Set an address as the default for a user.
- * Clears any previous default first.
- */
-async function setDefault(userId, addressId) {
-  await query('UPDATE user_addresses SET is_default = 0 WHERE user_id = ?', [userId])
-  await query(
-    'UPDATE user_addresses SET is_default = 1 WHERE id = ? AND user_id = ?',
-    [addressId, userId]
-  )
-}
-
-/**
- * Update an existing address row.
- */
-async function updateAddress(userId, addressId, { full_name, phone, street, city, state, pincode, country }) {
-  await query(
-    `UPDATE user_addresses
-     SET full_name = ?, phone = ?, street = ?, city = ?, state = ?, pincode = ?, country = ?
-     WHERE id = ? AND user_id = ?`,
-    [full_name, phone, street, city, state, pincode, country || 'India', addressId, userId]
-  )
-}
-
 module.exports = {
   listByUser,
   findById,
   createAddress,
   deleteAddress,
-  setDefault,
-  updateAddress,
 }

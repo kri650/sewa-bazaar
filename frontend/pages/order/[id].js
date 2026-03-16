@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import ShopLayout from '../../components/ShopLayout'
+import { resolveProductImage } from '../../lib/productImage'
 import { useCart } from '../../contexts/CartContext'
 
 const API = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
@@ -61,12 +62,27 @@ export default function OrderDetailsPage() {
       if (!id) return
       try {
         const token = typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) || '' : ''
-        const res = await fetch(`${API}/api/user/orders/${id}`, {
+        const res = await fetch(`${API}/api/user/orders`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         })
-        const data = await res.json()
+
+        // Try to parse JSON safely. If server returned HTML (e.g. 404 page)
+        // res.json() will throw on non-JSON; handle that and produce a useful message.
+        let data
+        try {
+          data = await res.json()
+        } catch (parseErr) {
+          const text = await res.text()
+          const snippet = (text || '').slice(0, 200)
+          throw new Error(res.ok ? `Invalid JSON response from server: ${snippet}` : `Server error: ${res.status} ${res.statusText}`)
+        }
+
         if (!res.ok) throw new Error(data.error || 'Failed to load order')
-        setOrder(data)
+
+        // backend returns an array of orders for GET /api/user/orders
+        const found = Array.isArray(data) ? data.find(o => String(o.orderId) === String(id) || String(o.id) === String(id)) : data
+        if (!found) throw new Error('Order not found')
+        setOrder(found)
       } catch (err) {
         setError(err.message)
       } finally {
@@ -79,9 +95,15 @@ export default function OrderDetailsPage() {
   const handleReorder = () => {
     if (!order?.items) return
     order.items.forEach((item) => {
-      const id = item.productId || item.productSlug
+      const id = item.productId || item.productSlug || item.productName
       if (!id) return
-      addToCart({ id, name: item.productName, price: item.price }, Number(item.qty || 1))
+      const product = {
+        id,
+        name: item.productName || item.productSlug || `Product ${id}`,
+        price: item.price || 0,
+        image: resolveProductImage({ name: item.productName, image: item.image }),
+      }
+      addToCart(product, Number(item.qty || 1))
     })
   }
 

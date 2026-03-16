@@ -115,13 +115,6 @@ async function updateUserRole(userId, role) {
 
 async function updateOrderStatus(orderId, status) {
   const result = await query('UPDATE orders SET status = ? WHERE id = ?', [status, orderId])
-  if (result.affectedRows > 0) {
-    await query(
-      `INSERT INTO order_status_events (order_id, status, note)
-       VALUES (?, ?, ?)`,
-      [orderId, status, 'Status updated by admin']
-    )
-  }
   return result.affectedRows > 0
 }
 
@@ -157,16 +150,58 @@ async function assignOrderToDeliveryPartner(orderId, deliveryPartnerId) {
   )
   if (orders.length === 0) return { ok: false, reason: 'order_not_found' }
 
+  const currentStatus = String(orders[0].status || '').trim().toLowerCase().replace(/[\s-]+/g, '_')
+  const allowedBeforeAssignment = new Set([
+    '',
+    'placed',
+    'pending',
+    'confirmed',
+    'packed',
+    'ready_for_pickup',
+    'assigned',
+  ])
+  if (!allowedBeforeAssignment.has(currentStatus)) {
+    return { ok: false, reason: 'invalid_status_before_assignment' }
+  }
+
   await query(
-    `UPDATE orders SET delivery_partner_id = ?, status = 'confirmed' WHERE id = ?`,
+    `UPDATE orders SET delivery_partner_id = ?, status = 'assigned' WHERE id = ?`,
     [deliveryPartnerId, orderId]
   )
-  await query(
-    `INSERT INTO order_status_events (order_id, status, note)
-     VALUES (?, 'confirmed', ?)`,
-    [orderId, 'Assigned to delivery partner']
-  )
+
+  if (currentStatus !== 'assigned') {
+    await query(
+      `INSERT INTO order_status_history (order_id, status) VALUES (?, ?)`,
+      [orderId, 'assigned']
+    )
+  }
   return { ok: true, order: orders[0] }
+}
+
+// ── Warehouse Admin Management (Super Admin) ──────────────────────────────
+
+async function listWarehouseAdmins() {
+  return query(
+    `SELECT
+       wa.id,
+       wa.name,
+       wa.email,
+       wa.warehouse_id AS warehouseId,
+       wa.created_at   AS createdAt,
+       w.name          AS warehouseName,
+       w.city          AS warehouseCity
+     FROM warehouse_admins wa
+     LEFT JOIN warehouses w ON w.id = wa.warehouse_id
+     ORDER BY w.id ASC, wa.created_at DESC`
+  )
+}
+
+async function updateWarehouseAdminWarehouse(adminId, warehouseId) {
+  const result = await query(
+    `UPDATE warehouse_admins SET warehouse_id = ? WHERE id = ?`,
+    [warehouseId, adminId]
+  )
+  return result.affectedRows > 0
 }
 
 module.exports = {
@@ -182,4 +217,6 @@ module.exports = {
   createDeliveryPartner,
   deleteDeliveryPartner,
   assignOrderToDeliveryPartner,
+  listWarehouseAdmins,
+  updateWarehouseAdminWarehouse,
 }

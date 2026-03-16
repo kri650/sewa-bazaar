@@ -1,5 +1,4 @@
 import ShopLayout from '../../components/ShopLayout'
-import FilterBar from '../../components/FilterBar'
 import { DEFAULT_PRODUCT_IMAGE, resolveProductImage } from '../../lib/productImage'
 
 const featuredItems = [
@@ -21,7 +20,6 @@ export default function Products() {
         </header>
 
       <section className="latestArrivalsSection" aria-label="Latest arrivals">
-        <FilterBar />
         <div className="latestHead">
           <h2>Latest Arrivals</h2>
           <p>Feature Dishes</p>

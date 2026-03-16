@@ -1,6 +1,15 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 
 const DeliveryContext = createContext(null)
+
+const DEFAULT_CONFIG = {
+  warehouse_lat: 26.4499,
+  warehouse_lng: 80.3319,
+  fast_radius_km: 10,
+  warehouses: [],
+}
+
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000').replace(/\/$/, '')
 
 // Haversine formula
 function haversineKm(lat1, lon1, lat2, lon2) {
@@ -8,14 +17,101 @@ function haversineKm(lat1, lon1, lat2, lon2) {
   const R = 6371 // Earth radius km
   const dLat = toRad(lat2 - lat1)
   const dLon = toRad(lon2 - lon1)
-  const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2) * Math.sin(dLon/2)
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
   return R * c
+}
+
+function normalizeConfig(payload) {
+  if (!payload) return null
+
+  const warehouses = Array.isArray(payload?.warehouses)
+    ? payload.warehouses
+    : Array.isArray(payload?.data?.warehouses)
+      ? payload.data.warehouses
+      : []
+
+  const primary = warehouses.find((w) => String(w.status || '').toLowerCase() === 'active') || warehouses[0]
+
+  const latCandidate = payload?.warehouse_lat ?? primary?.lat ?? primary?.latitude
+  const lngCandidate = payload?.warehouse_lng ?? primary?.lng ?? primary?.longitude
+  const radiusCandidate = payload?.fast_radius_km ?? primary?.fast_radius_km ?? primary?.fast_radius
+
+  const safeLat = Number.isFinite(Number(latCandidate)) ? Number(latCandidate) : DEFAULT_CONFIG.warehouse_lat
+  const safeLng = Number.isFinite(Number(lngCandidate)) ? Number(lngCandidate) : DEFAULT_CONFIG.warehouse_lng
+  const safeRadius = Number.isFinite(Number(radiusCandidate)) ? Number(radiusCandidate) : DEFAULT_CONFIG.fast_radius_km
+
+  return {
+    warehouse_lat: safeLat,
+    warehouse_lng: safeLng,
+    fast_radius_km: safeRadius,
+    warehouses,
+  }
+}
+
+function round2(value) {
+  return Math.round(value * 100) / 100
+}
+
+function pickNearestWarehouse(warehouses, userLat, userLng) {
+  if (!Array.isArray(warehouses) || warehouses.length === 0) return null
+  const active = warehouses.filter((w) => String(w.status || '').toLowerCase() === 'active')
+  const list = active.length ? active : warehouses
+  if (userLat == null || userLng == null) return list[0] || null
+
+  let nearest = null
+  let minDist = Infinity
+
+  for (const wh of list) {
+    const wLat = Number(wh.lat ?? wh.latitude)
+    const wLng = Number(wh.lng ?? wh.longitude)
+    if (!Number.isFinite(wLat) || !Number.isFinite(wLng)) continue
+    const dist = haversineKm(Number(userLat), Number(userLng), wLat, wLng)
+    if (dist < minDist) {
+      minDist = dist
+      nearest = { ...wh, distanceKm: round2(dist) }
+    }
+  }
+
+  return nearest || list[0] || null
+}
+
+// Matches the shape previously returned by the (now removed) Next.js API route:
+// /api/delivery/check-distance
+function computeDeliveryInfo(cfg, userLat, userLng, productLat, productLng) {
+  if (!cfg) return null
+
+  const uLat = Number(userLat)
+  const uLng = Number(userLng)
+  if (!Number.isFinite(uLat) || !Number.isFinite(uLng)) return null
+
+  const radius = Number(cfg.fast_radius_km) || 10
+
+  const distWarehouse = haversineKm(cfg.warehouse_lat, cfg.warehouse_lng, uLat, uLng)
+
+  let distProduct = Infinity
+  const pLat = Number(productLat)
+  const pLng = Number(productLng)
+  if (Number.isFinite(pLat) && Number.isFinite(pLng) && (pLat !== 0 || pLng !== 0)) {
+    distProduct = haversineKm(pLat, pLng, uLat, uLng)
+  }
+
+  const minDist = Math.min(distWarehouse, distProduct)
+  const sewa_minutes_eligible = minDist <= radius
+
+  return {
+    distance: round2(minDist),
+    delivery_type: sewa_minutes_eligible ? 'fast' : 'normal',
+    estimated_time: sewa_minutes_eligible ? '10 minutes' : '1–3 hours',
+    sewa_minutes_eligible,
+    fast_radius_km: radius,
+  }
 }
 
 export function DeliveryProvider({ children }) {
   const [config, setConfig] = useState(null) // {warehouse_lat, warehouse_lng, fast_radius_km}
   const [userLocation, setUserLocation] = useState(null) // {lat,lng}
+  const [nearestWarehouse, setNearestWarehouse] = useState(null)
   const [distanceKm, setDistanceKm] = useState(null)
   const [deliveryType, setDeliveryType] = useState(null) // 'fast' | 'normal' | null
   const [estimatedTime, setEstimatedTime] = useState(null)
@@ -23,28 +119,75 @@ export function DeliveryProvider({ children }) {
   const [estimatedMinutesMax, setEstimatedMinutesMax] = useState(null)
 
   useEffect(() => {
+    let cancelled = false
+
     async function loadConfig() {
       try {
-        const r = await fetch('/api/delivery/get-config')
-        if (r.ok) {
-          const j = await r.json()
-          setConfig(j)
+        const response = await fetch(`${API_BASE_URL}/api/delivery/get-config`)
+        if (!response.ok) throw new Error('failed to load delivery config')
+        const json = await response.json()
+        const normalized = normalizeConfig(json)
+        if (normalized && !cancelled) {
+          setConfig(normalized)
           return
         }
-      } catch (e) {}
-      setConfig({ warehouse_lat: 26.4499, warehouse_lng: 80.3319, fast_radius_km: 10 })
+      } catch (_) {
+        // If backend is unreachable, fall back to defaults (pure-client mode).
+      }
+
+      if (!cancelled) setConfig(DEFAULT_CONFIG)
     }
+
     loadConfig()
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const [permissionDenied, setPermissionDenied] = useState(false)
 
   useEffect(() => {
-    if (!userLocation || !config) return
-    const d = haversineKm(config.warehouse_lat, config.warehouse_lng, userLocation.lat, userLocation.lng)
+    if (typeof window === 'undefined') return
+    try {
+      const saved = localStorage.getItem('sb_location')
+      if (!saved) return
+      const parsed = JSON.parse(saved)
+      if (parsed && Number.isFinite(Number(parsed.lat)) && Number.isFinite(Number(parsed.lng))) {
+        setUserLocation({ lat: Number(parsed.lat), lng: Number(parsed.lng) })
+      }
+    } catch (_) {}
+  }, [])
+
+  useEffect(() => {
+    if (!config) return
+    const next = pickNearestWarehouse(config.warehouses || [], userLocation?.lat, userLocation?.lng)
+    setNearestWarehouse(next)
+  }, [config, userLocation])
+
+  const effectiveConfig = useMemo(() => {
+    if (!config) return null
+    if (!nearestWarehouse) return config
+
+    const lat = Number(nearestWarehouse?.lat ?? nearestWarehouse?.latitude ?? config.warehouse_lat)
+    const lng = Number(nearestWarehouse?.lng ?? nearestWarehouse?.longitude ?? config.warehouse_lng)
+    const radius = Number(nearestWarehouse?.fast_radius_km ?? nearestWarehouse?.fast_radius ?? config.fast_radius_km)
+
+    return {
+      ...config,
+      warehouse_lat: Number.isFinite(lat) ? lat : config.warehouse_lat,
+      warehouse_lng: Number.isFinite(lng) ? lng : config.warehouse_lng,
+      fast_radius_km: Number.isFinite(radius) ? radius : config.fast_radius_km,
+    }
+  }, [config, nearestWarehouse])
+
+  useEffect(() => {
+    if (!userLocation || !effectiveConfig) return
+
+    const d = haversineKm(effectiveConfig.warehouse_lat, effectiveConfig.warehouse_lng, userLocation.lat, userLocation.lng)
     setDistanceKm(Number(d.toFixed(2)))
 
-    const radius = config.fast_radius_km || 10
+    const radius = Number(effectiveConfig.fast_radius_km) || 10
 
     if (d <= radius) {
       // ── Fast delivery (within radius) ── Flipkart: "Delivery in 20-40 minutes"
@@ -81,7 +224,7 @@ export function DeliveryProvider({ children }) {
       setEstimatedMinutesMax(maxMins)
       setEstimatedTime(`by ${dateLabel}`)
     }
-  }, [userLocation, config])
+  }, [userLocation, effectiveConfig])
 
   // Request browser geolocation (returns promise)
   const detectUserLocation = () => new Promise((resolve, reject) => {
@@ -91,42 +234,11 @@ export function DeliveryProvider({ children }) {
       const lng = pos.coords.longitude
       const obj = { lat, lng }
       setUserLocation(obj)
+      try { localStorage.setItem('sb_location', JSON.stringify({ lat, lng })) } catch (_) {}
       setPermissionDenied(false)
       resolve(obj)
     }, (err) => reject(err), { timeout: 10000 })
   })
-
-  // Sync userLocation from saved sb_location on mount AND whenever it changes in localStorage
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-
-    const syncFromStorage = () => {
-      const saved = localStorage.getItem('sb_location')
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved)
-          if (parsed && parsed.lat && parsed.lng) {
-            setUserLocation({ lat: parsed.lat, lng: parsed.lng })
-          }
-        } catch (_) {}
-      }
-    }
-
-    // Run on mount
-    syncFromStorage()
-
-    // Listen for changes (cross-tab via native storage event, same-tab via custom event)
-    const handleStorage = (e) => {
-      if (!e.key || e.key === 'sb_location') syncFromStorage()
-    }
-    window.addEventListener('storage', handleStorage)
-    window.addEventListener('sb_location_updated', syncFromStorage)
-
-    return () => {
-      window.removeEventListener('storage', handleStorage)
-      window.removeEventListener('sb_location_updated', syncFromStorage)
-    }
-  }, [])
 
   // Auto-detect on first visit if user has not saved a location
   useEffect(() => {
@@ -142,8 +254,7 @@ export function DeliveryProvider({ children }) {
   const saveConfig = async (newCfg, authToken) => {
     // prefer backend admin endpoint
     try {
-      const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
-      const r = await fetch(`${API_BASE}/admin/delivery-config`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: authToken ? `Bearer ${authToken}` : '' }, body: JSON.stringify(newCfg) })
+      const r = await fetch(`${API_BASE_URL}/admin/delivery-config`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: authToken ? `Bearer ${authToken}` : '' }, body: JSON.stringify(newCfg) })
       if (r.ok) {
         setConfig(newCfg)
         return { ok: true }
@@ -156,11 +267,30 @@ export function DeliveryProvider({ children }) {
   }
 
   const setManualLocation = (lat, lng) => {
-    setUserLocation({ lat, lng })
+    const next = { lat: Number(lat), lng: Number(lng) }
+    setUserLocation(next)
+    try { localStorage.setItem('sb_location', JSON.stringify(next)) } catch (_) {}
   }
 
   return (
-    <DeliveryContext.Provider value={{ config, userLocation, distanceKm, deliveryType, estimatedTime, estimatedMinutesMin, estimatedMinutesMax, detectUserLocation, setManualLocation, setConfig, permissionDenied, saveConfig }}>
+    <DeliveryContext.Provider
+      value={{
+        config,
+        nearestWarehouse,
+        userLocation,
+        distanceKm,
+        deliveryType,
+        estimatedTime,
+        estimatedMinutesMin,
+        estimatedMinutesMax,
+        detectUserLocation,
+        setManualLocation,
+        setConfig,
+        permissionDenied,
+        saveConfig,
+        getDeliveryInfo: ({ lat, lng, plat, plng }) => computeDeliveryInfo(effectiveConfig, lat, lng, plat, plng),
+      }}
+    >
       {children}
     </DeliveryContext.Provider>
   )

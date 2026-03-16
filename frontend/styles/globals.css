@@ -707,10 +707,11 @@ body, input, button, textarea, select, h1, h2, h3, h4, h5, h6 {
 	align-items:center;
 	justify-content:space-between;
 	gap:22px;
-	padding:14px 0;
-	overflow:hidden;
+	padding:14px 12px;
+	flex-wrap:wrap;
+	overflow:visible;
 }
-.trustLeft { display:flex; align-items:center; gap:10px }
+.trustLeft { display:flex; align-items:center; gap:10px; flex-wrap:wrap }
 .trustRound {
 	width:62px;
 	height:62px;
@@ -724,14 +725,16 @@ body, input, button, textarea, select, h1, h2, h3, h4, h5, h6 {
 	background:var(--theme-green-soft);
 	text-align:center;
 	animation:trustFloat 3.4s ease-in-out infinite;
+	line-height:1.1;
+	padding:4px;
 }
 .trustRound:nth-child(2) { animation-delay:.25s; }
 .trustRound:nth-child(3) { animation-delay:.45s; }
 .trustRound:nth-child(4) { animation-delay:.65s; }
 .trustCenter { text-align:left; flex:1; min-width:260px }
-.trustCenter p { margin:0; color:var(--theme-green-dark); font-size:44px; font-weight:600; line-height:1 }
-.trustCenter h2 { margin:4px 0 0; font-size:19px; font-weight:400; color:#1b1b1b; line-height:1.1 }
-.trustRight { display:flex; align-items:center; gap:18px }
+.trustCenter p { margin:0; color:var(--theme-green-dark); font-size:32px; font-weight:700; line-height:1.05 }
+.trustCenter h2 { margin:6px 0 0; font-size:15px; font-weight:500; color:#1b1b1b; line-height:1.35 }
+.trustRight { display:flex; align-items:center; gap:18px; flex-wrap:wrap }
 .trustMini {
 	display:flex;
 	align-items:center;
@@ -804,9 +807,10 @@ body, input, button, textarea, select, h1, h2, h3, h4, h5, h6 {
 @keyframes spin { to { transform: rotate(360deg) } }
 
 @media (max-width: 1200px) {
-	.trustRibbonInner { overflow-x:auto; justify-content:flex-start }
-	.trustCenter p { font-size:32px; font-weight:600 }
-	.trustCenter h2 { font-size:17px; font-weight:400 }
+	.trustRibbonInner { justify-content:center }
+	.trustCenter { min-width:0; text-align:center }
+	.trustCenter p { font-size:26px; font-weight:700 }
+	.trustCenter h2 { font-size:14px; font-weight:500 }
 	.trustMini { font-size:12px; font-weight:500 }
 }
 

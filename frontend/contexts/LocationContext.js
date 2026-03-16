@@ -49,13 +49,7 @@ export function LocationProvider({ children }) {
 
   const saveLocation = (loc) => {
     setLocation(loc)
-    try {
-      localStorage.setItem('sb_location', JSON.stringify(loc))
-      // Notify DeliveryContext in the same tab (storage events only fire cross-tab)
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('sb_location_updated'))
-      }
-    } catch (_) {}
+    try { localStorage.setItem('sb_location', JSON.stringify(loc)) } catch (_) {}
   }
 
   // Reverse-geocode via free Nominatim (OpenStreetMap) — no API key needed

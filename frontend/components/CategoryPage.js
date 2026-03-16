@@ -1,13 +1,49 @@
 import { useRouter } from 'next/router'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useCart } from '../contexts/CartContext'
 import { useDelivery } from '../contexts/DeliveryContext'
 import ProductCard from './ProductCard'
 import FilterBar from './FilterBar'
 
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
+
 const parseRupees = (price) => Number(String(price ?? '').replace(/[^\d.]/g, '')) || 0
 const formatRupees = (amount) =>
   `Rs. ${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+
+const normalizeProductName = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+const normalizeCategoryName = (value) =>
+  String(value || '')
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+
+const CATEGORY_ALIASES = {
+  'best deal': ['best deals'],
+  'best deals': ['best deal'],
+  'fruits and vegetables': ['fruits vegetables'],
+  'fruits vegetables': ['fruits and vegetables'],
+  'soap and detergents': ['cleaning'],
+  'chips and biscuits': ['snacks'],
+  'pooja essentials': ['pooja'],
+  'dry fruits and nuts': ['dry fruits'],
+}
+
+function categoryMatches(pageCategory, productCategory) {
+  const a = normalizeCategoryName(pageCategory)
+  const b = normalizeCategoryName(productCategory)
+  if (!a || !b) return false
+  if (a === b) return true
+
+  const aCandidates = new Set([a, ...(CATEGORY_ALIASES[a] || [])])
+  const bCandidates = new Set([b, ...(CATEGORY_ALIASES[b] || [])])
+
+  for (const candidate of aCandidates) {
+    if (bCandidates.has(candidate)) return true
+  }
+  return false
+}
 
 export default function CategoryPage({
   title,
@@ -26,17 +62,100 @@ export default function CategoryPage({
     if (deliveryType === 'fast') return `Delivery in ${estimatedTime}`
     return `Delivery ${estimatedTime}`
   }, [userLocation, deliveryType, estimatedTime])
-  const [quantities, setQuantities] = useState(() => products.map(() => 1))
+  const [quantities, setQuantities] = useState({})
+  const [stockMetaByName, setStockMetaByName] = useState({})
+  const [liveProducts, setLiveProducts] = useState([])
   const [filters, setFilters] = useState({
     sort: 'popularity',
     rating: null,
     priceRange: 'all'
   })
 
-  const changeQty = (index, delta) => {
-    setQuantities((prev) =>
-      prev.map((qty, i) => (i === index ? Math.max(1, qty + delta) : qty))
-    )
+  const mergedProducts = useMemo(() => {
+    const staticList = Array.isArray(products) ? products : []
+    const liveList = Array.isArray(liveProducts)
+      ? liveProducts.filter((product) => categoryMatches(category, product.category))
+      : []
+
+    const seenNames = new Set(staticList.map((product) => normalizeProductName(product.name)))
+    const merged = [...staticList]
+
+    for (const product of liveList) {
+      const key = normalizeProductName(product.name)
+      if (!key || seenNames.has(key)) continue
+      seenNames.add(key)
+      merged.push({
+        id: String(product.id),
+        name: product.name,
+        price: Number(product.price || 0),
+        size: product.unit || '',
+        unit: product.unit || '',
+        image: product.image || '',
+        category: product.category || category || '',
+        description: product.description || '',
+        lowStock: Boolean(Number(product.lowStock || 0)),
+        stockQuantity: Number(product.stockQuantity || 0),
+      })
+    }
+
+    return merged
+  }, [products, liveProducts, category])
+
+  useEffect(() => {
+    const next = {}
+    mergedProducts.forEach((product) => {
+      const key = getRouteId ? getRouteId(product) : String(product.id)
+      next[key] = quantities[key] || 1
+    })
+    setQuantities(next)
+  }, [mergedProducts])
+
+  useEffect(() => {
+    let cancelled = false
+
+    fetch(`${API_BASE}/products`)
+      .then((response) => (response.ok ? response.json() : []))
+      .then((rows) => {
+        if (cancelled || !Array.isArray(rows)) return
+        const next = {}
+        rows.forEach((row) => {
+          const key = normalizeProductName(row?.name)
+          if (!key) return
+          next[key] = {
+            stockQuantity: Number(row?.stockQuantity || 0),
+            lowStock: Boolean(Number(row?.lowStock || 0)),
+          }
+        })
+        setStockMetaByName(next)
+      })
+      .catch(() => {})
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    fetch(`${API_BASE}/products`)
+      .then((response) => (response.ok ? response.json() : []))
+      .then((rows) => {
+        if (cancelled || !Array.isArray(rows)) return
+        setLiveProducts(rows)
+      })
+      .catch(() => {})
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const changeQty = (key, delta) => {
+    setQuantities((prev) => ({
+      ...prev,
+      [key]: Math.max(1, (prev[key] || 1) + delta),
+    }))
   }
 
   const handleProductClick = (product, routeId) => {
@@ -56,7 +175,7 @@ export default function CategoryPage({
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
-    let result = [...products]
+    let result = [...mergedProducts]
 
     // Apply price range filter
     if (filters.priceRange !== 'all') {
@@ -102,7 +221,7 @@ export default function CategoryPage({
     }
 
     return result
-  }, [products, filters])
+  }, [mergedProducts, filters])
 
   return (
     <main className="categoryMain">
@@ -116,12 +235,15 @@ export default function CategoryPage({
           <FilterBar onFilterChange={setFilters} />
           
           <div className="productGrid categoryProductGrid">
-            {filteredProducts.map((product, index) => {
-              const originalIndex = products.findIndex(p => p.id === product.id)
-              const qty = quantities[originalIndex] || 1
+            {filteredProducts.map((product) => {
               const routeId = getRouteId ? getRouteId(product) : String(product.id)
+              const qty = quantities[routeId] || 1
               const normalizedPrice = parseRupees(product.price)
               const normalizedSize = product.size || product.unit || ''
+              const stockMeta = stockMetaByName[normalizeProductName(product.name)]
+              const lowStockNote = (product.lowStock || stockMeta?.lowStock)
+                ? `Low stock${(product.stockQuantity || stockMeta?.stockQuantity || 0) > 0 ? ` (${product.stockQuantity || stockMeta?.stockQuantity || 0} left)` : ''}`
+                : undefined
 
               return (
                 <ProductCard
@@ -133,9 +255,10 @@ export default function CategoryPage({
                   size={normalizedSize}
                   image={product.image}
                   badge={deliveryBadge || product.badge || undefined}
+                  note={lowStockNote}
                   showQty={true}
                   qty={qty}
-                  onQtyChange={(delta) => changeQty(originalIndex, delta)}
+                  onQtyChange={(delta) => changeQty(routeId, delta)}
                   onAdd={() => addToCart({ ...product, price: normalizedPrice, size: normalizedSize }, qty)}
                   onClick={() => handleProductClick(product, routeId)}
                 />

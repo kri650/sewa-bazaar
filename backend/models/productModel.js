@@ -12,9 +12,19 @@ async function listActiveProducts() {
       p.category_id AS categoryId,
       p.latitude,
       p.longitude,
-      c.name AS category
+      c.name AS category,
+      COALESCE(inv.totalStock, 0) AS stockQuantity,
+      CASE
+        WHEN COALESCE(inv.totalStock, 0) > 0 AND COALESCE(inv.totalStock, 0) < 10 THEN 1
+        ELSE 0
+      END AS lowStock
     FROM products p
     LEFT JOIN categories c ON c.id = p.category_id
+    LEFT JOIN (
+      SELECT product_id, SUM(stock_quantity) AS totalStock
+      FROM warehouse_inventory
+      GROUP BY product_id
+    ) inv ON inv.product_id = p.id
     WHERE p.is_active = 1
     ORDER BY p.id DESC`
   )
@@ -32,9 +42,19 @@ async function findById(id) {
       p.category_id AS categoryId,
       p.latitude,
       p.longitude,
-      c.name AS category
+      c.name AS category,
+      COALESCE(inv.totalStock, 0) AS stockQuantity,
+      CASE
+        WHEN COALESCE(inv.totalStock, 0) > 0 AND COALESCE(inv.totalStock, 0) < 10 THEN 1
+        ELSE 0
+      END AS lowStock
     FROM products p
     LEFT JOIN categories c ON c.id = p.category_id
+    LEFT JOIN (
+      SELECT product_id, SUM(stock_quantity) AS totalStock
+      FROM warehouse_inventory
+      GROUP BY product_id
+    ) inv ON inv.product_id = p.id
     WHERE p.id = ?
     LIMIT 1`,
     [id]
@@ -55,9 +75,19 @@ async function searchActiveProducts(searchTerm) {
       p.category_id AS categoryId,
       p.latitude,
       p.longitude,
-      c.name AS category
+      c.name AS category,
+      COALESCE(inv.totalStock, 0) AS stockQuantity,
+      CASE
+        WHEN COALESCE(inv.totalStock, 0) > 0 AND COALESCE(inv.totalStock, 0) < 10 THEN 1
+        ELSE 0
+      END AS lowStock
      FROM products p
      LEFT JOIN categories c ON c.id = p.category_id
+     LEFT JOIN (
+       SELECT product_id, SUM(stock_quantity) AS totalStock
+       FROM warehouse_inventory
+       GROUP BY product_id
+     ) inv ON inv.product_id = p.id
      WHERE p.is_active = 1
        AND (
          p.name LIKE ?

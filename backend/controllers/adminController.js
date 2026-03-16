@@ -1,5 +1,7 @@
 const adminModel = require('../models/adminModel')
 const bcrypt = require('bcryptjs')
+const warehouseAuthModel = require('../models/warehouseAuthModel')
+const warehouseAdminModel = require('../models/warehouseAdminModel')
 
 async function getOrders(_req, res) {
   try {
@@ -138,7 +140,7 @@ async function updateOrderStatus(req, res) {
   try {
     const orderId = parseInt(req.params.orderId, 10)
     const { status } = req.body
-    const allowed = ['pending', 'confirmed', 'packed', 'out_for_delivery', 'delivered', 'cancelled']
+    const allowed = ['pending', 'confirmed', 'delivered', 'cancelled']
     if (!allowed.includes(status)) {
       return res.status(400).json({ error: `status must be one of ${allowed.join(', ')}` })
     }
@@ -192,7 +194,8 @@ async function assignDelivery(req, res) {
     }
     const result = await adminModel.assignOrderToDeliveryPartner(orderId, Number(deliveryPartnerId))
     if (!result.ok) {
-      return res.status(404).json({ error: result.reason })
+      const statusCode = result.reason === 'invalid_status_before_assignment' ? 400 : 404
+      return res.status(statusCode).json({ error: result.reason })
     }
     // Push Socket.io notification to the delivery boy and admins
     try {
@@ -204,7 +207,112 @@ async function assignDelivery(req, res) {
         assignedAt: new Date().toISOString(),
       })
     } catch (_) {}
+    try {
+      const notificationModel = require('../models/notificationModel')
+      await notificationModel.createNotification({
+        userId: deliveryPartnerId,
+        orderId,
+        type: 'order_assigned',
+        message: `New order #${orderId} has been assigned to you.`,
+      })
+    } catch (_) {}
     return res.json({ ok: true })
+  } catch (error) {
+    return res.status(500).json({ error: error.message })
+  }
+}
+
+// ── Warehouse Admin Management (Super Admin) ──────────────────────────────
+
+async function listWarehouseAdmins(_req, res) {
+  try {
+    const rows = await adminModel.listWarehouseAdmins()
+    return res.json(rows)
+  } catch (error) {
+    return res.status(500).json({ error: error.message })
+  }
+}
+
+async function createWarehouseAdmin(req, res) {
+  try {
+    const { name, email, password, warehouse_id } = req.body || {}
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ error: 'name, email and password are required' })
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'password must be at least 6 characters' })
+    }
+
+    const existing = await warehouseAuthModel.findByEmail(String(email).trim().toLowerCase())
+    if (existing) {
+      return res.status(409).json({ error: 'an account with this email already exists' })
+    }
+
+    const passwordHash = await bcrypt.hash(String(password), 12)
+    const created = await warehouseAuthModel.createWarehouseAdmin({
+      name:        String(name).trim(),
+      email:       String(email).trim().toLowerCase(),
+      passwordHash,
+      warehouseId: warehouse_id ? Number(warehouse_id) : null,
+    })
+
+    return res.status(201).json({
+      ok: true,
+      admin: created,
+    })
+  } catch (error) {
+    return res.status(500).json({ error: error.message })
+  }
+}
+
+async function updateWarehouseAdminWarehouse(req, res) {
+  try {
+    const adminId = Number(req.params.id)
+    const warehouseId = Number(req.body?.warehouse_id)
+
+    if (!adminId || Number.isNaN(adminId)) {
+      return res.status(400).json({ error: 'valid warehouse admin id is required' })
+    }
+
+    if (!warehouseId || Number.isNaN(warehouseId)) {
+      return res.status(400).json({ error: 'valid warehouse_id is required' })
+    }
+
+    const updated = await adminModel.updateWarehouseAdminWarehouse(adminId, warehouseId)
+    if (!updated) return res.status(404).json({ error: 'warehouse admin not found' })
+
+    return res.json({ ok: true, id: adminId, warehouse_id: warehouseId })
+  } catch (error) {
+    return res.status(500).json({ error: error.message })
+  }
+}
+
+// ── Per-warehouse snapshot for super admin (overview + recent activity) ───
+
+async function getWarehouseSnapshot(req, res) {
+  try {
+    const warehouseId = Number(req.params.warehouseId)
+
+    if (!warehouseId || Number.isNaN(warehouseId)) {
+      return res.status(400).json({ error: 'valid warehouseId is required' })
+    }
+
+    const [overview, orders, inventory, codCollections] = await Promise.all([
+      warehouseAdminModel.getOverview(warehouseId),
+      warehouseAdminModel.getWarehouseOrders(warehouseId, 'all'),
+      warehouseAdminModel.getInventoryGrouped(warehouseId),
+      warehouseAdminModel.getCodCollections(warehouseId),
+    ])
+
+    return res.json({
+      warehouseId,
+      overview,
+      orders,
+      inventory,
+      codCollections,
+    })
   } catch (error) {
     return res.status(500).json({ error: error.message })
   }
@@ -223,4 +331,8 @@ module.exports = {
   addDeliveryPartner,
   removeDeliveryPartner,
   assignDelivery,
+  listWarehouseAdmins,
+  createWarehouseAdmin,
+  updateWarehouseAdminWarehouse,
+  getWarehouseSnapshot,
 }

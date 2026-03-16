@@ -4,18 +4,73 @@ import ShopLayout from '../components/ShopLayout'
 import { useCart } from '../contexts/CartContext'
 import allStaticProducts from '../data/products'
 
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
+const normalizeProductName = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+
 export default function SearchPage() {
   const router = useRouter()
   const { q } = router.query
   const [searchResults, setSearchResults] = useState([])
   const [quantities, setQuantities] = useState({})
+  const [liveProducts, setLiveProducts] = useState([])
+  const [stockMetaByName, setStockMetaByName] = useState({})
   const allProductsRef = useRef([])
   const { addToCart } = useCart()
 
+  const mergeProducts = (staticRows, liveRows) => {
+    const merged = Array.isArray(staticRows) ? [...staticRows] : []
+    const existingNames = new Set(merged.map((product) => normalizeProductName(product?.name)))
+
+    if (Array.isArray(liveRows)) {
+      liveRows.forEach((product) => {
+        const key = normalizeProductName(product?.name)
+        if (!key || existingNames.has(key)) return
+        existingNames.add(key)
+        merged.push({
+          id: String(product.id),
+          name: product.name || 'Product',
+          price: Number(product.price || 0),
+          size: product.unit || '',
+          unit: product.unit || '',
+          image: product.image || '',
+          category: product.category || '',
+          description: product.description || '',
+        })
+      })
+    }
+
+    return merged
+  }
+
   // Load static products on mount
   useEffect(() => {
-    allProductsRef.current = Array.isArray(allStaticProducts) ? allStaticProducts : []
+    allProductsRef.current = mergeProducts(allStaticProducts, liveProducts)
     if (q) runFilter(q, allProductsRef.current)
+  }, [liveProducts])
+
+  useEffect(() => {
+    let cancelled = false
+    fetch(`${API_BASE}/products`)
+      .then((response) => (response.ok ? response.json() : []))
+      .then((rows) => {
+        if (cancelled || !Array.isArray(rows)) return
+        setLiveProducts(rows)
+        const next = {}
+        rows.forEach((row) => {
+          const key = normalizeProductName(row?.name)
+          if (!key) return
+          next[key] = {
+            stockQuantity: Number(row?.stockQuantity || 0),
+            lowStock: Boolean(Number(row?.lowStock || 0)),
+          }
+        })
+        setStockMetaByName(next)
+      })
+      .catch(() => {})
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const runFilter = (query, products) => {
@@ -107,6 +162,7 @@ export default function SearchPage() {
               const currentQty = quantities[product.id] || 1
               const totalAmount = (product.price * currentQty).toFixed(2)
               const imgSrc = product.image || product.imageUrl || null
+              const stockMeta = stockMetaByName[normalizeProductName(product.name)]
 
               return (
                 <div key={product.id} className="productCard">
@@ -122,6 +178,22 @@ export default function SearchPage() {
                   
                   <div className="productInfo">
                     <span className="productCategory">{product.category}</span>
+                    {stockMeta?.lowStock ? (
+                      <div style={{
+                        display: 'inline-block',
+                        marginTop: 6,
+                        marginBottom: 6,
+                        background: '#fef3c7',
+                        color: '#92400e',
+                        border: '1px solid #fcd34d',
+                        borderRadius: 999,
+                        padding: '2px 8px',
+                        fontSize: 11,
+                        fontWeight: 700,
+                      }}>
+                        Low stock ({stockMeta.stockQuantity})
+                      </div>
+                    ) : null}
                     <h3 className="productName" onClick={() => handleProductClick(product)} style={{ cursor: 'pointer' }}>{product.name}</h3>
                     <div className="productPrice">₹{totalAmount}</div>
                     <div className="productUnit">{product.unit || product.size}</div>

@@ -16,7 +16,6 @@
 
 const bcrypt    = require('bcryptjs')
 const jwt       = require('jsonwebtoken')
-const axios     = require('axios')
 const userModel = require('../models/userModel')
 const userExt   = require('../models/userModelExt')
 const otpStore  = require('../utils/otpStore')
@@ -98,37 +97,9 @@ async function signup(req, res) {
       otp,
     })
 
-    // ── Send OTP via MSG91 SMS ──────────────────────────────────────────────
+    // ── Simulate sending OTP ────────────────────────────────────────────────
+    // In production: replace this with your SMS/email API (e.g. Twilio, MSG91)
     console.log(`[OTP] Signup OTP for ${email} (phone: ${phone}): ${otp}`)
-
-    const MSG91_AUTH_KEY   = process.env.MSG91_AUTH_KEY
-    const MSG91_SENDER_ID  = process.env.MSG91_SENDER_ID  || 'SEWABZ'
-    const MSG91_TEMPLATE_ID = process.env.MSG91_TEMPLATE_ID
-
-    if (MSG91_AUTH_KEY) {
-      try {
-        // Normalize phone — strip leading 0 or +91, keep 10 digits, then prefix 91
-        const digits = String(phone).replace(/\D/g, '').replace(/^(0|91)/, '')
-        const mobile = `91${digits}`
-
-        await axios.post(
-          'https://api.msg91.com/api/v5/otp',
-          {
-            template_id: MSG91_TEMPLATE_ID,
-            mobile,
-            authkey: MSG91_AUTH_KEY,
-            otp,
-          },
-          { headers: { 'Content-Type': 'application/json' } }
-        )
-        console.log(`[OTP] SMS sent to ${mobile}`)
-      } catch (smsErr) {
-        // SMS failed — OTP still works via console log in dev
-        console.error('[OTP] SMS send failed:', smsErr?.response?.data || smsErr.message)
-      }
-    } else {
-      console.warn('[OTP] MSG91_AUTH_KEY not set — OTP only in console (dev mode)')
-    }
     // ───────────────────────────────────────────────────────────────────────
 
     return res.status(200).json({
@@ -173,93 +144,6 @@ async function verifyOtp(req, res) {
     }
 
     // Create user account using prepared statements via existing model
-    const user = await userModel.createUser({
-      name:         pending.name,
-      email:        pending.email,
-      phone:        pending.phone,
-      passwordHash: pending.passwordHash,
-      latitude:     pending.latitude,
-      longitude:    pending.longitude,
-      role:         'customer',
-    })
-
-    const token = createToken(user)
-
-    return res.status(201).json({
-      message: 'Account created successfully.',
-      token,
-      id:    user.id,
-      name:  user.name,
-      email: user.email,
-      phone: user.phone,
-      role:  user.role,
-    })
-  } catch (error) {
-    if (error && error.code === 'ER_DUP_ENTRY') {
-      return res.status(409).json({ error: 'email already registered' })
-    }
-    return res.status(500).json({ error: error.message })
-  }
-}
-
-// ─── Step 2b: Verify via MSG91 Widget token ─────────────────────────────────
-// Called after MSG91 Widget SDK confirms OTP on client side.
-// The widget returns a "verified token" (data.message) that we validate with
-// MSG91's /api/v5/widget/verifyAccessToken endpoint, then create the account.
-
-async function verifyWidget(req, res) {
-  try {
-    const { email, verifiedToken } = req.body || {}
-
-    if (!email || !verifiedToken) {
-      return res.status(400).json({ error: 'email and verifiedToken are required' })
-    }
-
-    const pending = otpStore.get(`signup:${email}`)
-    if (!pending) {
-      return res.status(400).json({
-        error: 'Session expired. Please sign up again.',
-      })
-    }
-
-    // Validate the token with MSG91
-    const MSG91_TOKEN_AUTH = process.env.MSG91_TOKEN_AUTH
-    const MSG91_WIDGET_ID  = process.env.MSG91_WIDGET_ID
-
-    if (MSG91_TOKEN_AUTH) {
-      try {
-        // MSG91 verifyAccessToken — authkey + access-token both go in the request body
-        const verifyRes = await axios.post(
-          'https://control.msg91.com/api/v5/widget/verifyAccessToken',
-          {
-            authkey: MSG91_TOKEN_AUTH,
-            'access-token': verifiedToken,
-          },
-          { headers: { 'Content-Type': 'application/json' } }
-        )
-        const result = verifyRes.data
-        // MSG91 returns { type: 'success', message: '...' } on success
-        if (!result || result.type !== 'success') {
-          console.error('[MSG91 Widget] Rejected:', result)
-          return res.status(401).json({ error: 'OTP verification failed. Please try again.' })
-        }
-        console.log('[MSG91 Widget] Token verified OK for', email)
-      } catch (verifyErr) {
-        console.error('[MSG91 Widget] Token verify failed:', verifyErr?.response?.data || verifyErr.message)
-        return res.status(401).json({ error: 'Could not verify OTP with MSG91. Please try again.' })
-      }
-    } else {
-      console.warn('[MSG91 Widget] MSG91_TOKEN_AUTH not set — skipping validation (dev mode)')
-    }
-
-    // Token valid — remove pending entry
-    otpStore.del(`signup:${email}`)
-
-    const alreadyExists = await userModel.findByEmail(email)
-    if (alreadyExists) {
-      return res.status(409).json({ error: 'account already exists' })
-    }
-
     const user = await userModel.createUser({
       name:         pending.name,
       email:        pending.email,
@@ -353,7 +237,6 @@ function logout(req, res) {
 module.exports = {
   signup,
   verifyOtp,
-  verifyWidget,
   login,
   logout,
   tokenBlacklist, // exported so middleware can check it if needed

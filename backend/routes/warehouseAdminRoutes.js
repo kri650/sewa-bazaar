@@ -1,0 +1,42 @@
+const express = require('express')
+const { checkWarehouseAdmin } = require('../middleware/checkWarehouseAdmin')
+const ctrl = require('../controllers/warehouseAdminController')
+
+const router = express.Router()
+// IMPORTANT: Do not protect the entire /api mount.
+// This router is mounted at /api, so scope auth to warehouse-admin endpoints only.
+router.use('/warehouse', checkWarehouseAdmin)
+router.use('/inventory', checkWarehouseAdmin)
+router.use('/orders', checkWarehouseAdmin)
+
+router.get('/warehouse/metrics',              ctrl.getMetrics)
+router.get('/warehouse/dashboard-stats',      ctrl.getDashboardStats)
+router.get('/warehouse/me',                  ctrl.getMe)
+router.get('/warehouse/overview/:warehouseId', ctrl.getOverviewByWarehouseId)
+router.get('/warehouse/orders',               ctrl.getOrders)
+router.get('/warehouse/orders/:warehouseId',  ctrl.getOrdersByWarehouseId)
+router.put('/warehouse/orders/:id/status',    ctrl.updateOrderStatus)
+router.put('/orders/update-status',           ctrl.updateOrderStatus)
+router.post('/warehouse/assign-delivery',     ctrl.assignDelivery)
+router.post('/orders/assign-delivery',        ctrl.assignDelivery)
+router.get('/warehouse/inventory',            ctrl.getInventory)
+router.get('/warehouse/inventory/:warehouseId', ctrl.getInventoryByWarehouseId)
+router.get('/inventory/:warehouseId',         ctrl.getInventoryByWarehouseId)
+router.post('/warehouse/inventory/add',       ctrl.addInventoryStock)
+router.post('/inventory/add',                 ctrl.addInventoryStock)
+router.put('/warehouse/inventory/:productId', ctrl.updateStock)
+router.put('/inventory/update',               ctrl.updateStockByBody)
+// Aliases matching spec-style endpoints
+router.post('/warehouse/add-stock',           ctrl.addInventoryStock)
+router.put('/warehouse/update-stock',         ctrl.updateStockByBody)
+router.post('/warehouse/products',            ctrl.createProduct)
+router.get('/warehouse/low-stock',            ctrl.getLowStock)
+router.get('/warehouse/cod-collections',      ctrl.getCodCollections)
+router.get('/warehouse/cod',                  ctrl.getCodCollections)
+router.get('/warehouse/cod/:warehouseId',     ctrl.getCodCollectionsByWarehouseId)
+router.get('/warehouse/delivery-partners',    ctrl.getDeliveryPartners)
+router.get('/warehouse/delivery-partners/:warehouseId', ctrl.getDeliveryPartnersByWarehouseId)
+router.post('/warehouse/delivery-partners',   ctrl.createDeliveryPartner)
+router.put('/warehouse/delivery-partners/:id/status', ctrl.updateDeliveryPartnerStatus)
+
+module.exports = router

@@ -237,6 +237,52 @@
     padding: 10px 12px !important;
   }
 
+  .trustRibbonInner {
+    gap: 14px !important;
+    padding: 12px 8px !important;
+  }
+
+  .trustLeft,
+  .trustRight {
+    justify-content: center;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .trustRound {
+    width: 54px;
+    height: 54px;
+    font-size: 11px;
+  }
+
+  .trustCenter {
+    text-align: center;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .trustCenter p {
+    font-size: 22px;
+  }
+
+  .trustCenter h2 {
+    font-size: 12.5px;
+  }
+
+  .trustMini {
+    font-size: 11px;
+  }
+
+  .trustIcon {
+    width: 42px;
+    height: 42px;
+  }
+
+  .trustIconSvg {
+    width: 20px;
+    height: 20px;
+  }
+
   .logoWrap {
     grid-area: logo;
     justify-self: start;

@@ -12,6 +12,7 @@ router.post('/products/add',             adminGuard, productController.adminAddP
 router.put('/products/update',           adminGuard, productController.adminUpdateProduct)
 router.delete('/products/delete',        adminGuard, productController.adminDeleteProduct)
 router.get('/orders',                    adminGuard, orderController.adminGetOrders)
+router.get('/admin/orders',              adminGuard, orderController.adminGetOrders)
 router.put('/orders/assign-delivery',    adminGuard, orderController.adminAssignDeliveryPartner)
 router.put('/orders/status',             adminGuard, orderController.adminUpdateOrderStatus)
 

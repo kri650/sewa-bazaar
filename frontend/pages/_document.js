@@ -20,8 +20,6 @@ export default function Document() {
       <body>
         <Main />
         <NextScript />
-        {/* Razorpay Checkout SDK — loaded last to avoid blocking page render */}
-        <script src="https://checkout.razorpay.com/v1/checkout.js" />
       </body>
     </Html>
   )

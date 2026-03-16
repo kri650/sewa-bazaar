@@ -7,6 +7,7 @@ import { useDelivery } from '../../contexts/DeliveryContext';
 import { useWishlist } from '../../contexts/WishlistContext';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
+const normalizeProductName = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
 
 // All product data from homepage
 const allProducts = [
@@ -65,7 +66,7 @@ export default function ProductDetailPage() {
   const router = useRouter();
   const { id } = router.query;
   const { addToCart } = useCart();
-  const { userLocation, deliveryType, estimatedTime } = useDelivery();
+  const { userLocation, deliveryType, estimatedTime, getDeliveryInfo } = useDelivery();
   const deliveryBadge = userLocation && deliveryType
     ? (deliveryType === 'fast' ? `Delivery in ${estimatedTime}` : `Delivery ${estimatedTime}`)
     : null;
@@ -76,6 +77,7 @@ export default function ProductDetailPage() {
   const [activeTab, setActiveTab] = useState('description');
   const [reviews, setReviews] = useState([])
   const [newReview, setNewReview] = useState({ name: '', rating: 5, comment: '' })
+  const [stockMeta, setStockMeta] = useState({ inStock: true, lowStock: false, stockQuantity: null })
 
   // Sewa Bazaar Minutes delivery state
   const [deliveryInfo, setDeliveryInfo] = useState(null)   // null = checking, false = no geo, object = result
@@ -136,7 +138,9 @@ export default function ProductDetailPage() {
             image: data.image || '',
             category: data.category || 'Products',
             description: data.description || `Fresh ${data.name} from our collection.`,
-            inStock: true,
+            inStock: Number(data.stockQuantity || 0) > 0,
+            lowStock: Boolean(Number(data.lowStock || 0)),
+            stockQuantity: Number(data.stockQuantity || 0),
             rating: 0,
             totalReviews: 0,
           });
@@ -147,6 +151,53 @@ export default function ProductDetailPage() {
       .catch(() => setProduct(null))
       .finally(() => setLoading(false));
   }, [id, router.query]);
+
+  useEffect(() => {
+    if (!product) return
+    const idValue = Array.isArray(id) ? id[0] : id
+
+    let cancelled = false
+
+    const hydrateStock = async () => {
+      try {
+        if (idValue && /^\d+$/.test(String(idValue))) {
+          const byId = await fetch(`${API_BASE}/products/${idValue}`)
+          const row = byId.ok ? await byId.json() : null
+          if (!cancelled && row && row.name) {
+            const qty = Number(row.stockQuantity || 0)
+            setStockMeta({
+              inStock: qty > 0,
+              lowStock: Boolean(Number(row.lowStock || 0)),
+              stockQuantity: qty,
+            })
+            return
+          }
+        }
+
+        const listResp = await fetch(`${API_BASE}/products`)
+        const list = listResp.ok ? await listResp.json() : []
+        if (!Array.isArray(list) || cancelled) return
+
+        const target = list.find((item) => normalizeProductName(item?.name) === normalizeProductName(product.name))
+        if (!target) return
+
+        const qty = Number(target.stockQuantity || 0)
+        setStockMeta({
+          inStock: qty > 0,
+          lowStock: Boolean(Number(target.lowStock || 0)),
+          stockQuantity: qty,
+        })
+      } catch (_err) {
+        // Keep default stock meta when API lookup fails.
+      }
+    }
+
+    hydrateStock()
+
+    return () => {
+      cancelled = true
+    }
+  }, [id, product])
 
   // Load reviews from localStorage when product is available
   useEffect(() => {
@@ -171,19 +222,23 @@ export default function ProductDetailPage() {
         // Pass product's own lat/lng if set by admin (non-zero)
         const pLat = product.latitude || 0
         const pLng = product.longitude || 0
-        const plParams = (pLat !== 0 || pLng !== 0) ? `&plat=${pLat}&plng=${pLng}` : ''
-        fetch(`/api/delivery/check-distance?lat=${uLat}&lng=${uLng}${plParams}`)
-          .then((r) => r.ok ? r.json() : null)
-          .then((data) => {
-            setDeliveryInfo(data)
-            setGeoStatus('done')
+        try {
+          const info = getDeliveryInfo({
+            lat: uLat,
+            lng: uLng,
+            plat: (pLat !== 0 || pLng !== 0) ? pLat : undefined,
+            plng: (pLat !== 0 || pLng !== 0) ? pLng : undefined,
           })
-          .catch(() => { setGeoStatus('error') })
+          setDeliveryInfo(info)
+          setGeoStatus('done')
+        } catch {
+          setGeoStatus('error')
+        }
       },
       () => { setGeoStatus('denied') },
       { timeout: 8000, maximumAge: 300000 }
     )
-  }, [product])
+  }, [product, getDeliveryInfo])
 
   const saveReviews = (list) => {
     if (!product) return
@@ -316,7 +371,13 @@ export default function ProductDetailPage() {
               
               <div className="product-meta">
                 <span className="category-badge">{product.category}</span>
-                <span className="stock-badge in-stock">✓ In Stock</span>
+                {!stockMeta.inStock ? (
+                  <span className="stock-badge out-of-stock">✕ Out of Stock</span>
+                ) : stockMeta.lowStock ? (
+                  <span className="stock-badge low-stock">⚠ Low Stock{stockMeta.stockQuantity != null ? ` (${stockMeta.stockQuantity})` : ''}</span>
+                ) : (
+                  <span className="stock-badge in-stock">✓ In Stock</span>
+                )}
               </div>
 
               {/* Rating */}
@@ -359,10 +420,10 @@ export default function ProductDetailPage() {
 
               {/* Action Buttons */}
               <div className="action-buttons">
-                <button className="add-to-cart-btn-large" onClick={handleAddToCart}>
-                  Add to Cart
+                <button className="add-to-cart-btn-large" onClick={handleAddToCart} disabled={!stockMeta.inStock}>
+                  {stockMeta.inStock ? 'Add to Cart' : 'Out of Stock'}
                 </button>
-                <button className="buy-now-btn" onClick={handleBuyNow}>Buy Now</button>
+                <button className="buy-now-btn" onClick={handleBuyNow} disabled={!stockMeta.inStock}>Buy Now</button>
               </div>
 
               {/* ── Sewa Bazaar Minutes Delivery Badge ── */}
@@ -716,6 +777,16 @@ export default function ProductDetailPage() {
           .stock-badge.in-stock {
             background: #F0F8F7;
             color: #007600;
+          }
+
+          .stock-badge.low-stock {
+            background: #fef3c7;
+            color: #92400e;
+          }
+
+          .stock-badge.out-of-stock {
+            background: #fee2e2;
+            color: #991b1b;
           }
 
           /* Rating Section */

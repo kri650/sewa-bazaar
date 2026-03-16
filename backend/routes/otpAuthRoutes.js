@@ -22,9 +22,6 @@ router.post('/signup', otpAuthController.signup)
 // Signup — Step 2: verify OTP and create account
 router.post('/verify-otp', otpAuthController.verifyOtp)
 
-// Signup — Step 2b: verify via MSG91 Widget access-token (phone widget flow)
-router.post('/verify-widget', otpAuthController.verifyWidget)
-
 // Login — no OTP required
 router.post('/login', otpAuthController.login)
 

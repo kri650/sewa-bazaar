@@ -4,6 +4,10 @@ const { requireAuth } = require('../middleware/authMiddleware')
 
 const router = express.Router()
 
+// Place an order
+router.post('/api/orders/create', orderController.createOrder)
+router.post('/orders/create', orderController.createOrder)
+router.post('/api/orders', orderController.createOrder)
 router.post('/orders', orderController.createOrder)
 
 router.get('/wishlist', requireAuth, orderController.getWishlist)

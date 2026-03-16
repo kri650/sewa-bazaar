@@ -145,7 +145,7 @@ export default function AccountPage() {
     if (regForm.password !== regForm.confirmPassword) { setError('Passwords do not match'); return }
     setLoading(true)
     try {
-      const resp = await apiFetch('/api/otp-auth/signup', {
+      const resp = await apiFetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

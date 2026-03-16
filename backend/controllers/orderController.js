@@ -100,18 +100,18 @@ async function createOrder(req, res) {
       state: req.body?.state,
       pincode: req.body?.pincode,
       paymentMethod: req.body?.paymentMethod,
-      deliveryType: req.body?.deliveryType,
-      estimatedTime: req.body?.estimatedTime,
-      deliverySlot: req.body?.deliverySlot,
+      userLat: req.body?.latitude  ?? req.body?.userLat  ?? null,
+      userLng: req.body?.longitude ?? req.body?.userLng  ?? null,
     })
 
-    // Broadcast new-order notification to all connected admin Socket.io clients
+    // Broadcast new-order notification to all connected admin / warehouse Socket.io clients
     try {
       const { notifyNewOrder } = require('../utils/socketServer')
       notifyNewOrder({
         orderId: result.id,
         total: result.total,
         customerName: req.body?.customer?.name || null,
+        warehouseId: result.warehouse ? result.warehouse.id : null,
         createdAt: new Date().toISOString(),
       })
     } catch (_) {}
@@ -121,6 +121,13 @@ async function createOrder(req, res) {
       createdAt: new Date().toISOString(),
       total: result.total,
       items: result.items,
+      warehouse: result.warehouse
+        ? {
+            id: result.warehouse.id,
+            name: result.warehouse.name,
+            distanceKm: result.warehouse.distanceKm,
+          }
+        : null,
     })
   } catch (error) {
     const status = error.statusCode || 500
@@ -154,6 +161,24 @@ async function adminAssignDeliveryPartner(req, res) {
       return res.status(404).json({ error: 'order not found' })
     }
 
+    try {
+      const { notifyDeliveryAssigned } = require('../utils/socketServer')
+      notifyDeliveryAssigned(Number(deliveryPartnerId), {
+        orderId,
+        assignedAt: new Date().toISOString(),
+      })
+    } catch (_err) {}
+
+    try {
+      const notificationModel = require('../models/notificationModel')
+      await notificationModel.createNotification({
+        userId: deliveryPartnerId,
+        orderId,
+        type: 'order_assigned',
+        message: `New order #${orderId} has been assigned to you.`,
+      })
+    } catch (_err) {}
+
     return res.json({ ok: true })
   } catch (error) {
     return res.status(500).json({ error: error.message })
@@ -164,7 +189,7 @@ async function adminUpdateOrderStatus(req, res) {
   try {
     const orderId = Number(req.body?.orderId)
     const status = String(req.body?.status || '').trim()
-    const allowed = new Set(['pending', 'confirmed', 'packed', 'out_for_delivery', 'delivered', 'cancelled'])
+    const allowed = new Set(['placed', 'confirmed', 'packed', 'out_for_delivery', 'delivered', 'cancelled'])
 
     if (Number.isNaN(orderId) || !allowed.has(status)) {
       return res.status(400).json({ error: 'valid orderId and status are required' })

@@ -58,9 +58,10 @@ async function verifyPayment(req, res) {
       city,
       state,
       pincode,
-      deliveryType,
-      estimatedTime,
-      deliverySlot,
+      latitude,
+      longitude,
+      userLat,
+      userLng,
     } = req.body || {}
 
     if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
@@ -93,11 +94,8 @@ async function verifyPayment(req, res) {
       state,
       pincode,
       paymentMethod: 'online',
-      paymentStatus: 'paid',
-      paymentTxnId: razorpayPaymentId,
-      deliveryType,
-      estimatedTime,
-      deliverySlot,
+      userLat: latitude  ?? userLat  ?? null,
+      userLng: longitude ?? userLng  ?? null,
     })
 
     // Broadcast new-order notification to admin Socket.io clients
@@ -107,6 +105,7 @@ async function verifyPayment(req, res) {
         orderId: result.id,
         total: result.total,
         customerName: customer?.name || null,
+        warehouseId: result.warehouse ? result.warehouse.id : null,
         createdAt: new Date().toISOString(),
       })
     } catch (_) {}

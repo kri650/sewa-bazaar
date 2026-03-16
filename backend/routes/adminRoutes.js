@@ -1,5 +1,6 @@
 const express = require('express')
 const adminController = require('../controllers/adminController')
+const warehouseController = require('../controllers/warehouseController')
 
 const router = express.Router()
 
@@ -19,5 +20,16 @@ router.post('/products', adminController.createProduct)
 router.put('/products/:productId', adminController.editProduct)
 router.delete('/products', adminController.removeProduct)
 router.delete('/products/:productId', adminController.removeProduct)
+
+// Warehouse / delivery config routes
+router.get('/warehouses',           warehouseController.getWarehouses)
+router.post('/warehouses',          warehouseController.saveWarehouse)
+router.delete('/warehouses/:id',    warehouseController.deleteWarehouse)
+router.get('/warehouses/:warehouseId/snapshot', adminController.getWarehouseSnapshot)
+
+// Warehouse admin management (super admin)
+router.get('/warehouse-admins',              adminController.listWarehouseAdmins)
+router.post('/warehouse-admins',             adminController.createWarehouseAdmin)
+router.patch('/warehouse-admins/:id/assign', adminController.updateWarehouseAdminWarehouse)
 
 module.exports = router

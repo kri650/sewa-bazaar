@@ -534,15 +534,15 @@ export default function Home() {
       <section className="trustRibbonSection" aria-label="Trust badges">
         <div className="trustRibbonInner">
           <div className="trustLeft">
-            <div className="trustRound">Fresh</div>
+            <div className="trustRound">100%</div>
+            <div className="trustRound">Premium</div>
             <div className="trustRound">Quality</div>
-            <div className="trustRound">Best Price</div>
-            <div className="trustRound">Trusted</div>
+            <div className="trustRound">OK</div>
           </div>
 
           <div className="trustCenter">
-            <p>India&apos;s Trusted</p>
-            <h2>Online Grocery Store</h2>
+            <p>Sewa Bazaar</p>
+            <h2>FSSAI Licensed Platform committed to maintaining the highest food safety and quality standards</h2>
           </div>
 
           <div className="trustRight">

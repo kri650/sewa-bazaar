@@ -156,7 +156,7 @@ const allProducts = [
   { id: 'soap-bar', name: 'Herbal Soap Bar', price: 35.00, size: '125 GM', category: 'Bath & Body', image: 'https://m.media-amazon.com/images/I/819p4biJ0ML._AC_UF350,350_QL80_.jpg' },
   { id: 'face-wash', name: 'Deep Cleansing Face Wash', price: 150.00, size: '100 ML', category: 'Bath & Body', image: 'https://atomicpharmacy.in/cdn/shop/files/washac-deep-cleansing-face-wash-154382.jpg?v=1755265199' },
   { id: 'body-lotion', name: 'Nourishing Body Lotion', price: 200.00, size: '200 ML', category: 'Bath & Body', image: 'https://assets.myntassets.com/assets/images/2274009/2018/4/17/11523955566788-Nivea-Cocoa-Nourish-Oil-in-Lotion-Body-Lotion-For-Very-Dry-Skin-200-ml-2761523955566633-1.jpg' },
-  { id: 'hand-wash', name: 'Liquid Hand Wash', price: 120.00, size: '250 ML', category: 'Bath & Body', image: 'https://m.media-amazon.com/images/I/51xlJmANl+L.jpg_BO30,255,255,255_UF750,750_SR1910,1000,0,C_QL100_.jpg' },
+  { id: 'hand-wash', name: 'Liquid Hand Wash', price: 120.00, size: '250 ML', category: 'Bath & Body', image: 'https://m.m53msedia-amazon.com/images/I/51xlJmANl+L.jpg_BO30,255,255,255_UF750,750_SR1910,1000,0,C_QL100_.jpg' },
   { id: 'shampoo', name: 'Natural Hair Shampoo', price: 250.00, size: '200 ML', category: 'Bath & Body', image: 'https://cpimg.tistatic.com/6639871/b/1/200-ml-hair-shine-shampoo.jpg' },
   { id: 'conditioner', name: 'Hair Conditioner', price: 220.00, size: '200 ML', category: 'Bath & Body', image: 'https://www.thedravyastore.com/cdn/shop/files/CONDITIONER.jpg?v=1719760199&width=3840' },
   { id: 'shower-gel', name: 'Refreshing Shower Gel', price: 220.00, size: '250 ML', category: 'Bath & Body', image: 'https://mavenspick.com/cdn/shop/files/avel0090.jpg?v=1754911044' },

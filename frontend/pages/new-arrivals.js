@@ -3,6 +3,7 @@ import { useRouter } from 'next/router'
 import Link from 'next/link'
 import ShopLayout from '../components/ShopLayout'
 import { useCart } from '../contexts/CartContext'
+import { useDelivery } from '../contexts/DeliveryContext'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
 
@@ -18,6 +19,7 @@ const formatRupees = (amount) =>
 
 export default function NewArrivals() {
   const { addToCart } = useCart()
+  const { config, getDeliveryInfo, userLocation } = useDelivery()
   const router = useRouter()
   const [products, setProducts] = useState([])
   const [quantities, setQuantities] = useState([])
@@ -39,38 +41,50 @@ export default function NewArrivals() {
             description: p.description || '',
             latitude: p.latitude || 0,
             longitude: p.longitude || 0,
+            stockQuantity: Number(p.stockQuantity || 0),
+            lowStock: Boolean(Number(p.lowStock || 0)),
           }))
           setProducts(normalized)
           setQuantities(normalized.map(() => 1))
-          // Check Sewa Bazaar Minutes eligibility
-          if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-              (pos) => {
-                const uLat = pos.coords.latitude
-                const uLng = pos.coords.longitude
-                Promise.all(
-                  normalized.map((p) => {
-                    const plParams = (p.latitude !== 0 || p.longitude !== 0)
-                      ? `&plat=${p.latitude}&plng=${p.longitude}` : ''
-                    return fetch(`/api/delivery/check-distance?lat=${uLat}&lng=${uLng}${plParams}`)
-                      .then((r) => r.ok ? r.json() : null)
-                      .then((info) => ({ id: p.id, eligible: info?.sewa_minutes_eligible || false }))
-                      .catch(() => ({ id: p.id, eligible: false }))
-                  })
-                ).then((results) => {
-                  const map = {}
-                  results.forEach(({ id, eligible }) => { map[id] = eligible })
-                  setSewaMinutesMap(map)
-                })
-              },
-              () => {} // silently ignore denied
-            )
-          }
         }
       })
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    if (!config) return
+    if (!Array.isArray(products) || products.length === 0) {
+      setSewaMinutesMap({})
+      return
+    }
+
+    const compute = (uLat, uLng) => {
+      const map = {}
+      for (const p of products) {
+        const info = getDeliveryInfo({
+          lat: uLat,
+          lng: uLng,
+          plat: (p.latitude !== 0 || p.longitude !== 0) ? p.latitude : undefined,
+          plng: (p.latitude !== 0 || p.longitude !== 0) ? p.longitude : undefined,
+        })
+        map[p.id] = Boolean(info?.sewa_minutes_eligible)
+      }
+      setSewaMinutesMap(map)
+    }
+
+    if (userLocation?.lat != null && userLocation?.lng != null) {
+      compute(userLocation.lat, userLocation.lng)
+      return
+    }
+
+    if (!navigator.geolocation) return
+    navigator.geolocation.getCurrentPosition(
+      (pos) => compute(pos.coords.latitude, pos.coords.longitude),
+      () => {},
+      { timeout: 8000, maximumAge: 300000 }
+    )
+  }, [config, products, userLocation, getDeliveryInfo])
 
   const changeQty = (index, delta) => {
     setQuantities((prev) => prev.map((q, i) => (i === index ? Math.max(1, q + delta) : q)))
@@ -173,6 +187,16 @@ export default function NewArrivals() {
                     fontSize: 10, fontWeight: 700, padding: '2px 8px',
                     borderRadius: 20, letterSpacing: 0.4,
                   }}>NEW</span>
+                  {item.lowStock ? (
+                    <span style={{
+                      position: 'absolute', top: 10, right: 10,
+                      background: '#f59e0b', color: '#111827',
+                      fontSize: 10, fontWeight: 700, padding: '2px 8px',
+                      borderRadius: 20, letterSpacing: 0.4,
+                    }}>
+                      Low Stock ({item.stockQuantity})
+                    </span>
+                  ) : null}
                 </div>
 
                 {/* Info */}
