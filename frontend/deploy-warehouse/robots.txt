@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://sewabazaar.in/sitemap.xml

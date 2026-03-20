@@ -4,6 +4,7 @@ import { useWishlist } from '../contexts/WishlistContext'
 import { useCart } from '../contexts/CartContext'
 import ShopLayout from '../components/ShopLayout'
 import Link from 'next/link'
+import { resolveProductImage } from '../lib/productImage'
 
 const API = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
 const TOKEN_KEY = 'sbUserToken'
@@ -37,7 +38,9 @@ function titleCase(value) {
 }
 function normalizeStatus(status) {
   if (status === 'accepted') return 'packed'
-  if (status === 'picked_up') return 'out_for_delivery'
+  if (status === 'placed') return 'pending'
+  if (status === 'ready_for_pickup') return 'ready_for_pickup'
+  if (status === 'assigned') return 'assigned'
   return status
 }
 function getToken() {
@@ -61,12 +64,15 @@ async function apiFetch(path, opts = {}) {
 /* ── STATUS BADGE ─────────────────────────────────────────────────────── */
 function StatusBadge({ status }) {
   const palette = {
-    pending:   { bg: '#fff8e1', color: '#b45309' },
-    confirmed: { bg: '#e8f5e9', color: '#2e7d32' },
-    packed: { bg: '#e0f2fe', color: '#0f5b8a' },
+    pending:          { bg: '#fff8e1', color: '#b45309' },
+    confirmed:        { bg: '#e8f5e9', color: '#2e7d32' },
+    packed:           { bg: '#e0f2fe', color: '#0f5b8a' },
+    ready_for_pickup: { bg: '#fef9c3', color: '#854d0e' },
+    assigned:         { bg: '#f3e8ff', color: '#6b21a8' },
+    picked_up:        { bg: '#dbeafe', color: '#1d4ed8' },
     out_for_delivery: { bg: '#ede9fe', color: '#5b21b6' },
-    delivered: { bg: '#e3f2fd', color: '#1565c0' },
-    cancelled: { bg: '#fce4ec', color: '#c62828' },
+    delivered:        { bg: '#e3f2fd', color: '#1565c0' },
+    cancelled:        { bg: '#fce4ec', color: '#c62828' },
   }
   const normalized = normalizeStatus(status)
   const s = palette[normalized] || { bg: '#f3f4f6', color: '#555' }
@@ -314,9 +320,14 @@ export default function AccountPage() {
   const handleReorder = (order) => {
     if (!order?.items || order.items.length === 0) return
     order.items.forEach((item) => {
-      const id = item.productId || item.productSlug
+      const id = item.productId || item.productSlug || item.productName
       if (!id) return
-      addToCart({ id, name: item.productName, price: item.price }, Number(item.qty || 1))
+      addToCart({
+        id,
+        name: item.productName,
+        price: item.price,
+        image: resolveProductImage({ name: item.productName, image: item.image }),
+      }, Number(item.qty || 1))
     })
     setSuccess('Items added to cart for reorder.')
     setTimeout(() => setSuccess(''), 3000)
@@ -1284,7 +1295,11 @@ export default function AccountPage() {
                     {wishlistItems.map(item => (
                       <div key={item.id} className="wishCard">
                         <div className="wishImgWrap">
-                          <img src={item.image} alt={item.name} />
+                          <img
+                            src={resolveProductImage({ name: item.name, image: item.image })}
+                            alt={item.name}
+                            onError={e => { e.target.src = '/product-images/grocery.svg' }}
+                          />
                           <button className="wishRemoveBtn" onClick={() => removeFromWishlist(item.id)} title="Remove">Remove</button>
                         </div>
                         <div className="wishBody">

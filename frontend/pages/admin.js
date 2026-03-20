@@ -2,7 +2,48 @@ import { useEffect, useRef, useMemo, useState } from 'react'
 import { io } from 'socket.io-client'
 import styles from '../styles/admin.module.css'
 
-function DeliveryConfigEditor({ token }) {
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
+
+function StatusBadge({ status }) {
+  const map = {
+    pending:          { bg: '#fff7e0', color: '#b45309',  label: 'Pending' },
+    placed:           { bg: '#fff7e0', color: '#b45309',  label: 'Pending' },
+    confirmed:        { bg: '#e0f2fe', color: '#0369a1',  label: 'Confirmed' },
+    packed:           { bg: '#fef9c3', color: '#a16207',  label: 'Packed' },
+    ready_for_pickup: { bg: '#fef9c3', color: '#a16207',  label: 'Ready for Pickup' },
+    assigned:         { bg: '#f3e8ff', color: '#6b21a8',  label: 'Assigned' },
+    picked_up:        { bg: '#ffedd5', color: '#c2410c',  label: 'Picked Up' },
+    out_for_delivery: { bg: '#dbeafe', color: '#1d4ed8',  label: 'Out for Delivery' },
+    delivered:        { bg: '#dcfce7', color: '#15803d',  label: 'Delivered' },
+    cancelled:        { bg: '#fee2e2', color: '#b91c1c',  label: 'Cancelled' },
+    customer:         { bg: '#f0fdf4', color: '#16a34a',  label: 'Customer' },
+    admin:            { bg: '#ede9fe', color: '#7c3aed',  label: 'Admin' },
+    delivery:         { bg: '#fff7ed', color: '#ea580c',  label: 'Delivery' },
+  }
+  const s = map[status?.toLowerCase()] || { bg: '#f3f4f6', color: '#6b7280', label: status || '—' }
+  return (
+    <span style={{ background: s.bg, color: s.color, padding: '2px 10px', borderRadius: 99, fontSize: 12, fontWeight: 700 }}>
+      {s.label}
+    </span>
+  )
+}
+
+function formatDate(v) {
+  if (!v) return '—'
+  const d = new Date(v)
+  return isNaN(d) ? '—' : d.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
+}
+
+function StatTile({ label, value }) {
+  return (
+    <div style={{ padding: 10, background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+      <div style={{ fontSize: 11, color: '#64748b', marginBottom: 2, fontWeight: 600 }}>{label}</div>
+      <div style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>{value}</div>
+    </div>
+  )
+}
+
+function DeliveryConfigEditor({ token, onAuthError }) {
   const EMPTY_FORM = {
     id: null, name: '', address: '', city: '', state: '', pincode: '',
     lat: '', lng: '', fast_radius_km: 10, max_radius_km: 50, status: 'active',
@@ -19,7 +60,6 @@ function DeliveryConfigEditor({ token }) {
   const [viewLoading, setViewLoading]     = useState(false)
   const [viewError, setViewError]         = useState('')
 
-  const apiBase   = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
   const authHdrs  = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }
 
   // Safe JSON fetch helper: always returns { ok, data, errorMsg }
@@ -27,70 +67,62 @@ function DeliveryConfigEditor({ token }) {
     const res = await fetch(url, opts)
     const text = await res.text()
     let data = null
-    try {
-      data = JSON.parse(text)
-    } catch (_) {
-      console.error('[DeliveryConfigEditor] Non-JSON response from', url, ':', text.slice(0, 200))
-      return { ok: false, data: null, errorMsg: 'Server returned an unexpected response. Check backend is running.' }
-    }
-    return { ok: res.ok, data, errorMsg: res.ok ? null : (data?.message || data?.error || `Error ${res.status}`) }
+    try { data = text ? JSON.parse(text) : null } catch (e) { data = null }
+    const ok = res.ok
+    const errorMsg = ok ? null : (data?.error || data?.message || text || res.statusText)
+    return { ok, data, errorMsg }
   }
 
+  // Fetch initial warehouse list
   useEffect(() => {
-    async function load() {
-      const { ok, data, errorMsg } = await safeFetch(`${apiBase}/admin/warehouses`, { headers: authHdrs })
-      if (ok && data?.data) {
-        const wh = Array.isArray(data.data.warehouses) ? data.data.warehouses : []
-        setWarehouses(wh)
-        if (!wh.length && data.data.warehouse_lat) {
-          setForm(f => ({ ...f, lat: data.data.warehouse_lat, lng: data.data.warehouse_lng, fast_radius_km: data.data.fast_radius_km || 10 }))
+    let mounted = true
+    const loadWarehouses = async () => {
+      setLoading(true)
+      try {
+        const { ok, data } = await safeFetch(`${API_BASE}/admin/warehouses`, { 
+            headers: { 
+              'Content-Type': 'application/json', 
+              'Authorization': `Bearer ${token}` 
+            }
+          })
+        if (mounted && ok && data?.data) {
+          setWarehouses(data.data.warehouses || [])
         }
-      } else if (errorMsg) {
-        setMsg({ text: errorMsg, type: 'error' })
+      } catch (err) {
+        console.error('Failed to load warehouses', err)
+      } finally {
+        if (mounted) setLoading(false)
       }
     }
-    load()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token])
-
-  const validate = () => {
-    const e = {}
-    if (!form.name.trim()) e.name = 'Warehouse name is required'
-    if (!form.city.trim()) e.city = 'City is required'
-    if (!/^\d{6}$/.test(String(form.pincode))) e.pincode = 'Pincode must be exactly 6 digits'
-    if (form.lat === '' || isNaN(Number(form.lat))) e.lat = 'Valid latitude is required'
-    else if (Number(form.lat) < -90 || Number(form.lat) > 90) e.lat = 'Latitude must be between -90 and 90'
-    if (form.lng === '' || isNaN(Number(form.lng))) e.lng = 'Valid longitude is required'
-    else if (Number(form.lng) < -180 || Number(form.lng) > 180) e.lng = 'Longitude must be between -180 and 180'
-    if (!form.fast_radius_km || Number(form.fast_radius_km) <= 0) e.fast_radius_km = 'Must be a positive number'
-    if (form.max_radius_km !== '' && Number(form.max_radius_km) <= 0) e.max_radius_km = 'Must be a positive number'
-    return e
-  }
+    loadWarehouses()
+    return () => { mounted = false }
+  }, [token]) // Added token dependency
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    const errs = validate()
-    setErrors(errs)
-    if (Object.keys(errs).length > 0) return
-    setLoading(true); setMsg({ text: '', type: '' })
-    const { ok, data, errorMsg } = await safeFetch(`${apiBase}/admin/warehouses`, {
-      method: 'POST',
-      headers: authHdrs,
-      body: JSON.stringify({
-        ...form,
-        lat: Number(form.lat), lng: Number(form.lng),
-        fast_radius_km: Number(form.fast_radius_km),
-        max_radius_km: Number(form.max_radius_km) || 50,
-      }),
-    })
-    if (ok && data?.data) {
-      setWarehouses(data.data.warehouses)
-      setMsg({ text: data.message || (editingId ? '✓ Warehouse updated successfully' : '✓ Warehouse added successfully'), type: 'success' })
-      setForm(EMPTY_FORM); setEditingId(null); setErrors({})
-    } else {
-      setMsg({ text: 'Error: ' + (errorMsg || 'Could not save'), type: 'error' })
+    setLoading(true)
+    setMsg({ text: '', type: '' })
+    setErrors({})
+    try {
+      const method = editingId ? 'PUT' : 'POST'
+      const url = editingId ? `${API_BASE}/admin/warehouses/${encodeURIComponent(editingId)}` : `${API_BASE}/admin/warehouses`
+      const { ok, data, errorMsg } = await safeFetch(url, {
+        method,
+        headers: authHdrs,
+        body: JSON.stringify(form),
+      })
+      if (ok && data?.data) {
+        setWarehouses(data.data.warehouses)
+        setMsg({ text: data.message || (editingId ? '✓ Warehouse updated successfully' : '✓ Warehouse added successfully'), type: 'success' })
+        setForm(EMPTY_FORM); setEditingId(null); setErrors({})
+      } else {
+        setMsg({ text: 'Error: ' + (errorMsg || 'Could not save'), type: 'error' })
+      }
+    } catch (e) {
+      setMsg({ text: 'Error: ' + (e.message || 'Could not save'), type: 'error' })
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   const handleEdit = (w) => {
@@ -106,7 +138,7 @@ function DeliveryConfigEditor({ token }) {
     setViewData(null)
     setViewError('')
     setViewLoading(true)
-    const { ok, data, errorMsg } = await safeFetch(`${apiBase}/admin/warehouses/${encodeURIComponent(w.id)}/snapshot`, {
+    const { ok, data, errorMsg } = await safeFetch(`${API_BASE}/admin/warehouses/${encodeURIComponent(w.id)}/snapshot`, {
       headers: authHdrs,
     })
     if (ok) {
@@ -119,7 +151,7 @@ function DeliveryConfigEditor({ token }) {
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this warehouse?')) return
-    const { ok, data, errorMsg } = await safeFetch(`${apiBase}/admin/warehouses/${encodeURIComponent(id)}`, {
+    const { ok, data, errorMsg } = await safeFetch(`${API_BASE}/admin/warehouses/${encodeURIComponent(id)}`, {
       method: 'DELETE', headers: authHdrs,
     })
     if (ok && data?.data) {
@@ -447,40 +479,6 @@ function DeliveryConfigEditor({ token }) {
   )
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
-
-function formatDate(v) {
-  if (!v) return '—'
-  const d = new Date(v)
-  return isNaN(d) ? '—' : d.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
-}
-
-function StatusBadge({ status }) {
-  const map = {
-    pending:          { bg: '#fff7e0', color: '#b45309',  label: 'Pending' },
-    confirmed:        { bg: '#e0f2fe', color: '#0369a1',  label: 'Confirmed' },
-    accepted:         { bg: '#fef9c3', color: '#a16207',  label: 'Accepted' },
-    picked_up:        { bg: '#ffedd5', color: '#c2410c',  label: 'Picked Up' },
-    out_for_delivery: { bg: '#dbeafe', color: '#1d4ed8',  label: 'Out for Delivery' },
-    delivered:        { bg: '#dcfce7', color: '#15803d',  label: 'Delivered' },
-    cancelled:        { bg: '#fee2e2', color: '#b91c1c',  label: 'Cancelled' },
-    customer:         { bg: '#f0fdf4', color: '#16a34a',  label: 'Customer' },
-    admin:            { bg: '#ede9fe', color: '#7c3aed',  label: 'Admin' },
-    delivery:         { bg: '#fff7ed', color: '#ea580c',  label: 'Delivery' },
-  }
-  const s = map[status?.toLowerCase()] || { bg: '#f3f4f6', color: '#6b7280', label: status || '—' }
-  return <span style={{ background: s.bg, color: s.color, padding: '2px 10px', borderRadius: 99, fontSize: 12, fontWeight: 700 }}>{s.label}</span>
-}
-
-function StatTile({ label, value }) {
-  return (
-    <div style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff' }}>
-      <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 2 }}>{label}</div>
-      <div style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>{value}</div>
-    </div>
-  )
-}
-
 export default function AdminPage() {
   const [token, setToken]           = useState('')
   const [role, setRole]             = useState('')
@@ -495,15 +493,18 @@ export default function AdminPage() {
   const [deliveryBoys, setDeliveryBoys] = useState([])
   const [products, setProducts]         = useState([])
 
-  const [orderSearch, setOrderSearch]     = useState('')
+  const [orderSearch, setOrderSearch]       = useState('')
   const [userSearch, setUserSearch]       = useState('')
   const [productSearch, setProductSearch] = useState('')
+  const [orderStatusFilter, setOrderStatusFilter] = useState('')
+  const [warehouseOrderStatusFilter, setWarehouseOrderStatusFilter] = useState('')
 
   const [newProduct, setNewProduct]       = useState({ name: '', price: '', unit: '', image: '', description: '', categoryId: '' })
   const [editingProduct, setEditingProduct] = useState(null)
   const [newPartner, setNewPartner]       = useState({ name: '', email: '', phone: '', password: '' })
   const [notifications, setNotifications] = useState([])
   const socketRef = useRef(null)
+  const audioContextRef = useRef(null)
 
   // Warehouse admin management state (super admin)
   const [warehouseAdmins, setWarehouseAdmins] = useState([])
@@ -511,7 +512,14 @@ export default function AdminPage() {
   const [waForm, setWaForm] = useState({ name: '', email: '', password: '', warehouse_id: '' })
   const [waLoading, setWaLoading] = useState(false)
 
-  const isAdmin = Boolean(token && role === 'admin')
+  // Super admin warehouse selector
+  const [allWarehouses, setAllWarehouses] = useState([])
+  const [selectedWarehouse, setSelectedWarehouse] = useState(null)
+  const [warehouseData, setWarehouseData] = useState(null)
+  const [warehouseLoading, setWarehouseLoading] = useState(false)
+
+  // Consider both 'admin' and 'superadmin' as dashboard-capable roles
+  const isAdmin = Boolean(token && (role === 'admin' || role === 'superadmin'))
 
   // ── Restore token on mount ───────────────────────────────────────────────
   useEffect(() => {
@@ -524,6 +532,43 @@ export default function AdminPage() {
   useEffect(() => {
     if (!isAdmin || !token) return
 
+    function playNotificationSound() {
+      if (typeof window === 'undefined') return
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext
+        if (!AudioCtx) return
+        if (!audioContextRef.current) {
+          audioContextRef.current = new AudioCtx()
+        }
+        const ctx = audioContextRef.current
+        if (!ctx) return
+        if (ctx.state === 'suspended') ctx.resume().catch(() => {})
+
+        const now = ctx.currentTime
+
+        // WhatsApp-style: two quick high-pitched pops
+        const frequencies = [1400, 1800]
+        frequencies.forEach((freq, i) => {
+          const osc = ctx.createOscillator()
+          const gain = ctx.createGain()
+
+          osc.type = 'sine'
+          osc.frequency.setValueAtTime(freq, now + i * 0.12)
+
+          gain.gain.setValueAtTime(0.0001, now + i * 0.12)
+          gain.gain.exponentialRampToValueAtTime(0.18, now + i * 0.12 + 0.01)
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.12 + 0.09)
+
+          osc.connect(gain)
+          gain.connect(ctx.destination)
+          osc.start(now + i * 0.12)
+          osc.stop(now + i * 0.12 + 0.1)
+        })
+      } catch (_) {}
+    }
+
+    // Ensure API_BASE is available in this scope or import it from top of file
+    // Ideally API_BASE is defined outside component or as a prop, but here let's safeguard it.
     const socket = io(API_BASE, {
       path: '/socket.io',
       auth: { token },
@@ -535,17 +580,25 @@ export default function AdminPage() {
     socket.on('disconnect',    () => console.log('[Socket.io] Admin disconnected'))
     socket.on('connect_error', (e) => console.warn('[Socket.io]', e.message))
 
-    socket.on('NEW_ORDER', (data) => {
-      setNotifications(prev => [{
-        id: Date.now(), orderId: data.orderId,
-        total: data.total, customerName: data.customerName,
-        createdAt: data.createdAt,
-      }, ...prev].slice(0, 30))
+    socket.on('NEW_ORDER', async (data) => {
+      setNotifications(prev => [{ id: Date.now(), orderId: data.orderId, total: data.total, customerName: data.customerName, createdAt: data.createdAt }, ...prev].slice(0, 30))
+      playNotificationSound()
+      // refresh global lists
       loadData()
+      // if viewing a specific warehouse that matches the order's warehouse, refresh its snapshot
+      try {
+        if (selectedWarehouse && data.warehouseId && String(selectedWarehouse) === String(data.warehouseId)) {
+          const r = await fetch(`${API_BASE}/admin/warehouses/${encodeURIComponent(selectedWarehouse)}/snapshot`, { headers: authHeaders })
+          if (r.ok) {
+            const dd = await r.json()
+            setWarehouseData(dd?.data || dd || null)
+          }
+        }
+      } catch (e) { console.warn('[SuperAdmin] failed to refresh warehouse snapshot', e.message) }
     })
 
-    socket.on('ORDER_STATUS_UPDATE', () => loadData())
-    socket.on('ORDER_ASSIGNED',      () => loadData())
+      socket.on('ORDER_STATUS_UPDATE', () => { playNotificationSound(); loadData() })
+      socket.on('ORDER_ASSIGNED',      () => { playNotificationSound(); loadData() })
 
     return () => { socket.disconnect(); socketRef.current = null }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -556,11 +609,51 @@ export default function AdminPage() {
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   }), [token])
 
+  const logout = () => {
+    socketRef.current?.disconnect()
+    const storageKeys = ['authToken','authUserRole','authUserName','authUserId','authUserEmail']
+    storageKeys.forEach(k => localStorage.removeItem(k))
+    setToken('')
+    setRole('')
+    setOrders([])
+    setUsers([])
+    setProducts([])
+    setDeliveryBoys([])
+    setNotifications([])
+  }
+
   const flash = (msg, isErr = false) => {
     if (isErr) { setError(msg); setSuccess('') }
     else { setSuccess(msg); setError('') }
     setTimeout(() => { setError(''); setSuccess('') }, 4000)
   }
+
+  const handleAuthError = (msg = 'Session expired. Please sign in again.') => {
+    logout()
+    setError(msg)
+  }
+
+  // ── Validate token on mount / token change ───────────────────────────────
+  useEffect(() => {
+    if (!token) return
+    let cancelled = false
+    const verify = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (res.status === 401 || res.status === 403) throw new Error('unauthorized')
+        const data = await res.json()
+if (!res.ok || (data?.role !== 'admin' && data?.role !== 'superadmin')) throw new Error('unauthorized')
+        if (!cancelled && data?.name) localStorage.setItem('authUserName', data.name)
+      } catch (_err) {
+        if (!cancelled) handleAuthError()
+      }
+    }
+    verify()
+    return () => { cancelled = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token])
 
   const loadData = async () => {
     if (!isAdmin) return
@@ -573,6 +666,10 @@ export default function AdminPage() {
         fetch(`${API_BASE}/admin/warehouse-admins`, { headers: authHeaders }),
         fetch(`${API_BASE}/admin/warehouses`,       { headers: authHeaders }),
       ])
+      if ([oR, uR, pR, dR, waR, whR].some(r => r.status === 401 || r.status === 403)) {
+        handleAuthError()
+        return
+      }
       const [o, u, p, d, wa, wh] = await Promise.all([oR.json(), uR.json(), pR.json(), dR.json(), waR.json(), whR.json()])
       setOrders(Array.isArray(o) ? o : [])
       setUsers(Array.isArray(u) ? u : [])
@@ -585,6 +682,51 @@ export default function AdminPage() {
   }
 
   useEffect(() => { loadData() }, [isAdmin, token])
+
+  // ── Load all warehouses for super admin and auto-select first one ────────
+  useEffect(() => {
+    if (!isAdmin || !token) return
+    const loadWarehouses = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/admin/warehouses`, { headers: { Authorization: `Bearer ${token}` } })
+        if (res.status === 401 || res.status === 403) { handleAuthError(); return }
+        const data = await res.json()
+        const whList = data?.data?.warehouses || []
+        setAllWarehouses(whList)
+        // Auto-select the first warehouse if none selected
+        if (whList.length > 0 && !selectedWarehouse) {
+          const firstWh = whList[0]
+          setSelectedWarehouse(firstWh.id)
+          // If the user's role is strictly admin (not superadmin or warehouse admin specific logic),
+          // maybe don't force switch tab, but ensure the dropdown has a value.
+          // For now, let's keep it simple.
+        }
+      } catch (e) {
+        console.error('[SuperAdmin] Failed to load warehouses:', e.message)
+      }
+    }
+    loadWarehouses()
+  }, [isAdmin, token]) // removed selectedWarehouse from dep array to avoid loops
+
+  // ── Load selected warehouse's dashboard snapshot ──────────────────────────
+  useEffect(() => {
+    if (!isAdmin || !selectedWarehouse || !token) return
+    const loadWarehouseSnapshot = async () => {
+      setWarehouseLoading(true)
+      try {
+        const res = await fetch(`${API_BASE}/admin/warehouses/${selectedWarehouse}/snapshot`, { headers: authHeaders })
+        if (res.status === 401 || res.status === 403) { handleAuthError(); return }
+        const data = await res.json()
+        setWarehouseData(data?.data || data || null)
+      } catch (e) {
+        console.error('[SuperAdmin] Failed to load warehouse snapshot:', e.message)
+        setWarehouseData(null)
+      } finally {
+        setWarehouseLoading(false)
+      }
+    }
+    loadWarehouseSnapshot()
+  }, [isAdmin, token, selectedWarehouse])
 
   const handleLogin = async (e) => {
     e.preventDefault()
@@ -603,7 +745,7 @@ export default function AdminPage() {
 
       const mr = await fetch(`${API_BASE}/api/admin/auth/me`, { headers: { Authorization: `Bearer ${t}` } })
       const md = await mr.json()
-      if (!mr.ok || md?.role !== 'admin') { setError('Not an admin account.'); return }
+  if (!mr.ok || (md?.role !== 'admin' && md?.role !== 'superadmin')) { setError('Not an admin account.'); return }
 
       localStorage.setItem('authToken', t)
       localStorage.setItem('authUserRole', md.role)
@@ -621,6 +763,7 @@ export default function AdminPage() {
         method: 'POST', headers: authHeaders,
         body: JSON.stringify({ name: newProduct.name.trim(), price: Number(newProduct.price), unit: newProduct.unit, image: newProduct.image, description: newProduct.description, categoryId: newProduct.categoryId ? Number(newProduct.categoryId) : null }),
       })
+      if (r.status === 401 || r.status === 403) { handleAuthError(); return }
       const d = await r.json()
       if (!r.ok) { flash(d?.error || 'Failed.', true); return }
       flash('Product created!'); setNewProduct({ name: '', price: '', unit: '', image: '', description: '', categoryId: '' })
@@ -632,6 +775,7 @@ export default function AdminPage() {
     if (!confirm('Delete this product?')) return
     try {
       const r = await fetch(`${API_BASE}/admin/products/${id}`, { method: 'DELETE', headers: authHeaders })
+      if (r.status === 401 || r.status === 403) { handleAuthError(); return }
       if (!r.ok) { flash('Delete failed.', true); return }
       flash('Product deleted.'); await loadData()
     } catch (e) { flash(e.message, true) }
@@ -652,6 +796,7 @@ export default function AdminPage() {
           categoryId: editingProduct.categoryId ? Number(editingProduct.categoryId) : null,
         }),
       })
+      if (r.status === 401 || r.status === 403) { handleAuthError(); return }
       const d = await r.json()
       if (!r.ok) { flash(d?.error || 'Update failed.', true); return }
       flash('Product updated!'); setEditingProduct(null); await loadData()
@@ -664,6 +809,7 @@ export default function AdminPage() {
         method: 'PUT', headers: authHeaders,
         body: JSON.stringify({ status }),
       })
+      if (r.status === 401 || r.status === 403) { handleAuthError(); return }
       if (!r.ok) { flash('Update failed.', true); return }
       flash('Order status updated.'); await loadData()
     } catch (e) { flash(e.message, true) }
@@ -676,6 +822,7 @@ export default function AdminPage() {
         method: 'POST', headers: authHeaders,
         body: JSON.stringify({ deliveryPartnerId: Number(deliveryPartnerId) }),
       })
+      if (r.status === 401 || r.status === 403) { handleAuthError(); return }
       const d = await r.json()
       if (!r.ok) { flash(d?.error || 'Assign failed.', true); return }
       flash('Delivery partner assigned!'); await loadData()
@@ -689,6 +836,7 @@ export default function AdminPage() {
         method: 'POST', headers: authHeaders,
         body: JSON.stringify(newPartner),
       })
+      if (r.status === 401 || r.status === 403) { handleAuthError(); return }
       const d = await r.json()
       if (!r.ok) { flash(d?.error || 'Failed to add partner.', true); return }
       flash('Delivery partner added!'); setNewPartner({ name: '', email: '', phone: '', password: '' }); await loadData()
@@ -699,6 +847,7 @@ export default function AdminPage() {
     if (!confirm('Remove this delivery partner?')) return
     try {
       const r = await fetch(`${API_BASE}/admin/delivery-boys/${userId}`, { method: 'DELETE', headers: authHeaders })
+      if (r.status === 401 || r.status === 403) { handleAuthError(); return }
       if (!r.ok) { flash('Remove failed.', true); return }
       flash('Delivery partner removed.'); await loadData()
     } catch (e) { flash(e.message, true) }
@@ -722,6 +871,7 @@ export default function AdminPage() {
           warehouse_id: waForm.warehouse_id ? Number(waForm.warehouse_id) : null,
         }),
       })
+      if (r.status === 401 || r.status === 403) { handleAuthError(); return }
       const d = await r.json()
       if (!r.ok) {
         flash(d?.error || 'Failed to create warehouse admin.', true)
@@ -745,6 +895,7 @@ export default function AdminPage() {
         headers: authHeaders,
         body: JSON.stringify({ warehouse_id: Number(warehouseId) }),
       })
+      if (r.status === 401 || r.status === 403) { handleAuthError(); return }
       const d = await r.json()
       if (!r.ok) {
         flash(d?.error || 'Failed to assign warehouse.', true)
@@ -763,15 +914,10 @@ export default function AdminPage() {
         method: 'PATCH', headers: authHeaders,
         body: JSON.stringify({ role: newRole }),
       })
+      if (r.status === 401 || r.status === 403) { handleAuthError(); return }
       if (!r.ok) { flash('Role update failed.', true); return }
       flash('User role updated.'); await loadData()
     } catch (e) { flash(e.message, true) }
-  }
-
-  const logout = () => {
-    socketRef.current?.disconnect()
-    ['authToken','authUserRole','authUserName','authUserId','authUserEmail'].forEach(k => localStorage.removeItem(k))
-    setToken(''); setRole(''); setOrders([]); setUsers([]); setProducts([]); setDeliveryBoys([]); setNotifications([])
   }
 
   // ── Stats ───────────────────────────────────────────────────────────────────
@@ -779,14 +925,31 @@ export default function AdminPage() {
   const pendingOrders   = orders.filter(o => o.status === 'pending').length
   const deliveredOrders = orders.filter(o => o.status === 'delivered').length
 
+  const selectedWarehouseMeta = allWarehouses.find(w => w.id === selectedWarehouse) || null
+  const warehouseOverview = warehouseData?.overview || {}
+  const warehouseOrders = Array.isArray(warehouseData?.orders) ? warehouseData.orders : []
+  const warehouseInventory = Array.isArray(warehouseData?.inventory) ? warehouseData.inventory : []
+  const warehouseCod = Array.isArray(warehouseData?.codCollections) ? warehouseData.codCollections : []
+  const warehouseLocation = selectedWarehouseMeta
+    ? [selectedWarehouseMeta.address, selectedWarehouseMeta.city, selectedWarehouseMeta.state].filter(Boolean).join(', ')
+    : 'N/A'
+  const warehouseStatus = selectedWarehouseMeta?.status || 'inactive'
+  const warehouseRadius = selectedWarehouseMeta?.fast_radius_km ?? selectedWarehouseMeta?.fast_radius ?? 'N/A'
+  const filteredWarehouseOrders = warehouseOrders.filter(o => !warehouseOrderStatusFilter || o.status === warehouseOrderStatusFilter)
+
   // ── Filtered lists ───────────────────────────────────────────────────────────
-  const filteredOrders   = orders.filter(o => !orderSearch || [o.id, o.customerName, o.city, o.status].join(' ').toLowerCase().includes(orderSearch.toLowerCase()))
+  const filteredOrders = orders.filter(o => {
+    const searchMatch = !orderSearch || [o.id, o.customerName, o.city, o.status].join(' ').toLowerCase().includes(orderSearch.toLowerCase())
+    const statusMatch = !orderStatusFilter || o.status === orderStatusFilter
+    return searchMatch && statusMatch
+  })
   const filteredUsers    = users.filter(u => !userSearch || [u.name, u.email, u.role].join(' ').toLowerCase().includes(userSearch.toLowerCase()))
   const filteredProducts = products.filter(p => !productSearch || p.name?.toLowerCase().includes(productSearch.toLowerCase()))
 
   // ── TABS config ──────────────────────────────────────────────────────────────
   const tabs = [
   { id: 'overview',         label: 'Overview' },
+  { id: 'warehouse-view',   label: selectedWarehouse ? `📍 ${allWarehouses.find(w => w.id === selectedWarehouse)?.name || 'Warehouse'}` : '📍 Warehouse View' },
   { id: 'orders',           label: `Orders (${orders.length})` },
   { id: 'products',         label: `Products (${products.length})` },
   { id: 'users',            label: `Users (${users.length})` },
@@ -841,7 +1004,7 @@ export default function AdminPage() {
             </button>
           ))}
         </nav>
-  <button className={styles.logoutBtn} onClick={logout}>Logout</button>
+<button className={styles.logoutBtn} onClick={logout}>Logout</button>
       </aside>
 
       {/* Main content */}
@@ -851,6 +1014,110 @@ export default function AdminPage() {
           <h1 className={styles.pageTitle}>{tabs.find(t => t.id === activeTab)?.label}</h1>
           <button className={styles.refreshBtn} onClick={loadData}>Refresh</button>
         </div>
+
+        {/* ── Super Admin: Warehouse Selector ── */}
+        {isAdmin && allWarehouses.length > 0 && (
+          <div style={{
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: 12,
+            padding: '16px 20px',
+            marginBottom: 24,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 16,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+          }}>
+            <div style={{
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              width: 40, 
+              height: 40, 
+              background: '#e0f2fe', 
+              color: '#0369a1', 
+              borderRadius: 8,
+              fontSize: 20
+            }}>
+              🏢
+            </div>
+            <div style={{flex: 1}}>
+              <label style={{ display: 'block', fontWeight: 600, color: '#0f172a', fontSize: 15, marginBottom: 4 }}>
+                Warehouse Dashboard
+              </label>
+              <div style={{color: '#64748b', fontSize: 13}}>Select a warehouse to manage local inventory and orders</div>
+            </div>
+              <select
+              value={selectedWarehouse || ''}
+              onChange={e => { setSelectedWarehouse(Number(e.target.value)); setActiveTab('warehouse-view') }}
+              style={{
+                padding: '10px 14px',
+                border: '1px solid #cbd5e1',
+                borderRadius: 8,
+                background: '#fff',
+                fontSize: 14,
+                fontWeight: 500,
+                color: '#334155',
+                cursor: 'pointer',
+                minWidth: 240,
+                outline: 'none',
+                transition: 'border-color 0.2s',
+                backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23334155%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")',
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 12px top 50%',
+                backgroundSize: '10px auto',
+                appearance: 'none',
+                paddingRight: 32
+              }}
+            >
+              <option value="">-- Select Warehouse --</option>
+              {allWarehouses.map(w => (
+                <option key={w.id} value={w.id}>
+                  {w.name} ({w.city})
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              disabled={!selectedWarehouse}
+              onClick={() => {
+                if (!selectedWarehouse) return
+                const w = allWarehouses.find(x => x.id === selectedWarehouse)
+                const params = new URLSearchParams({
+                  admin: '1',
+                  warehouseId: String(selectedWarehouse),
+                  warehouseName: w?.name || '',
+                  warehouseCity: w?.city || '',
+                })
+                window.location.href = `/warehouse-dashboard?${params.toString()}`
+              }}
+              style={{
+                padding: '8px 12px',
+                border: '1px solid #2563eb',
+                borderRadius: 6,
+                background: selectedWarehouse ? '#2563eb' : '#94a3b8',
+                color: '#fff',
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: selectedWarehouse ? 'pointer' : 'not-allowed',
+              }}
+            >
+              Open Full Dashboard
+            </button>
+            {selectedWarehouse && (
+              <div style={{
+                background: '#e0f2fe',
+                padding: '6px 12px',
+                borderRadius: 6,
+                fontSize: 13,
+                color: '#0369a1',
+                fontWeight: 600,
+              }}>
+                {allWarehouses.find(w => w.id === selectedWarehouse)?.name}
+              </div>
+            )}
+          </div>
+        )}
 
         {error   && <div className={styles.alertErr}>{error}</div>}
         {success && <div className={styles.alertOk}>{success}</div>}
@@ -882,15 +1149,15 @@ export default function AdminPage() {
         {activeTab === 'overview' && (
           <div>
             <div className={styles.statsRow}>
-              <div className={styles.statCard}>
+              <div className={styles.statCard} style={{cursor:'pointer'}} onClick={() => { setOrderStatusFilter(''); setActiveTab('orders'); }}>
                 <span className={styles.statIcon} aria-hidden="true"></span>
                 <div><div className={styles.statNum}>{orders.length}</div><div className={styles.statLabel}>Total Orders</div></div>
               </div>
-              <div className={styles.statCard}>
+              <div className={styles.statCard} style={{cursor:'pointer'}} onClick={() => { setOrderStatusFilter('pending'); setActiveTab('orders'); }}>
                 <span className={styles.statIcon} aria-hidden="true"></span>
                 <div><div className={styles.statNum}>{pendingOrders}</div><div className={styles.statLabel}>Pending Orders</div></div>
               </div>
-              <div className={styles.statCard}>
+              <div className={styles.statCard} style={{cursor:'pointer'}} onClick={() => { setOrderStatusFilter('delivered'); setActiveTab('orders'); }}>
                 <span className={styles.statIcon} aria-hidden="true"></span>
                 <div><div className={styles.statNum}>{deliveredOrders}</div><div className={styles.statLabel}>Delivered</div></div>
               </div>
@@ -917,7 +1184,8 @@ export default function AdminPage() {
                   <tbody>
                     {orders.slice(0, 8).map(o => (
                       <tr key={o.id}>
-                        <td>#{o.id}</td><td>{o.customerName || '—'}</td>
+                        <td>#{o.id}</td>
+                        <td>{o.customerName || '—'}</td>
                         <td>₹{Number(o.total||0).toLocaleString('en-IN')}</td>
                         <td><StatusBadge status={o.status} /></td>
                         <td>{formatDate(o.createdAt)}</td>
@@ -945,12 +1213,191 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* ── WAREHOUSE VIEW (Super Admin) ── */}
+        {activeTab === 'warehouse-view' && selectedWarehouse && (
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h2 className={styles.cardTitle}>
+                📍 {allWarehouses.find(w => w.id === selectedWarehouse)?.name} Dashboard
+              </h2>
+            </div>
+            <div className={styles.cardContent}>
+              {warehouseLoading ? (
+                <div style={{ textAlign: 'center', padding: 20, color: '#999' }}>Loading warehouse data…</div>
+              ) : warehouseData ? (
+                <div>
+                  {/* Warehouse info */}
+                  <div style={{ marginBottom: 20, padding: 12, background: '#f3f4f6', borderRadius: 8 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>Warehouse Information</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, fontSize: 13 }}>
+                      <div>
+                        <div style={{ color: '#6b7280' }}>Location</div>
+                        <div style={{ fontWeight: 600 }}>{warehouseLocation || 'N/A'}</div>
+                      </div>
+                      <div>
+                        <div style={{ color: '#6b7280' }}>Status</div>
+                        <div style={{ fontWeight: 600, color: warehouseStatus === 'active' ? '#059669' : '#dc2626' }}>
+                          {warehouseStatus === 'active' ? '✓ Active' : '✗ Inactive'}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ color: '#6b7280' }}>Delivery Radius</div>
+                        <div style={{ fontWeight: 600 }}>{warehouseRadius || 'N/A'} km</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Stats */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 20 }}>
+                    <div style={{ background: '#f0f9ff', padding: 12, borderRadius: 8, border: '1px solid #bae6fd', cursor: 'pointer' }} onClick={() => setWarehouseOrderStatusFilter('')}>
+                      <div style={{ fontSize: 12, color: '#0369a1' }}>Total Orders</div>
+                      <div style={{ fontSize: 24, fontWeight: 700, color: '#0c4a6e' }}>{warehouseOverview.totalOrders || 0}</div>
+                    </div>
+                    <div style={{ background: '#fef3c7', padding: 12, borderRadius: 8, border: '1px solid #fcd34d', cursor: 'pointer' }} onClick={() => setWarehouseOrderStatusFilter('pending')}>
+                      <div style={{ fontSize: 12, color: '#92400e' }}>Pending Orders</div>
+                      <div style={{ fontSize: 24, fontWeight: 700, color: '#78350f' }}>{warehouseOverview.pendingOrders || 0}</div>
+                    </div>
+                    <div style={{ background: '#f0fdf4', padding: 12, borderRadius: 8, border: '1px solid #86efac', cursor: 'pointer' }} onClick={() => setWarehouseOrderStatusFilter('delivered')}>
+                      <div style={{ fontSize: 12, color: '#15803d' }}>Delivered</div>
+                      <div style={{ fontSize: 24, fontWeight: 700, color: '#14532d' }}>{warehouseOverview.deliveredOrders || 0}</div>
+                    </div>
+                    <div style={{ background: '#fce7f3', padding: 12, borderRadius: 8, border: '1px solid #fbcfe8' }}>
+                      <div style={{ fontSize: 12, color: '#be185d' }}>Revenue</div>
+                      <div style={{ fontSize: 20, fontWeight: 700, color: '#831843' }}>₹{Number(warehouseOverview.totalRevenue || 0).toLocaleString('en-IN')}</div>
+                    </div>
+                  </div>
+
+                  {/* Recent Orders */}
+                  {warehouseOrders.length > 0 ? (
+                    <div>
+                      <div style={{display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10}}>
+                        <h3 style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>Recent Orders</h3>
+                        {warehouseOrderStatusFilter && (
+                          <button 
+                            onClick={() => setWarehouseOrderStatusFilter('')}
+                            style={{
+                              padding: '4px 10px',
+                              background: '#fee2e2',
+                              color: '#b91c1c',
+                              border: '1px solid #fca5a5',
+                              borderRadius: 6,
+                              fontSize: 12,
+                              fontWeight: 600,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Clear Filter ({warehouseOrderStatusFilter}) &times;
+                          </button>
+                        )}
+                      </div>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                        <thead>
+                          <tr style={{ background: '#f3f4f6', borderBottom: '1px solid #e5e7eb' }}>
+                            <th style={{ padding: 8, textAlign: 'left', fontWeight: 600 }}>Order ID</th>
+                            <th style={{ padding: 8, textAlign: 'left', fontWeight: 600 }}>Customer</th>
+                            <th style={{ padding: 8, textAlign: 'left', fontWeight: 600 }}>Amount</th>
+                            <th style={{ padding: 8, textAlign: 'left', fontWeight: 600 }}>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredWarehouseOrders.slice(0, 8).map(o => (
+                            <tr key={o.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                              <td style={{ padding: 8 }}>#{o.id || 'N/A'}</td>
+                              <td style={{ padding: 8 }}>{o.customerName || 'Unknown'}</td>
+                              <td style={{ padding: 8 }}>₹{Number(o.total || 0).toLocaleString('en-IN')}</td>
+                              <td style={{ padding: 8 }}>
+                                <span style={{
+                                  padding: '3px 8px',
+                                  borderRadius: 4,
+                                  fontSize: 11,
+                                  fontWeight: 600,
+                                  background: o.status === 'delivered' ? '#d1fae5' : o.status === 'pending' ? '#fef3c7' : '#dbeafe',
+                                  color: o.status === 'delivered' ? '#047857' : o.status === 'pending' ? '#92400e' : '#1e40af',
+                                  textTransform: 'capitalize',
+                                }}>
+                                  {o.status || 'unknown'}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                          {filteredWarehouseOrders.length === 0 && (
+                            <tr>
+                              <td colSpan={4} style={{textAlign: 'center', padding: 20, color: '#9ca3af'}}>
+                                No orders match the filter "{warehouseOrderStatusFilter}".
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div style={{padding: 12, background: '#f9fafb', borderRadius: 8, textAlign: 'center', color: '#9ca3af', fontSize: 13}}>
+                      No orders for this warehouse yet.
+                    </div>
+                  )}
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.1fr) minmax(0, 1.1fr)', gap: 12, marginTop: 18 }}>
+                    <div>
+                      <h4 style={{ margin: '0 0 6px', fontSize: 13 }}>Inventory (categories)</h4>
+                      <div style={{ maxHeight: 140, overflowY: 'auto', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', padding: 8 }}>
+                        {warehouseInventory.length === 0 && <div style={{ fontSize: 12, color: '#9ca3af' }}>No inventory configured.</div>}
+                        {warehouseInventory.map((cat) => (
+                          <div key={cat.categoryId || cat.categoryName} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+                            <span>{cat.categoryName || 'Uncategorized'}</span>
+                            <span>{(cat.products || []).length} items</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <h4 style={{ margin: '0 0 6px', fontSize: 13 }}>Recent COD Collections</h4>
+                      <div style={{ maxHeight: 140, overflowY: 'auto', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', padding: 8 }}>
+                        {warehouseCod.slice(0, 5).map((c) => (
+
+                          <div key={c.id} style={{ fontSize: 12, marginBottom: 4 }}>
+                            <div>Order #{c.orderId} — ₹{Number(c.amount || 0).toLocaleString('en-IN')}</div>
+                            <div style={{ color: '#6b7280' }}>{c.status}</div>
+                          </div>
+                        ))}
+                        {warehouseCod.length === 0 && <div style={{ fontSize: 12, color: '#9ca3af' }}>No COD records yet.</div>}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: 20, color: '#999' }}>
+                  No data available. Try selecting another warehouse or refresh.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* ── ORDERS ── */}
         {activeTab === 'orders' && (
           <div className={styles.card}>
             <div className={styles.cardHeader}>
               <h2 className={styles.cardTitle}>All Orders</h2>
-              <input className={styles.searchInput} placeholder="Search by name, city, status…" value={orderSearch} onChange={e => setOrderSearch(e.target.value)} />
+              <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
+                {orderStatusFilter && (
+                  <button 
+                    onClick={() => setOrderStatusFilter('')}
+                    style={{
+                      padding: '8px 12px',
+                      background: '#fee2e2',
+                      color: '#b91c1c',
+                      border: '1px solid #fca5a5',
+                      borderRadius: 6,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Clear Filter ({orderStatusFilter}) &times;
+                  </button>
+                )}
+                <input className={styles.searchInput} placeholder="Search by name, city, status…" value={orderSearch} onChange={e => setOrderSearch(e.target.value)} />
+              </div>
             </div>
             <div className={styles.tableWrap}>
               <table>
@@ -978,18 +1425,18 @@ export default function AdminPage() {
                           {deliveryBoys.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                         </select>
                       </td>
-                    </tr>
-                  ))}
-                  {filteredOrders.length === 0 && <tr><td colSpan={11} style={{textAlign:'center',color:'#aaa',padding:32}}>No orders found</td></tr>}
-                </tbody>
-              </table>
+                                   </tr>
+                    ))}
+                    {filteredOrders.length === 0 && <tr><td colSpan={11} style={{textAlign:'center',color:'#aaa',padding:32}}>No orders found</td></tr>}
+              </tbody>
+                         </table>
             </div>
           </div>
         )}
 
         {/* ── PRODUCTS ── */}
         {activeTab === 'products' && (
-          <div className={styles.productsLayout}>
+          <div>
             {/* Edit product modal */}
             {editingProduct && (
               <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.45)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}}>
@@ -1003,7 +1450,7 @@ export default function AdminPage() {
                     <label>Category ID<input value={editingProduct.categoryId || ''} onChange={e => setEditingProduct(p => ({...p, categoryId: e.target.value}))} /></label>
                     <label>Description<textarea value={editingProduct.description || ''} onChange={e => setEditingProduct(p => ({...p, description: e.target.value}))} /></label>
                     <div style={{display:'flex',gap:10,marginTop:8}}>
-                      <button type="submit" className={styles.addBtn} style={{flex:1}}>Save Changes</button>
+                      <button type="submit" className="styles.addBtn" style={{flex:1}}>Save Changes</button>
                       <button type="button" onClick={() => setEditingProduct(null)} style={{flex:1,padding:'10px 0',borderRadius:8,border:'1px solid #ddd',background:'#f3f4f6',cursor:'pointer'}}>Cancel</button>
                     </div>
                   </form>
@@ -1087,34 +1534,75 @@ export default function AdminPage() {
 
         {/* ── DELIVERY PARTNERS ── */}
         {activeTab === 'delivery' && (
-          <div className={styles.productsLayout}>
-            {/* Add Delivery Partner form */}
-            <div className={styles.card}>
-              <h2 className={styles.cardTitle}>Add Delivery Partner</h2>
-              <form onSubmit={handleAddDeliveryPartner} className={styles.productForm}>
-                <label>Name *<input value={newPartner.name} onChange={e => setNewPartner(p => ({...p, name: e.target.value}))} placeholder="Full name" required /></label>
-                <label>Email *<input type="email" value={newPartner.email} onChange={e => setNewPartner(p => ({...p, email: e.target.value}))} placeholder="partner@email.com" required /></label>
-                <label>Phone<input value={newPartner.phone} onChange={e => setNewPartner(p => ({...p, phone: e.target.value}))} placeholder="10-digit phone" /></label>
-                <label>Password *<input type="password" value={newPartner.password} onChange={e => setNewPartner(p => ({...p, password: e.target.value}))} placeholder="Set a password" required /></label>
-                <button type="submit" className={styles.addBtn}>+ Add Partner</button>
-              </form>
-            </div>
-
+          <div>
+            
             {/* Delivery Partners table */}
             <div className={styles.card}>
-              <h2 className={styles.cardTitle}>All Delivery Partners ({deliveryBoys.length})</h2>
-              <div className={styles.tableWrap}>
-                <table>
-                  <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Joined</th><th>Action</th></tr></thead>
+              <div className={styles.cardHeader}>
+                <h2 className={styles.cardTitle}>All Delivery Partners ({deliveryBoys.length})</h2>
+                <input 
+                  className={styles.searchInput} 
+                  placeholder="Search delivery partner..." 
+                  style={{maxWidth: 300}}
+                />
+              </div>
+              
+              <div className={styles.tableWrap} style={{boxShadow: 'none', border: '1px solid #eee', borderRadius: 8}}>
+                <table style={{width: '100%', borderCollapse: 'collapse'}}>
+                  <thead>
+                    <tr style={{background: '#f8fafc', color: '#64748b', fontSize: 13, textTransform: 'uppercase', letterSpacing: 0.5}}>
+                      <th style={{padding: '12px 16px', textAlign: 'left', fontWeight: 600}}>ID</th>
+                      <th style={{padding: '12px 16px', textAlign: 'left', fontWeight: 600}}>Name</th>
+                      <th style={{padding: '12px 16px', textAlign: 'left', fontWeight: 600}}>Email</th>
+                      <th style={{padding: '12px 16px', textAlign: 'left', fontWeight: 600}}>Phone</th>
+                      <th style={{padding: '12px 16px', textAlign: 'left', fontWeight: 600}}>Warehouse</th>
+                      <th style={{padding: '12px 16px', textAlign: 'left', fontWeight: 600}}>Joined</th>
+                      <th style={{padding: '12px 16px', textAlign: 'right', fontWeight: 600}}>Action</th>
+                    </tr>
+                  </thead>
                   <tbody>
                     {deliveryBoys.map(d => (
-                      <tr key={d.id}>
-                        <td>{d.id}</td><td>{d.name}</td><td>{d.email}</td>
-                        <td>{d.phone || '—'}</td><td>{formatDate(d.createdAt)}</td>
-                        <td><button className={styles.deleteBtn} onClick={() => handleRemoveDeliveryPartner(d.id)}>Remove</button></td>
+                      <tr key={d.id} style={{borderBottom: '1px solid #f1f5f9'}}>
+                        <td style={{padding: '14px 16px', color: '#64748b', fontSize: 13}}>#{d.id}</td>
+                        <td style={{padding: '14px 16px', fontWeight: 500, color: '#0f172a'}}>
+                          <div style={{display:'flex', alignItems:'center', gap: 10}}>
+                            <div style={{width: 32, height: 32, borderRadius: 99, background: '#e0f2fe', color: '#0369a1', display:'flex', alignItems:'center', justifyContent:'center', fontSize: 12, fontWeight: 700}}>
+                              {d.name?.charAt(0).toUpperCase()}
+                            </div>
+                            {d.name}
+                          </div>
+                        </td>
+                        <td style={{padding: '14px 16px', color: '#334155'}}>{d.email}</td>
+                        <td style={{padding: '14px 16px', color: '#334155'}}>{d.phone || '—'}</td>
+                        <td style={{padding: '14px 16px'}}>
+                          {d.warehouseName ? (
+                            <span style={{background: '#f0fdf4', color: '#166534', padding: '2px 8px', borderRadius: 99, fontSize: 12, fontWeight: 500}}>
+                              {d.warehouseName}
+                            </span>
+                          ) : (
+                            <span style={{color: '#94a3b8', fontStyle: 'italic', fontSize: 13}}>All Warehouses</span>
+                          )}
+                        </td>
+                        <td style={{padding: '14px 16px', color: '#64748b', fontSize: 13}}>{formatDate(d.createdAt)}</td>
+                        <td style={{padding: '14px 16px', textAlign: 'right'}}>
+                          <button 
+                            className={styles.deleteBtn} 
+                            onClick={() => handleRemoveDeliveryPartner(d.id)}
+                            style={{background: '#fee2e2', color: '#b91c1c', border: 'none', padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', '&:hover': { background: '#fecaca' }}}
+                          >
+                            Remove
+                          </button>
+                        </td>
                       </tr>
                     ))}
-                    {deliveryBoys.length === 0 && <tr><td colSpan={6} style={{textAlign:'center',color:'#aaa',padding:32}}>No delivery partners yet</td></tr>}
+                    {deliveryBoys.length === 0 && (
+                      <tr>
+                        <td colSpan={7} style={{textAlign:'center', color:'#94a3b8', padding: '48px 0'}}>
+                          <div style={{fontSize: 48, marginBottom: 16}}>🚚</div>
+                          <div>No delivery partners found</div>
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -1126,7 +1614,7 @@ export default function AdminPage() {
         {activeTab === 'delivery-config' && (
           <div className={styles.card}>
             <h2 className={styles.cardTitle}>Delivery Configuration &amp; Warehouse Management</h2>
-            <DeliveryConfigEditor token={token} />
+            <DeliveryConfigEditor token={token} onAuthError={handleAuthError} />
           </div>
         )}
 

@@ -155,18 +155,6 @@ CREATE TABLE IF NOT EXISTS notifications (
   INDEX idx_notifications_order (order_id)
 );
 
-CREATE TABLE IF NOT EXISTS inventory (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY,
-  product_id INT NOT NULL,
-  warehouse_id INT NOT NULL,
-  stock INT NOT NULL DEFAULT 0,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  UNIQUE KEY uniq_inventory_product_warehouse (product_id, warehouse_id),
-  CONSTRAINT fk_inventory_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
-  CONSTRAINT fk_inventory_warehouse FOREIGN KEY (warehouse_id) REFERENCES warehouses(id) ON DELETE CASCADE
-);
-
 CREATE TABLE IF NOT EXISTS warehouse_inventory (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   warehouse_id INT NOT NULL,
@@ -190,7 +178,28 @@ CREATE TABLE IF NOT EXISTS cod_collections (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uniq_cod_order (order_id),
   CONSTRAINT fk_cod_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
-  CONSTRAINT fk_cod_partner FOREIGN KEY (delivery_partner_id) REFERENCES delivery_partners(id) ON DELETE CASCADE
+  CONSTRAINT fk_cod_partner FOREIGN KEY (delivery_partner_id) REFERENCES delivery_partners(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS delivery_assignments (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  order_id BIGINT NOT NULL,
+  delivery_boy_id BIGINT NULL,
+  assigned_at DATETIME NULL,
+  FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+  FOREIGN KEY (delivery_boy_id) REFERENCES delivery_partners(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS reviews (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  product_id INT NOT NULL,
+  user_id BIGINT NOT NULL,
+  rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  comment TEXT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_review_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+  CONSTRAINT fk_review_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- Backward-compatible additive migration statements for existing DBs

@@ -164,6 +164,11 @@ export default function DeliveryDashboard() {
 
     socket.on('ORDER_ASSIGNED', onNewDeliveryOrder)
     socket.on('new_delivery_order', onNewDeliveryOrder)
+    socket.on('ORDER_STATUS_UPDATE', (payload) => {
+      // play a short notification on status updates relevant to this delivery partner
+      try { playNotificationSound() } catch (_) {}
+      fetchNotifications()
+    })
 
     return () => { socket.disconnect(); socketRef.current = null }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -187,40 +192,37 @@ export default function DeliveryDashboard() {
 
   function playNotificationSound() {
     if (typeof window === 'undefined') return
-
     try {
       const AudioCtx = window.AudioContext || window.webkitAudioContext
       if (!AudioCtx) return
       if (!audioContextRef.current) {
         audioContextRef.current = new AudioCtx()
       }
-
       const ctx = audioContextRef.current
       if (!ctx) return
-
-      if (ctx.state === 'suspended') {
-        ctx.resume().catch(() => {})
-      }
+      if (ctx.state === 'suspended') ctx.resume().catch(() => {})
 
       const now = ctx.currentTime
-      const oscillator = ctx.createOscillator()
-      const gainNode = ctx.createGain()
 
-      oscillator.type = 'triangle'
-      oscillator.frequency.setValueAtTime(880, now)
-      oscillator.frequency.linearRampToValueAtTime(660, now + 0.18)
+      // WhatsApp-style: two quick high-pitched pops
+      const frequencies = [1400, 1800]
+      frequencies.forEach((freq, i) => {
+        const osc = ctx.createOscillator()
+        const gain = ctx.createGain()
 
-      gainNode.gain.setValueAtTime(0.0001, now)
-      gainNode.gain.exponentialRampToValueAtTime(0.08, now + 0.02)
-      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.2)
+        osc.type = 'sine'
+        osc.frequency.setValueAtTime(freq, now + i * 0.12)
 
-      oscillator.connect(gainNode)
-      gainNode.connect(ctx.destination)
-      oscillator.start(now)
-      oscillator.stop(now + 0.21)
-    } catch (_) {
-      // Ignore browser-level autoplay or audio initialization failures.
-    }
+        gain.gain.setValueAtTime(0.0001, now + i * 0.12)
+        gain.gain.exponentialRampToValueAtTime(0.18, now + i * 0.12 + 0.01)
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.12 + 0.09)
+
+        osc.connect(gain)
+        gain.connect(ctx.destination)
+        osc.start(now + i * 0.12)
+        osc.stop(now + i * 0.12 + 0.1)
+      })
+    } catch (_) {}
   }
 
   function addOrderToDashboard(order) {

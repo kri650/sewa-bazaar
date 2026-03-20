@@ -534,10 +534,23 @@ export default function Home() {
       <section className="trustRibbonSection" aria-label="Trust badges">
         <div className="trustRibbonInner">
           <div className="trustLeft">
-            <div className="trustRound">100%</div>
-            <div className="trustRound">Premium</div>
-            <div className="trustRound">Quality</div>
-            <div className="trustRound">OK</div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
+              <img
+                src="/fssai.png"
+                alt="FSSAI Licensed"
+                style={{ width: 130, height: 130, objectFit: 'contain', display: 'block' }}
+              />
+              <p style={{ fontSize: 10, fontWeight: 700, color: '#2e7d32', margin: 0, marginTop: -20, textAlign: 'center', letterSpacing: 0.3, lineHeight: 1 }}>
+                12725045001139
+              </p>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <img
+                src="/quality.png"
+                alt="Premium Quality"
+                style={{ width: 90, height: 90, objectFit: 'contain' }}
+              />
+            </div>
           </div>
 
           <div className="trustCenter">

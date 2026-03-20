@@ -145,6 +145,7 @@ export default function Fruits() {
                 return (
                   <ProductCard
                     key={item.id}
+                    id={item.id}
                     name={item.name}
                     price={item.price}
                     originalPrice={item.originalPrice}

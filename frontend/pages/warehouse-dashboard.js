@@ -1,5 +1,6 @@
 import Head from 'next/head'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
+import { useRouter } from 'next/router'
 import { io } from 'socket.io-client'
 import OrdersTable from '../components/warehouse/OrdersTable'
 import styles from '../styles/warehouse.module.css'
@@ -71,13 +72,36 @@ function normalizeCategoryName(value) {
 
 async function apiFetch(path, token, options = {}) {
   let response
+  const { warehouseId, ...fetchOptions } = options || {}
+  const method = String(fetchOptions.method || 'GET').toUpperCase()
+  let url = `${API}${path}`
+  if (warehouseId !== undefined && warehouseId !== null && String(warehouseId) !== '') {
+    const joiner = url.includes('?') ? '&' : '?'
+    url += `${joiner}warehouseId=${encodeURIComponent(warehouseId)}`
+  }
+
+  let body = fetchOptions.body
+  if (warehouseId !== undefined && warehouseId !== null && method !== 'GET' && method !== 'HEAD') {
+    try {
+      const payload = body ? JSON.parse(body) : {}
+      if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+        if (payload.warehouse_id == null && payload.warehouseId == null) {
+          payload.warehouse_id = Number(warehouseId)
+        }
+        body = JSON.stringify(payload)
+      }
+    } catch (_err) {
+      // Keep original body if it isn't JSON (shouldn't happen here).
+    }
+  }
   try {
-    response = await fetch(`${API}${path}`, {
-      ...options,
+    response = await fetch(url, {
+      ...fetchOptions,
+      body,
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...(options.headers || {}),
+        ...(fetchOptions.headers || {}),
       },
     })
   } catch (_err) {
@@ -249,9 +273,9 @@ function OverviewPanel({ token, warehouseId, onSwitchTab }) {
   const load = useCallback(async () => {
     setLoading(true)
     const [metricsResult, ordersResult, lowStockResult] = await Promise.all([
-      apiFetch(`/api/warehouse/overview/${warehouseId}`, token),
-      apiFetch('/api/warehouse/orders', token),
-      apiFetch('/api/warehouse/low-stock', token),
+      apiFetch(`/api/warehouse/overview/${warehouseId}`, token, { warehouseId }),
+      apiFetch('/api/warehouse/orders', token, { warehouseId }),
+      apiFetch('/api/warehouse/low-stock', token, { warehouseId }),
     ])
 
     if (metricsResult.ok) setMetrics(metricsResult.data)
@@ -347,7 +371,7 @@ function OverviewPanel({ token, warehouseId, onSwitchTab }) {
   )
 }
 
-function OrdersPanel({ token, warehouseId, notify }) {
+function OrdersPanel({ token, warehouseId, notify, liveStatusUpdate, liveAssignment }) {
   const [orders, setOrders] = useState([])
   const [partners, setPartners] = useState([])
   const [statusFilter, setStatusFilter] = useState('all')
@@ -359,8 +383,8 @@ function OrdersPanel({ token, warehouseId, notify }) {
   const load = useCallback(async () => {
     setLoading(true)
     const [ordersResult, partnersResult] = await Promise.all([
-      apiFetch('/api/warehouse/orders', token),
-      apiFetch('/api/warehouse/delivery-partners', token),
+      apiFetch('/api/warehouse/orders', token, { warehouseId }),
+      apiFetch('/api/warehouse/delivery-partners', token, { warehouseId }),
     ])
 
     if (ordersResult.ok) setOrders(ordersResult.data?.orders || [])
@@ -377,12 +401,34 @@ function OrdersPanel({ token, warehouseId, notify }) {
     load()
   }, [load])
 
+  // Apply live status updates pushed from the parent socket handler
+  useEffect(() => {
+    if (!liveStatusUpdate || !liveStatusUpdate.orderId) return
+    setOrders((prev) => prev.map((o) => (String(o.id) === String(liveStatusUpdate.orderId) ? { ...o, status: liveStatusUpdate.status } : o)))
+  }, [liveStatusUpdate])
+
+  // Apply live assignment updates pushed from parent (e.g. admin assigned partner)
+  useEffect(() => {
+    if (!liveAssignment || !liveAssignment.orderId) return
+    setOrders((prev) => prev.map((o) => (
+      String(o.id) === String(liveAssignment.orderId)
+        ? {
+            ...o,
+            status: 'assigned',
+            assignedPartnerName: liveAssignment.deliveryPartnerName || o.assignedPartnerName,
+            assignedPartnerId: liveAssignment.deliveryPartnerId || o.assignedPartnerId,
+          }
+        : o
+    )))
+  }, [liveAssignment])
+
   const handleAssignPartner = async (orderId, deliveryPartnerId) => {
     if (!deliveryPartnerId) return
     setPartnerBusyOrderId(orderId)
     const result = await apiFetch('/api/warehouse/assign-delivery', token, {
       method: 'POST',
       body: JSON.stringify({ orderId, deliveryPartnerId: Number(deliveryPartnerId) }),
+      warehouseId,
     })
     setPartnerBusyOrderId(null)
 
@@ -421,6 +467,7 @@ function OrdersPanel({ token, warehouseId, notify }) {
     const result = await apiFetch('/api/orders/update-status', token, {
       method: 'PUT',
       body: JSON.stringify({ order_id: orderId, status }),
+      warehouseId,
     })
     setStatusBusyOrderId(null)
 
@@ -501,7 +548,7 @@ function DeliveryPartnersPanel({ token, warehouseId, notify }) {
 
   const load = useCallback(async () => {
     setLoading(true)
-    const result = await apiFetch('/api/warehouse/delivery-partners', token)
+    const result = await apiFetch('/api/warehouse/delivery-partners', token, { warehouseId })
     if (result.ok) {
       setPartners(result.data?.partners || [])
     } else {
@@ -527,6 +574,7 @@ function DeliveryPartnersPanel({ token, warehouseId, notify }) {
         ...form,
         warehouse_id: Number(warehouseId),
       }),
+      warehouseId,
     })
     setSaving(false)
 
@@ -545,6 +593,7 @@ function DeliveryPartnersPanel({ token, warehouseId, notify }) {
     const result = await apiFetch(`/api/warehouse/delivery-partners/${partnerId}/status`, token, {
       method: 'PUT',
       body: JSON.stringify({ status }),
+      warehouseId,
     })
 
     if (!result.ok) {
@@ -709,8 +758,8 @@ function InventoryPanel({ token, warehouseId, notify }) {
   const load = useCallback(async () => {
     setLoading(true)
     const [inventoryResult, lowStockResult] = await Promise.all([
-      apiFetch('/api/warehouse/inventory', token),
-      apiFetch('/api/warehouse/low-stock', token),
+      apiFetch('/api/warehouse/inventory', token, { warehouseId }),
+      apiFetch('/api/warehouse/low-stock', token, { warehouseId }),
     ])
 
     if (inventoryResult.ok) {
@@ -735,6 +784,7 @@ function InventoryPanel({ token, warehouseId, notify }) {
         stock: Number(stockModal.stock),
         warehouse_id: Number(warehouseId),
       }),
+      warehouseId,
     })
 
     if (!result.ok) {
@@ -757,6 +807,7 @@ function InventoryPanel({ token, warehouseId, notify }) {
         stock: Number(stockModal.stock),
         mode: stockModal.mode,
       }),
+      warehouseId,
     })
 
     if (!result.ok) {
@@ -788,6 +839,7 @@ function InventoryPanel({ token, warehouseId, notify }) {
         description: productForm.description || null,
         initialStock: productForm.initialStock ? Number(productForm.initialStock) : 0,
       }),
+      warehouseId,
     })
 
     if (!result.ok) {
@@ -1066,7 +1118,7 @@ function CodCollectionsPanel({ token, warehouseId }) {
 
   const load = useCallback(async () => {
     setLoading(true)
-    const result = await apiFetch('/api/warehouse/cod', token)
+    const result = await apiFetch('/api/warehouse/cod', token, { warehouseId })
     if (result.ok) setCollections(result.data?.collections || [])
     setLoading(false)
   }, [token, warehouseId])
@@ -1127,6 +1179,7 @@ function CodCollectionsPanel({ token, warehouseId }) {
 }
 
 export default function WarehouseDashboard() {
+  const router = useRouter()
   const [token, setToken] = useState(null)
   const [adminName, setAdminName] = useState('')
   const [warehouseTitle, setWarehouseTitle] = useState('')
@@ -1134,10 +1187,15 @@ export default function WarehouseDashboard() {
   const [adminId, setAdminId] = useState(null)
   const [activeTab, setActiveTab] = useState('overview')
   const [toast, setToast] = useState(null)
+  const [liveStatusUpdate, setLiveStatusUpdate] = useState(null)
+  const [liveAssignment, setLiveAssignment] = useState(null)
   const [resolvingWarehouse, setResolvingWarehouse] = useState(false)
   const [warehouseResolveError, setWarehouseResolveError] = useState('')
   const [warehouseResolveTick, setWarehouseResolveTick] = useState(0)
   const [socketConnected, setSocketConnected] = useState(false)
+  const [isAdminView, setIsAdminView] = useState(false)
+  const [adminViewError, setAdminViewError] = useState('')
+  const audioContextRef = useRef(null)
 
   // Real-time notifications via Socket.io
   useEffect(() => {
@@ -1157,6 +1215,34 @@ export default function WarehouseDashboard() {
       setSocketConnected(false)
     })
 
+    function playNotificationSound() {
+      if (typeof window === 'undefined') return
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext
+        if (!AudioCtx) return
+        if (!audioContextRef.current) {
+          audioContextRef.current = new AudioCtx()
+        }
+        const ctx = audioContextRef.current
+        if (!ctx) return
+        if (ctx.state === 'suspended') ctx.resume().catch(() => {})
+
+        const now = ctx.currentTime
+        const frequencies = [1400, 1800]
+        frequencies.forEach((freq, i) => {
+          const osc = ctx.createOscillator()
+          const gain = ctx.createGain()
+          osc.type = 'sine'
+          osc.frequency.setValueAtTime(freq, now + i * 0.12)
+          gain.gain.setValueAtTime(0.0001, now + i * 0.12)
+          gain.gain.exponentialRampToValueAtTime(0.18, now + i * 0.12 + 0.01)
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.12 + 0.09)
+          osc.connect(gain); gain.connect(ctx.destination)
+          osc.start(now + i * 0.12); osc.stop(now + i * 0.12 + 0.1)
+        })
+      } catch (_) {}
+    }
+
     // New order created and assigned to a warehouse
     socket.on('NEW_ORDER', (payload) => {
       if (!payload) return
@@ -1165,12 +1251,23 @@ export default function WarehouseDashboard() {
         type: 'success',
         text: `New order #${payload.orderId || ''} created${payload.customerName ? ` for ${payload.customerName}` : ''}.`,
       })
+      playNotificationSound()
     })
 
-    // Order assigned to a delivery partner from this warehouse dashboard
+    // Live order status updates for this warehouse
+    socket.on('ORDER_STATUS_UPDATE', (payload) => {
+      if (!payload) return
+      if (payload.warehouseId && String(payload.warehouseId) !== String(warehouseId)) return
+      setLiveStatusUpdate(payload)
+      setToast({ type: 'success', text: `Order #${payload.orderId || ''} → ${STATUS_LABELS[payload.status] || payload.status}` })
+      playNotificationSound()
+    })
+
+    // Order assigned to a delivery partner (possibly from admin)
     socket.on('ORDER_ASSIGNED', (payload) => {
       if (!payload) return
       if (payload.warehouseId && String(payload.warehouseId) !== String(warehouseId)) return
+      setLiveAssignment(payload)
       setToast({
         type: 'success',
         text: `Order #${payload.orderId || ''} assigned to a delivery partner.`,
@@ -1199,6 +1296,7 @@ export default function WarehouseDashboard() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return
+    if (router.isReady && (router.query?.admin === '1' || router.query?.mode === 'admin')) return
     const savedToken = window.localStorage.getItem('warehouseToken')
     const savedName = window.localStorage.getItem('warehouseName')
     const savedWarehouseTitle = window.localStorage.getItem('warehouse_title')
@@ -1209,11 +1307,49 @@ export default function WarehouseDashboard() {
     if (savedWarehouseTitle) setWarehouseTitle(savedWarehouseTitle)
     if (savedWarehouseId) setWarehouseId(savedWarehouseId)
     if (savedAdminId) setAdminId(savedAdminId)
-  }, [])
+  }, [router.isReady, router.query])
+
+  // Admin view: open full dashboard for a selected warehouse.
+  useEffect(() => {
+    if (!router.isReady || typeof window === 'undefined') return
+    const adminRequested = router.query?.admin === '1' || router.query?.mode === 'admin'
+    if (!adminRequested) return
+
+    const adminToken = window.localStorage.getItem('authToken') || ''
+    const adminRole = window.localStorage.getItem('authUserRole') || ''
+    const adminNameStored = window.localStorage.getItem('authUserName') || 'Super Admin'
+    const qWarehouseId = router.query?.warehouseId
+    const qWarehouseName = router.query?.warehouseName
+    const qWarehouseCity = router.query?.warehouseCity
+
+    setIsAdminView(true)
+
+    if (!adminToken || adminRole !== 'admin') {
+      setAdminViewError('Admin session missing. Please sign in as admin and retry.')
+      return
+    }
+    if (!qWarehouseId) {
+      setAdminViewError('Warehouse not specified. Please open from the admin dashboard.')
+      return
+    }
+
+    const title = qWarehouseName
+      ? `${qWarehouseName}${qWarehouseCity ? ` (${qWarehouseCity})` : ''}`
+      : `Warehouse #${qWarehouseId}`
+
+    setToken(adminToken)
+    setAdminName(adminNameStored)
+    setWarehouseTitle(title)
+    setWarehouseId(String(qWarehouseId))
+    setAdminId(null)
+    setWarehouseResolveError('')
+    setAdminViewError('')
+  }, [router.isReady, router.query])
 
   // Self-heal for older logins: if token exists but warehouse_id is missing,
   // fetch it from a protected endpoint that derives it from warehouse_admins.
   useEffect(() => {
+    if (isAdminView) return
     if (!token || warehouseId || resolvingWarehouse) return
 
     let cancelled = false
@@ -1278,6 +1414,7 @@ export default function WarehouseDashboard() {
 
   // If warehouse title is missing, fetch it (and confirm warehouse assignment).
   useEffect(() => {
+    if (isAdminView) return
     if (!token || warehouseTitle) return
 
     let cancelled = false
@@ -1327,6 +1464,10 @@ export default function WarehouseDashboard() {
   }
 
   const handleLogout = () => {
+    if (isAdminView && typeof window !== 'undefined') {
+      window.location.href = '/admin'
+      return
+    }
     clearAuth()
   }
 
@@ -1338,11 +1479,39 @@ export default function WarehouseDashboard() {
     { id: 'cod-collections', label: 'COD Collections' },
   ]
 
+  if (isAdminView && adminViewError) {
+    return (
+      <div className={styles.loginPage}>
+        <div className={styles.loginCard}>
+          <div className={styles.formError}>{adminViewError}</div>
+          <button type="button" className={styles.primaryBtn} onClick={handleLogout}>
+            Back to Admin
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (isAdminView && (!token || !warehouseId)) {
+    return (
+      <div className={styles.loginPage}>
+        <div className={styles.loginCard}>
+          <div className={styles.formError}>
+            Unable to open warehouse dashboard. Please open it again from the admin panel.
+          </div>
+          <button type="button" className={styles.primaryBtn} onClick={handleLogout}>
+            Back to Admin
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   if (!token) {
     return <LoginScreen onLogin={handleLogin} />
   }
 
-  if (resolvingWarehouse && !warehouseId) {
+  if (!isAdminView && resolvingWarehouse && !warehouseId) {
     return (
       <div className={styles.loginPage}>
         <div className={styles.loginCard}>
@@ -1352,7 +1521,7 @@ export default function WarehouseDashboard() {
     )
   }
 
-  if (!warehouseId) {
+  if (!isAdminView && !warehouseId) {
     return (
       <div className={styles.loginPage}>
         <div className={styles.loginCard}>
@@ -1369,7 +1538,7 @@ export default function WarehouseDashboard() {
             Retry
           </button>
           <button type="button" className={styles.primaryBtn} onClick={handleLogout}>
-            Sign Out
+            {isAdminView ? 'Back to Admin' : 'Sign Out'}
           </button>
         </div>
       </div>
@@ -1406,7 +1575,9 @@ export default function WarehouseDashboard() {
               </button>
             ))}
           </nav>
-          <button type="button" className={styles.logoutBtn} onClick={handleLogout}>Sign Out</button>
+          <button type="button" className={styles.logoutBtn} onClick={handleLogout}>
+            {isAdminView ? 'Back to Admin' : 'Sign Out'}
+          </button>
         </aside>
 
         <main className={styles.mainContent}>
@@ -1421,7 +1592,7 @@ export default function WarehouseDashboard() {
           </div>
           <div className={styles.pageBody}>
             {activeTab === 'overview' ? <OverviewPanel token={token} warehouseId={warehouseId} onSwitchTab={setActiveTab} /> : null}
-            {activeTab === 'orders' ? <OrdersPanel token={token} warehouseId={warehouseId} notify={setToast} /> : null}
+            {activeTab === 'orders' ? <OrdersPanel token={token} warehouseId={warehouseId} notify={setToast} liveStatusUpdate={liveStatusUpdate} liveAssignment={liveAssignment} /> : null}
             {activeTab === 'delivery-partners' ? <DeliveryPartnersPanel token={token} warehouseId={warehouseId} notify={setToast} /> : null}
             {activeTab === 'inventory' ? <InventoryPanel token={token} warehouseId={warehouseId} notify={setToast} /> : null}
             {activeTab === 'cod-collections' ? <CodCollectionsPanel token={token} warehouseId={warehouseId} /> : null}

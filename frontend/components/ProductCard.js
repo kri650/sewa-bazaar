@@ -15,6 +15,7 @@ const deterministicDiscount = (key) => {
 }
 
 export default function ProductCard({
+  id,
   name,
   price,
   originalPrice,
@@ -31,7 +32,7 @@ export default function ProductCard({
   onClick,
 }) {
   const { items: wishlistItems, toggle } = useWishlist()
-  const myId = String(name || image || '')
+  const myId = String(id ?? name ?? image ?? '')
   const isWished = wishlistItems.some((p) => String(p.id) === myId)
   const numeric = parseRupees(price)
   const displayPrice =
@@ -91,7 +92,16 @@ export default function ProductCard({
             transition: 'color 0.2s, transform 0.2s',
           }}
         >
-          {isWished ? '♥' : '♡'}
+          <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M20.8 4.6c-1.5-1.5-4-1.5-5.5 0l-0.8 0.8-0.8-0.8c-1.5-1.5-4-1.5-5.5 0-1.5 1.5-1.5 4 0 5.5l6.3 6.3 6.3-6.3c1.5-1.5 1.5-4 0-5.5z"
+              fill={isWished ? 'currentColor' : 'none'}
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
         </button>
       </div>
 

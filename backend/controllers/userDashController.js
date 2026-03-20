@@ -138,16 +138,27 @@ async function getOrders(req, res) {
   try {
     const rows = await query(
       `SELECT
-         o.id             AS order_id,
+         o.id               AS order_id,
          o.status,
          o.total,
-         o.payment_method AS payment_method,
-         o.created_at     AS order_date,
+         o.payment_method   AS payment_method,
+         o.created_at       AS order_date,
+         o.customer_name,
+         o.customer_phone,
+         o.address_line1,
+         o.address_line2,
+         o.city,
+         o.state,
+         o.pincode,
+         oi.product_id,
+         oi.product_slug,
          oi.product_name,
          oi.qty,
-         oi.price
+         oi.price,
+         p.image            AS product_image
        FROM orders o
        JOIN order_items oi ON oi.order_id = o.id
+       LEFT JOIN products p ON p.id = oi.product_id
        WHERE o.user_id = ?
        ORDER BY o.id DESC`,
       [req.userId]
@@ -163,13 +174,25 @@ async function getOrders(req, res) {
           total:         row.total,
           paymentMethod: row.payment_method,
           orderDate:     row.order_date,
-          items:         [],
+          deliveryAddress: {
+            name:    row.customer_name || '',
+            phone:   row.customer_phone || '',
+            line1:   row.address_line1 || '',
+            line2:   row.address_line2 || '',
+            city:    row.city || '',
+            state:   row.state || '',
+            pincode: row.pincode || '',
+          },
+          items: [],
         }
       }
       ordersMap[row.order_id].items.push({
+        productId:   row.product_id,
+        productSlug: row.product_slug,
         productName: row.product_name,
         qty:         row.qty,
         price:       row.price,
+        image:       row.product_image || null,
       })
     }
 
@@ -236,6 +259,29 @@ async function updateAddress(req, res) {
   }
 }
 
+/**
+ * PUT /api/user/orders/:orderId/cancel
+ * Cancels an order if it's still in a cancellable state (pending/confirmed).
+ */
+async function cancelOrder(req, res) {
+  try {
+    const { orderId } = req.params
+    const [order] = await query(
+      `SELECT id, status, user_id FROM orders WHERE id = ? AND user_id = ?`,
+      [orderId, req.userId]
+    )
+    if (!order) return res.status(404).json({ error: 'Order not found' })
+    const cancellable = ['placed', 'pending', 'confirmed']
+    if (!cancellable.includes(order.status)) {
+      return res.status(400).json({ error: `Cannot cancel order in status: ${order.status}` })
+    }
+    await query(`UPDATE orders SET status = 'cancelled' WHERE id = ?`, [orderId])
+    return res.json({ ok: true, status: 'cancelled' })
+  } catch (error) {
+    return res.status(500).json({ error: error.message })
+  }
+}
+
 module.exports = {
   getDashboard,
   getAddresses,
@@ -243,6 +289,7 @@ module.exports = {
   addAddress,
   deleteAddress,
   getOrders,
+  cancelOrder,
   setAddressDefault,
   updateAddress,
 }

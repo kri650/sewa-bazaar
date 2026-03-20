@@ -248,6 +248,7 @@ export default function CategoryPage({
               return (
                 <ProductCard
                   key={routeId}
+                  id={product.id ?? routeId}
                   name={product.name}
                   price={normalizedPrice}
                   originalPrice={product.originalPrice}

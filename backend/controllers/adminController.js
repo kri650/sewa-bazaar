@@ -199,13 +199,27 @@ async function assignDelivery(req, res) {
     }
     // Push Socket.io notification to the delivery boy and admins
     try {
-      const { notifyDeliveryAssigned } = require('../utils/socketServer')
+      const { notifyDeliveryAssigned, notifyOrderStatusUpdate } = require('../utils/socketServer')
+      // include warehouseId so warehouse dashboards can filter relevant assignments
       notifyDeliveryAssigned(Number(deliveryPartnerId), {
         orderId,
         customerName: result.order.customerName,
         total: result.order.total,
+        warehouseId: result.order.warehouseId,
         assignedAt: new Date().toISOString(),
       })
+
+      // Also broadcast assignment as an order status update to admins and warehouse dashboards
+      try {
+        notifyOrderStatusUpdate(result.order?.userId, {
+          orderId,
+          status: 'assigned',
+          warehouseId: result.order?.warehouseId,
+          deliveryPartnerId: Number(deliveryPartnerId),
+          deliveryPartnerName: result.order?.deliveryPartnerName || null,
+          updatedAt: new Date().toISOString(),
+        })
+      } catch (_) {}
     } catch (_) {}
     try {
       const notificationModel = require('../models/notificationModel')

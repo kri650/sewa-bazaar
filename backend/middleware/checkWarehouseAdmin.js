@@ -25,8 +25,28 @@ async function checkWarehouseAdmin(req, res, next) {
     return res.status(401).json({ error: 'invalid or expired token' })
   }
 
-  if (payload.role !== 'warehouse_admin')
+  const isAdminToken = payload.source === 'admin' || payload.role === 'admin' || payload.role === 'superadmin'
+  if (payload.role !== 'warehouse_admin' && !isAdminToken)
     return res.status(403).json({ error: 'forbidden: warehouse admin access required' })
+
+  // Super admin access: allow explicit warehouse scoping via query/body/params.
+  if (isAdminToken && payload.role !== 'warehouse_admin') {
+    const requestedWarehouseId = Number(
+      req.params?.warehouseId
+      ?? req.query?.warehouseId
+      ?? req.body?.warehouse_id
+      ?? req.body?.warehouseId
+    )
+
+    if (!requestedWarehouseId || Number.isNaN(requestedWarehouseId)) {
+      return res.status(400).json({ error: 'warehouseId is required for admin access' })
+    }
+
+    req.warehouseAdminId = payload.adminId || null
+    req.warehouseId      = requestedWarehouseId
+    req.isAdmin          = true
+    return next()
+  }
 
   // Look up warehouse assignment from the standalone warehouse_admins table
   const rows = await query(

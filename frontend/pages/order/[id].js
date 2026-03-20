@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { io } from 'socket.io-client'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import ShopLayout from '../../components/ShopLayout'
@@ -23,18 +24,23 @@ function titleCase(value) {
 }
 function normalizeStatus(status) {
   if (status === 'accepted') return 'packed'
-  if (status === 'picked_up') return 'out_for_delivery'
+  if (status === 'placed') return 'pending'
+  if (status === 'ready_for_pickup') return 'ready_for_pickup'
+  if (status === 'assigned') return 'assigned'
   return status
 }
 
 function StatusBadge({ status }) {
   const palette = {
-    pending:   { bg: '#fff8e1', color: '#b45309' },
-    confirmed: { bg: '#e8f5e9', color: '#2e7d32' },
-    packed: { bg: '#e0f2fe', color: '#0f5b8a' },
-    out_for_delivery: { bg: '#ede9fe', color: '#5b21b6' },
-    delivered: { bg: '#e3f2fd', color: '#1565c0' },
-    cancelled: { bg: '#fce4ec', color: '#c62828' },
+  pending:          { bg: '#fff8e1', color: '#b45309' },
+  confirmed:        { bg: '#e8f5e9', color: '#2e7d32' },
+  packed:           { bg: '#e0f2fe', color: '#0f5b8a' },
+  ready_for_pickup: { bg: '#fef9c3', color: '#854d0e' },
+  assigned:         { bg: '#f3e8ff', color: '#6b21a8' },
+  picked_up:        { bg: '#dbeafe', color: '#1d4ed8' },
+  out_for_delivery: { bg: '#ede9fe', color: '#5b21b6' },
+  delivered:        { bg: '#e3f2fd', color: '#1565c0' },
+  cancelled:        { bg: '#fce4ec', color: '#c62828' },
   }
   const normalized = normalizeStatus(status)
   const s = palette[normalized] || { bg: '#f3f4f6', color: '#555' }
@@ -91,6 +97,66 @@ export default function OrderDetailsPage() {
     }
     fetchOrder()
   }, [router.query.id])
+
+  // Real-time updates for the currently open order
+  useEffect(() => {
+    const id = router.query.id
+    if (!id) return undefined
+    const token = typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) || '' : ''
+    if (!token) return undefined
+
+    const socket = io(API, {
+      path: '/socket.io',
+      transports: ['websocket'],
+      auth: { token },
+    })
+
+    const playBeep = () => {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)()
+        const o = ctx.createOscillator()
+        const g = ctx.createGain()
+        o.type = 'sine'
+        o.frequency.value = 800
+        o.connect(g)
+        g.connect(ctx.destination)
+        g.gain.value = 0.05
+        o.start()
+        setTimeout(() => { o.stop(); ctx.close?.() }, 120)
+      } catch (_e) {
+        // ignore audio errors
+      }
+    }
+
+    socket.on('ORDER_STATUS_UPDATE', (payload) => {
+      if (!payload) return
+      const payloadOrderId = String(payload.orderId || payload.id || payload.order_id)
+      if (!payloadOrderId) return
+      if (String(id) !== payloadOrderId && String(order?.orderId || order?.id) !== payloadOrderId) return
+
+      // update local order object with new status and append event
+      setOrder((current) => {
+        if (!current) return current
+        const nextEvents = (current.events || []).slice()
+        const ev = {
+          status: payload.status,
+          notes: payload.notes || payload.note || '',
+          createdAt: payload.updatedAt || payload.createdAt || new Date().toISOString(),
+        }
+        // avoid duplicate consecutive events
+        const last = nextEvents[nextEvents.length - 1]
+        if (!last || last.status !== ev.status || last.createdAt !== ev.createdAt) nextEvents.push(ev)
+
+        return { ...current, status: payload.status, events: nextEvents }
+      })
+
+      playBeep()
+    })
+
+    return () => {
+      socket.disconnect()
+    }
+  }, [router.query.id, order])
 
   const handleReorder = () => {
     if (!order?.items) return
@@ -165,11 +231,14 @@ export default function OrderDetailsPage() {
   }
 
   const TRACKING_STEPS = [
-    { key: 'pending', label: 'Order Placed' },
-    { key: 'confirmed', label: 'Order Confirmed' },
-    { key: 'packed', label: 'Packed' },
-    { key: 'out_for_delivery', label: 'Out for Delivery' },
-    { key: 'delivered', label: 'Delivered' },
+  { key: 'pending', label: 'Order Placed' },
+  { key: 'confirmed', label: 'Order Confirmed' },
+  { key: 'packed', label: 'Packed' },
+  { key: 'ready_for_pickup', label: 'Ready for Pickup' },
+  { key: 'assigned', label: 'Assigned' },
+  { key: 'picked_up', label: 'Picked Up' },
+  { key: 'out_for_delivery', label: 'Out for Delivery' },
+  { key: 'delivered', label: 'Delivered' },
   ]
   const stepIndex = order ? Math.max(0, TRACKING_STEPS.findIndex((s) => s.key === normalizeStatus(order.status))) : 0
 
@@ -294,7 +363,7 @@ export default function OrderDetailsPage() {
           .summaryMeta { margin-top: 4px; font-size: 12px; color: #6b7280; }
 
           .trackingCard { border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px; margin-bottom: 16px; }
-          .trackBar { position: relative; display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; align-items: center; }
+          .trackBar { position: relative; display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; align-items: center; }
           .trackLine { position: absolute; height: 2px; left: 0; top: 12px; background: #1f2937; z-index: 0; }
           .trackStep { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
           .trackDot { width: 10px; height: 10px; border-radius: 50%; background: #cbd5e1; }

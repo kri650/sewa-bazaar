@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600" role="img" aria-label="Vegetables">
+  <rect width="800" height="600" rx="32" fill="#ffffff"/>
+  <g fill="none" stroke="#14774e" stroke-width="18" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M420 160c40-40 90-45 135-10"/>
+    <path d="M400 190c-20-55-70-80-125-55"/>
+    <path d="M400 210c-60 70-95 170-75 240 15 55 80 75 150 75s135-20 150-75c20-70-15-170-75-240"/>
+    <path d="M320 350c35 25 80 25 110 0"/>
+  </g>
+  <text x="400" y="540" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="44" fill="#14774e" font-weight="700">Vegetables</text>
+</svg>

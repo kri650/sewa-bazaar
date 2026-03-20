@@ -25,7 +25,8 @@ async function login(req, res) {
       { expiresIn: JWT_EXPIRES_IN }
     )
 
-    return res.json({ token, id: admin.id, name: admin.name, email: admin.email, role: 'admin' })
+  const role = admin.role || 'admin'
+  return res.json({ token, id: admin.id, name: admin.name, email: admin.email, role })
   } catch (err) {
     return res.status(500).json({ error: err.message })
   }
@@ -35,7 +36,9 @@ async function me(req, res) {
   try {
     const admin = await adminAuthModel.findById(req.adminId)
     if (!admin) return res.status(404).json({ error: 'admin not found' })
-    return res.json({ ...admin, role: 'admin' })
+  // If the underlying record includes a role (e.g. users.role='superadmin'), preserve it.
+  const role = admin.role || 'admin'
+  return res.json({ ...admin, role })
   } catch (err) {
     return res.status(500).json({ error: err.message })
   }

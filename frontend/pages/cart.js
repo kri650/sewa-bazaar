@@ -5,6 +5,8 @@ import ShopLayout from '../components/ShopLayout'
 import Link from 'next/link'
 import { useState, useEffect, useCallback } from 'react'
 import { useDelivery } from '../contexts/DeliveryContext'
+import { resolveProductImage } from '../lib/productImage'
+import { toast } from 'react-hot-toast'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
 
@@ -118,14 +120,23 @@ export default function CartPage() {
 
   const getAuthHeader = () => {
     if (typeof window === 'undefined') return {}
-    const token = localStorage.getItem('sbUserToken') || localStorage.getItem('authToken') || ''
-    return token ? { Authorization: `Bearer ${token}` } : {}
+    const token = localStorage.getItem('sbUserToken') // check local storage for token
+    if (!token) return {}
+    return { 'Authorization': `Bearer ${token}` }
   }
 
   const handlePlaceOrder = async (e) => {
     e.preventDefault()
     setOrderError('')
     setLoading(true)
+
+    // Check login
+    if (typeof window !== 'undefined' && !localStorage.getItem('sbUserToken')) {
+      toast.error('Please log in to place an order')
+      setLoading(false)
+      // Optional: redirect to login or show modal
+      return
+    }
 
     const cartItems = cart.map((item) => ({
       id: item.id,
@@ -614,11 +625,15 @@ export default function CartPage() {
                 return (
                   <article key={item.id} className="cartItem">
                     <div className="itemImage">
-                      {item.image ? (
-                        <img src={item.image} alt={item.name} />
-                      ) : (
-                        <div className="noImage">No Image</div>
-                      )}
+                      <img
+                        src={item.image && !item.image.startsWith('data:') && item.image.trim()
+                          ? item.image
+                          : resolveProductImage({ name: item.name, image: item.image })}
+                        alt={item.name}
+                        onError={e => {
+                          e.target.src = resolveProductImage({ name: item.name })
+                        }}
+                      />
                     </div>
 
                     <div className="itemDetails">

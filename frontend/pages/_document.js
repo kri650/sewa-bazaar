@@ -16,6 +16,8 @@ export default function Document() {
           href="https://fonts.googleapis.com/css2?family=Edu+VIC+WA+NT+Beginner:wght@400..700&family=Manrope:wght@200..800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Poiret+One&family=Slabo+27px&display=swap"
           rel="stylesheet"
         />
+        {/* Razorpay Checkout SDK — must be loaded globally */}
+        <script src="https://checkout.razorpay.com/v1/checkout.js" />
       </Head>
       <body>
         <Main />

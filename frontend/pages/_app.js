@@ -2,6 +2,7 @@ import '../styles/globals.css'
 import '../styles/responsive.css'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
+import { Toaster, toast } from 'react-hot-toast'
 import { CartProvider } from '../contexts/CartContext'
 import { LocationProvider } from '../contexts/LocationContext'
 import { DeliveryProvider } from '../contexts/DeliveryContext'
@@ -309,6 +310,7 @@ export default function App({ Component, pageProps }) {
         />
       </Head>
       <WishlistProvider>
+        <Toaster position="bottom-center" />
         <Component {...pageProps} />
       </WishlistProvider>
     </DeliveryProvider>

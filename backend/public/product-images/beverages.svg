@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600" role="img" aria-label="Beverages">
+  <rect width="800" height="600" rx="32" fill="#ffffff"/>
+  <g fill="none" stroke="#14774e" stroke-width="18" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M310 200h180l-20 250c-3 40-35 70-75 70h-10c-40 0-72-30-75-70l-20-250z"/>
+    <path d="M340 200l20-50h80l20 50"/>
+    <path d="M340 310h120"/>
+  </g>
+  <path d="M535 260c45 35 65 90 45 150" fill="none" stroke="#e0c952" stroke-width="18" stroke-linecap="round"/>
+  <text x="400" y="540" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="44" fill="#14774e" font-weight="700">Beverages</text>
+</svg>

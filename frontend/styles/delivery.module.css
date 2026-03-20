@@ -1319,3 +1319,25 @@
     flex-direction: column;
   }
 }
+
+/* Extra mobile tweaks for very small screens */
+@media (max-width: 480px) {
+  .content { padding: 12px; }
+  .notificationHeader,
+  .metricTop,
+  .metricCard { flex-direction: column; align-items: flex-start; }
+
+  .notificationPanel { padding: 12px; }
+  .notificationList { gap: 8px; }
+
+  /* Tables -> stacked cards */
+  .statsTable thead { display: none; }
+  .statsTable, .statsTable tbody, .statsTable tr, .statsTable td { display: block; width: 100%; }
+  .statsTable tbody { display: grid; gap: 10px; padding: 0 8px 8px; }
+  .statsTable tr { border: 1px solid #eef2f7; border-radius: 12px; background: #fff; overflow: hidden; }
+  .statsTable td { padding: 10px 12px; border-top: 1px solid #f3f4f6; }
+  .statsTable td::before { content: attr(data-label); display: block; margin-bottom: 6px; color: #64748b; font-weight: 700; font-size: 11px; text-transform: uppercase; }
+
+  /* Make key controls fit */
+  .notificationRefresh, .refreshBtn, .logoutBtn { padding: 8px 10px; font-size: 12px; }
+}

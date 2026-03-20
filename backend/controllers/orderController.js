@@ -1,5 +1,6 @@
 const orderModel = require('../models/orderModel')
 const productModel = require('../models/productModel')
+const userModel = require('../models/userModel')
 const { extractUserId } = require('../middleware/authMiddleware')
 
 async function getWishlist(req, res) {
@@ -89,6 +90,16 @@ async function deleteCartItem(req, res) {
 async function createOrder(req, res) {
   try {
     const userId = extractUserId(req)
+
+    // If a userId was extracted from the request, ensure that user still exists.
+    // This prevents trying to insert a non-existent user_id into orders which would
+    // violate the foreign key constraint in MySQL.
+    if (userId) {
+      const existing = await userModel.findById(userId)
+      if (!existing) {
+        return res.status(400).json({ error: 'User not found. Please login again.' })
+      }
+    }
 
     const result = await orderModel.createOrder({
       userId,
@@ -187,9 +198,14 @@ async function adminAssignDeliveryPartner(req, res) {
 
 async function adminUpdateOrderStatus(req, res) {
   try {
-    const orderId = Number(req.body?.orderId)
+    // accept either camelCase or snake_case order id from clients
+    const orderId = Number(req.body?.orderId ?? req.body?.order_id)
     const status = String(req.body?.status || '').trim()
-    const allowed = new Set(['placed', 'confirmed', 'packed', 'out_for_delivery', 'delivered', 'cancelled'])
+    const allowed = new Set([
+      'placed', 'confirmed', 'packed',
+      'ready_for_pickup', 'assigned', 'picked_up',
+      'out_for_delivery', 'delivered', 'cancelled'
+    ])
 
     if (Number.isNaN(orderId) || !allowed.has(status)) {
       return res.status(400).json({ error: 'valid orderId and status are required' })

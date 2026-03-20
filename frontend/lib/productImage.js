@@ -20,6 +20,8 @@ export function resolveProductImage({ name, category, image } = {}) {
 
   // If the data already provides a local public asset (and it's not the old missing /images/* set), prefer it.
   if (src && isPublicPath(src) && !src.startsWith('/images/')) return src
+  // If the data provides a remote/data URL, use it directly.
+  if (src && isLikelyRemote(src)) return src
 
   const haystack = `${normalize(name)} ${normalize(category)}`.trim()
 
@@ -147,9 +149,6 @@ export function resolveProductImage({ name, category, image } = {}) {
   if (includesAny(haystack, ['combo', 'basket', 'value pack', 'bundle'])) {
     return '/product-images/combos.svg'
   }
-
-  // If it was a remote/data URL, always fall back to local.
-  if (src && isLikelyRemote(src)) return DEFAULT_PRODUCT_IMAGE
 
   return DEFAULT_PRODUCT_IMAGE
 }

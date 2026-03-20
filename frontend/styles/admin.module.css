@@ -465,3 +465,49 @@
   .dashPage { flex-direction: column; }
   .dashMain { padding: 16px; }
 }
+
+/* Mobile: convert wide tables to stacked, card-like rows for small screens */
+@media (max-width: 640px) {
+  .dashPage { flex-direction: column; }
+  .sidebar { width: 100%; min-width: 0; position: static; height: auto; }
+  .sidebarNav { flex-direction: row; gap: 6px; }
+  .dashMain { padding: 12px; }
+
+  /* Make table blocks readable on narrow viewports */
+  .tableWrap th,
+  .tableWrap td { padding-left: 12px; padding-right: 12px; }
+
+  .tableWrap table thead { display: none; }
+  .tableWrap,
+  .tableWrap tbody,
+  .tableWrap tr,
+  .tableWrap td { display: block; width: 100%; }
+
+  .tableWrap tbody { display: grid; gap: 12px; padding: 0 12px 12px; }
+
+  .tableWrap tr {
+    border: 1px solid #e6e6e6;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+    padding: 8px 0;
+  }
+
+  .tableWrap td { border-top: 1px solid #f3f4f6; padding-top: 10px; padding-bottom: 10px; }
+  .tableWrap td:first-child { border-top: 0; }
+
+  .tableWrap td::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 6px;
+    color: #6b7280;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* Reduce some control sizes for small screens */
+  .searchInput { min-width: 0; max-width: 100%; }
+  .statusSelect, .selectInput { min-width: 0; }
+}

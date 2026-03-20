@@ -159,6 +159,7 @@ async function getOrderItems(orderId) {
 }
 
 // Canonical delivery flow expected by both warehouse and delivery dashboards.
+// Include only the delivery-side steps to keep transitions strict for delivery agents.
 const DELIVERY_STATUS_FLOW = ['assigned', 'picked_up', 'out_for_delivery', 'delivered']
 
 function parseEnumValues(columnType) {
@@ -206,6 +207,7 @@ async function ensureDeliveryStatusStorage(conn) {
 }
 
 function normalizeDeliveryStatus(status) {
+  // Normalize common variants, then collapse early warehouse stages to 'assigned'.
   const raw = String(status || '')
     .trim()
     .toLowerCase()
@@ -229,8 +231,10 @@ function normalizeDeliveryStatus(status) {
     canceled: 'cancelled',
   }[raw] || raw
 
-  // Treat every pre-delivery warehouse stage as the delivery "assigned" stage.
-  if (['placed', 'pending', 'confirmed', 'packed', 'ready_for_pickup', 'assigned'].includes(canonical)) {
+  // Treat only early order stages (preparing at warehouse) as the delivery
+  // 'assigned' stage. Do NOT collapse delivery-side statuses (assigned, picked_up,
+  // out_for_delivery, delivered) into something else.
+  if (['placed', 'pending', 'confirmed', 'packed', 'ready_for_pickup'].includes(canonical)) {
     return 'assigned'
   }
 

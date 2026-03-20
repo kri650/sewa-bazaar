@@ -40,19 +40,21 @@ async function listUsers() {
 }
 
 async function listDeliveryBoys() {
-  return query(
-    `SELECT
-      u.id,
-      u.name,
-      u.email,
-      u.phone,
-      u.latitude,
-      u.longitude,
-      u.created_at AS createdAt
-    FROM users u
-    WHERE u.role = 'delivery'
-    ORDER BY u.created_at DESC`
-  )
+  return query(`
+    SELECT 
+      dp.id,
+      dp.name,
+      dp.email,
+      dp.phone,
+      dp.status,
+      dp.warehouse_id,
+      dp.created_at AS createdAt,
+      w.name AS warehouseName,
+      w.city AS warehouseCity
+    FROM delivery_partners dp
+    LEFT JOIN warehouses w ON w.id = dp.warehouse_id
+    ORDER BY dp.created_at DESC
+  `)
 }
 
 async function createProduct({ name, price, unit, image, description, categoryId, latitude, longitude }) {
@@ -122,60 +124,71 @@ async function updateOrderStatus(orderId, status) {
 
 async function createDeliveryPartner({ name, email, phone, passwordHash }) {
   const result = await query(
-    `INSERT INTO users (name, email, phone, password, latitude, longitude, role)
-     VALUES (?, ?, ?, ?, 0, 0, 'delivery')`,
-    [name, email, phone || '', passwordHash]
+    'INSERT INTO delivery_partners (name, email, phone, password) VALUES (?, ?, ?, ?)',
+    [name, email, phone, passwordHash]
   )
-  return { id: result.insertId, name, email, phone, role: 'delivery' }
+  return { id: result.insertId, name, email, phone }
 }
 
 async function deleteDeliveryPartner(userId) {
-  const result = await query(
-    `DELETE FROM users WHERE id = ? AND role = 'delivery'`,
-    [userId]
-  )
+  // First set delivery_partner_id to NULL in orders table
+  await query('UPDATE orders SET delivery_partner_id = NULL WHERE delivery_partner_id = ?', [userId])
+  
+  // Then delete from delivery_partners table
+  const result = await query('DELETE FROM delivery_partners WHERE id = ?', [userId])
   return result.affectedRows > 0
 }
 
 async function assignOrderToDeliveryPartner(orderId, deliveryPartnerId) {
-  const partners = await query(
-    `SELECT id FROM users WHERE id = ? AND role = 'delivery' LIMIT 1`,
-    [deliveryPartnerId]
-  )
-  if (partners.length === 0) return { ok: false, reason: 'delivery_partner_not_found' }
+  const connection = await db.getConnection()
+  try {
+    await connection.beginTransaction()
 
-  const orders = await query(
-    `SELECT id, user_id AS userId, customer_name AS customerName, total, status FROM orders WHERE id = ? LIMIT 1`,
-    [orderId]
-  )
-  if (orders.length === 0) return { ok: false, reason: 'order_not_found' }
-
-  const currentStatus = String(orders[0].status || '').trim().toLowerCase().replace(/[\s-]+/g, '_')
-  const allowedBeforeAssignment = new Set([
-    '',
-    'placed',
-    'pending',
-    'confirmed',
-    'packed',
-    'ready_for_pickup',
-    'assigned',
-  ])
-  if (!allowedBeforeAssignment.has(currentStatus)) {
-    return { ok: false, reason: 'invalid_status_before_assignment' }
-  }
-
-  await query(
-    `UPDATE orders SET delivery_partner_id = ?, status = 'assigned' WHERE id = ?`,
-    [deliveryPartnerId, orderId]
-  )
-
-  if (currentStatus !== 'assigned') {
-    await query(
-      `INSERT INTO order_status_history (order_id, status) VALUES (?, ?)`,
-      [orderId, 'assigned']
+    const partners = await query(
+      `SELECT id FROM delivery_partners WHERE id = ? LIMIT 1`,
+      [deliveryPartnerId]
     )
+    if (partners.length === 0) return { ok: false, reason: 'delivery_partner_not_found' }
+
+    const orders = await query(
+      `SELECT id, user_id AS userId, customer_name AS customerName, total, status FROM orders WHERE id = ? LIMIT 1`,
+      [orderId]
+    )
+    if (orders.length === 0) return { ok: false, reason: 'order_not_found' }
+
+    const currentStatus = String(orders[0].status || '').trim().toLowerCase().replace(/[\\s-]+/g, '_')
+    const allowedBeforeAssignment = new Set([
+      '',
+      'placed',
+      'pending',
+      'confirmed',
+      'packed',
+      'ready_for_pickup',
+      'assigned',
+    ])
+    if (!allowedBeforeAssignment.has(currentStatus)) {
+      return { ok: false, reason: 'invalid_status_before_assignment' }
+    }
+
+    await query(
+      `UPDATE orders SET delivery_partner_id = ?, status = 'assigned' WHERE id = ?`,
+      [deliveryPartnerId, orderId]
+    )
+
+    if (currentStatus !== 'assigned') {
+      await query(
+        `INSERT INTO order_status_history (order_id, status) VALUES (?, ?)`,
+        [orderId, 'assigned']
+      )
+    }
+    await connection.commit()
+    return { ok: true, order: orders[0] }
+  } catch (error) {
+    await connection.rollback()
+    return { ok: false, error: 'database_error' }
+  } finally {
+    connection.release()
   }
-  return { ok: true, order: orders[0] }
 }
 
 // ── Warehouse Admin Management (Super Admin) ──────────────────────────────

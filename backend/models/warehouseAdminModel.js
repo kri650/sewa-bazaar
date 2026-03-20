@@ -188,24 +188,14 @@ async function updateOrderStatus(orderId, newStatus, warehouseId, adminId = null
   }
 }
 
-async function listDeliveryPartners(warehouseId, { activeOnly = false } = {}) {
-  const params = [warehouseId]
-  const activeClause = activeOnly ? ` AND status = 'active'` : ''
-
-  return query(
-    `SELECT
-       id,
-       name,
-       email,
-       phone,
-       status,
-       warehouse_id AS warehouseId,
-       created_at AS createdAt
-     FROM delivery_partners
-     WHERE warehouse_id = ?${activeClause}
-     ORDER BY created_at DESC, name ASC`,
-    params
-  )
+async function listDeliveryPartners(warehouseId) {
+  return query(`
+    SELECT id, name, phone, status
+    FROM delivery_partners
+    WHERE warehouse_id = ?
+    AND status = 'active'
+    ORDER BY name ASC
+  `, [warehouseId])
 }
 
 async function findDeliveryPartnerByEmail(email) {
@@ -334,7 +324,7 @@ async function assignDeliveryPartner(orderId, deliveryPartnerId, warehouseId, ad
 
     // Keep warehouse -> delivery flow consistent: Confirmed -> Packed -> Assigned.
     // Assignment is valid only once order is warehouse-ready.
-    const allowedBeforeAssignment = new Set(['packed', 'ready_for_pickup', 'assigned'])
+    const allowedBeforeAssignment = new Set(['pending', 'confirmed', 'packed', 'ready_for_pickup', 'assigned'])
     if (!allowedBeforeAssignment.has(orderRows[0].status)) {
       await conn.rollback()
       return { ok: false, reason: 'invalid_status_before_assignment' }
