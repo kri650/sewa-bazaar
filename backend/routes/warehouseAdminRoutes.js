@@ -1,6 +1,7 @@
 const express = require('express')
 const { checkWarehouseAdmin } = require('../middleware/checkWarehouseAdmin')
 const ctrl = require('../controllers/warehouseAdminController')
+const { productImageUpload } = require('../middleware/imageUploadMiddleware')
 
 const router = express.Router()
 // IMPORTANT: Do not protect the entire /api mount.
@@ -29,7 +30,8 @@ router.put('/inventory/update',               ctrl.updateStockByBody)
 // Aliases matching spec-style endpoints
 router.post('/warehouse/add-stock',           ctrl.addInventoryStock)
 router.put('/warehouse/update-stock',         ctrl.updateStockByBody)
-router.post('/warehouse/products',            ctrl.createProduct)
+router.post('/warehouse/products',            productImageUpload.single('image'), ctrl.createProduct)
+router.put('/warehouse/products/:productId',  productImageUpload.single('image'), ctrl.updateProduct)
 router.get('/warehouse/low-stock',            ctrl.getLowStock)
 router.get('/warehouse/cod-collections',      ctrl.getCodCollections)
 router.get('/warehouse/cod',                  ctrl.getCodCollections)

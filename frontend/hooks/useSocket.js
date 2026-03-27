@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { io } from 'socket.io-client'
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
+const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+console.log('[useSocket] Socket URL:', SOCKET_URL)
 
 /**
  * useSocket – connects to the backend Socket.io server.

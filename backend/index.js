@@ -16,11 +16,13 @@ const adminDashboardRoutes = require('./routes/adminDashboardRoutes')
 const deliveryRoutes       = require('./routes/deliveryRoutes')
 const userDashRoutes       = require('./routes/userDashRoutes')    // user dashboard
 const paymentRoutes        = require('./routes/paymentRoutes')     // razorpay payment
+const couponRoutes         = require('./routes/couponRoutes')
 const warehouseAdminRoutes = require('./routes/warehouseAdminRoutes') // warehouse admin
 const warehouseAuthRoutes  = require('./routes/warehouseAuthRoutes')  // warehouse admin auth
 const warehouseRoutes      = require('./routes/warehouseRoutes')
 const { requireAdminAuth } = require('./middleware/adminAuthMiddleware')
 const { initSocket }       = require('./utils/socketServer')
+const { initializeDatabase } = require('./utils/initializeDb')
 const warehouseController  = require('./controllers/warehouseController')
 
 const app = express()
@@ -72,6 +74,7 @@ app.use('/api/otp-auth',   otpAuthRoutes)        // OTP signup + login
 app.use('/api/warehouse-admin', warehouseAuthRoutes) // warehouse admin auth (public: login + create — MUST be before generic /api mounts)
 app.use('/api/warehouse', warehouseRoutes) // warehouse admin login alias
 app.use('/api/products',   productRoutes)  // Public products API
+app.use('/api/coupons',    couponRoutes)
 app.use('/products',       productRoutes)  // Backward compatibility
 app.use('/',               orderRoutes)
 app.use('/admin',          requireAdminAuth, adminRoutes)
@@ -95,6 +98,12 @@ const publicDir = path.join(__dirname, 'public')
 app.use('/static', express.static(publicDir))
 
 app.use((err, _req, res, _next) => {
+  if (err?.name === 'MulterError') {
+    return res.status(400).json({ error: err.message || 'Invalid file upload' })
+  }
+  if (err?.message === 'Only image files are allowed') {
+    return res.status(400).json({ error: err.message })
+  }
   console.error(err)
   res.status(500).json({ error: err.message || 'internal server error' })
 })
@@ -109,6 +118,15 @@ async function startServer() {
     const result = await checkConnection()
 
     if (result.ok) {
+      // Initialize database schema and run migrations
+      const dbInitResult = await initializeDatabase()
+      if (!dbInitResult.ok) {
+        console.warn(`⚠️  Database initialization warning: ${dbInitResult.error}`)
+        // Continue despite warning - migrations may have already been applied
+      } else {
+        console.log(`✅ Database schema initialized`)
+      }
+
       initSocket(httpServer)
       httpServer.listen(PORT, () => {
         console.log(`✅ organic-backend  →  http://localhost:${PORT}`)

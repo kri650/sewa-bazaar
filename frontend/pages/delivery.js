@@ -4,8 +4,9 @@ import ActiveOrders from '../components/delivery/ActiveOrders'
 import CompletedOrders from '../components/delivery/CompletedOrders'
 import DeliveryNotification from '../components/delivery/DeliveryNotification'
 import styles from '../styles/delivery.module.css'
+import API_BASE_URL from '../lib/apiBase'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
+const API_BASE = API_BASE_URL || ''
 
 const STATUS_LABELS = {
   placed:           { label: 'Placed',           color: '#6b7280', bg: '#f3f4f6', btnLabel: null,             btnColor: null },
@@ -147,7 +148,7 @@ export default function DeliveryDashboard() {
   useEffect(() => {
     if (!profile || !token) return
 
-    const socket = io(API_BASE, {
+    const socket = io(API_BASE || undefined, {
       path: '/socket.io',
       auth: { token },
       transports: ['websocket', 'polling'],

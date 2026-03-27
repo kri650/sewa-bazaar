@@ -10,6 +10,8 @@ const WAREHOUSE_SETTABLE_STATUSES = new Set(['confirmed', 'packed', 'ready_for_p
 const DELIVERY_OR_TERMINAL_STATUSES = new Set(['picked_up', 'out_for_delivery', 'delivered', 'cancelled'])
 
 let deliveryPartnerPasswordColumnExists = null
+let productDiscountColumnsExist = null
+let productFlashSaleColumnsExist = null
 
 async function hasDeliveryPartnerPasswordColumn(conn) {
   if (deliveryPartnerPasswordColumnExists !== null) return deliveryPartnerPasswordColumnExists
@@ -25,6 +27,36 @@ async function hasDeliveryPartnerPasswordColumn(conn) {
 
   deliveryPartnerPasswordColumnExists = rows.length > 0
   return deliveryPartnerPasswordColumnExists
+}
+
+async function hasProductDiscountColumns(conn) {
+  if (productDiscountColumnsExist !== null) return productDiscountColumnsExist
+
+  const [rows] = await conn.query(
+    `SELECT COUNT(*) AS columnCount
+     FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME = 'products'
+       AND COLUMN_NAME IN ('discount_type', 'discount_value')`
+  )
+
+  productDiscountColumnsExist = Number(rows?.[0]?.columnCount || 0) === 2
+  return productDiscountColumnsExist
+}
+
+async function hasProductFlashSaleColumns(conn) {
+  if (productFlashSaleColumnsExist !== null) return productFlashSaleColumnsExist
+
+  const [rows] = await conn.query(
+    `SELECT COUNT(*) AS columnCount
+     FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME = 'products'
+       AND COLUMN_NAME IN ('is_flash_sale', 'flash_sale_price', 'flash_sale_end_time')`
+  )
+
+  productFlashSaleColumnsExist = Number(rows?.[0]?.columnCount || 0) === 3
+  return productFlashSaleColumnsExist
 }
 
 async function getWarehouseOrders(warehouseId, status = null) {
@@ -401,18 +433,44 @@ async function assignDeliveryPartner(orderId, deliveryPartnerId, warehouseId, ad
 }
 
 async function listProductsForInventory() {
-  return query(
-    `SELECT
-       p.id,
-       p.name,
-       p.price,
-       p.unit,
-       c.name AS categoryName
-     FROM products p
-     LEFT JOIN categories c ON c.id = p.category_id
-     WHERE p.is_active = 1
-     ORDER BY c.name ASC, p.name ASC`
-  )
+  const conn = await pool.getConnection()
+
+  try {
+    const hasDiscountColumns = await hasProductDiscountColumns(conn)
+    const hasFlashSaleColumns = await hasProductFlashSaleColumns(conn)
+
+    const discountTypeColumn = hasDiscountColumns ? 'p.discount_type' : `'none'`
+    const discountValueColumn = hasDiscountColumns ? 'p.discount_value' : '0'
+    const flashSaleColumn = hasFlashSaleColumns ? 'COALESCE(p.is_flash_sale, 0)' : '0'
+    const flashSalePriceColumn = hasFlashSaleColumns ? 'p.flash_sale_price' : 'NULL'
+    const flashSaleEndTimeColumn = hasFlashSaleColumns ? 'p.flash_sale_end_time' : 'NULL'
+
+    const [rows] = await conn.query(
+      `SELECT
+         p.id,
+         p.name,
+         p.price,
+         p.quantity,
+         p.unit,
+         p.image,
+         p.description,
+         p.category_id AS categoryId,
+         ${discountTypeColumn} AS discountType,
+         ${discountValueColumn} AS discountValue,
+         ${flashSaleColumn} AS isFlashSale,
+         ${flashSalePriceColumn} AS flashSalePrice,
+         ${flashSaleEndTimeColumn} AS flashSaleEndTime,
+         c.name AS categoryName
+       FROM products p
+       LEFT JOIN categories c ON c.id = p.category_id
+       WHERE p.is_active = 1
+       ORDER BY c.name ASC, p.name ASC`
+    )
+
+    return rows
+  } finally {
+    conn.release()
+  }
 }
 
 async function listCategories() {
@@ -427,22 +485,57 @@ async function createProductForWarehouse({
   warehouseId,
   name,
   price,
+  quantity,
   unit,
   image,
   description,
   categoryId,
   initialStock,
+  discountType,
+  discountValue,
+  isFlashSale,
+  flashSalePrice,
+  flashSaleEndTime,
 }) {
   const conn = await pool.getConnection()
 
   try {
     await conn.beginTransaction()
 
-    const [result] = await conn.query(
-      `INSERT INTO products (name, price, unit, image, description, category_id, latitude, longitude, is_active)
-       VALUES (?, ?, ?, ?, ?, ?, 0, 0, 1)`,
-      [name, price, unit || null, image || null, description || null, categoryId || null]
-    )
+    const hasDiscountColumns = await hasProductDiscountColumns(conn)
+    const hasFlashSaleColumns = await hasProductFlashSaleColumns(conn)
+
+    let insertSql = `INSERT INTO products (name, price, quantity, unit, image, description, category_id, latitude, longitude`
+    let insertValues = [
+      name,
+      price,
+      quantity != null ? Number(quantity) : null,
+      unit || null,
+      image || null,
+      description || null,
+      categoryId || null,
+    ]
+
+    if (hasDiscountColumns) {
+      insertSql += `, discount_type, discount_value`
+      insertValues.push(discountType || 'none', Number(discountValue || 0))
+    }
+
+    if (hasFlashSaleColumns) {
+      insertSql += `, is_flash_sale, flash_sale_price, flash_sale_end_time`
+      insertValues.push(
+        Number(isFlashSale ? 1 : 0),
+        isFlashSale ? Number(flashSalePrice || 0) : null,
+        isFlashSale ? flashSaleEndTime || null : null
+      )
+    }
+
+    insertSql += `, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0`
+    if (hasDiscountColumns) insertSql += `, ?, ?`
+    if (hasFlashSaleColumns) insertSql += `, ?, ?, ?`
+    insertSql += `, 1)`
+
+    const [result] = await conn.query(insertSql, insertValues)
 
     const productId = result.insertId
     const safeStock = Math.max(0, Number(initialStock || 0))
@@ -458,15 +551,27 @@ async function createProductForWarehouse({
 
     await conn.commit()
 
+    const discountTypeColumn = hasDiscountColumns ? 'p.discount_type' : `'none'`
+    const discountValueColumn = hasDiscountColumns ? 'p.discount_value' : '0'
+    const flashSaleColumn = hasFlashSaleColumns ? 'COALESCE(p.is_flash_sale, 0)' : '0'
+    const flashSalePriceColumn = hasFlashSaleColumns ? 'p.flash_sale_price' : 'NULL'
+    const flashSaleEndTimeColumn = hasFlashSaleColumns ? 'p.flash_sale_end_time' : 'NULL'
+
     const rows = await query(
       `SELECT
          p.id,
          p.name,
          p.price,
+         p.quantity,
          p.unit,
          p.image,
          p.description,
          p.category_id AS categoryId,
+         ${discountTypeColumn} AS discountType,
+         ${discountValueColumn} AS discountValue,
+         ${flashSaleColumn} AS isFlashSale,
+         ${flashSalePriceColumn} AS flashSalePrice,
+         ${flashSaleEndTimeColumn} AS flashSaleEndTime,
          c.name AS categoryName,
          c.slug AS categorySlug
        FROM products p
@@ -477,6 +582,132 @@ async function createProductForWarehouse({
     )
 
     return { product: rows[0] || null, initialStock: safeStock }
+  } catch (error) {
+    await conn.rollback()
+    throw error
+  } finally {
+    conn.release()
+  }
+}
+
+async function updateProductForWarehouse({
+  warehouseId,
+  productId,
+  name,
+  price,
+  quantity,
+  unit,
+  image,
+  description,
+  categoryId,
+  discountType,
+  discountValue,
+  isFlashSale,
+  flashSalePrice,
+  flashSaleEndTime,
+}) {
+  const conn = await pool.getConnection()
+
+  try {
+    await conn.beginTransaction()
+
+    const [inventoryRows] = await conn.query(
+      `SELECT product_id AS productId
+       FROM warehouse_inventory
+       WHERE warehouse_id = ? AND product_id = ?
+       LIMIT 1`,
+      [warehouseId, productId]
+    )
+
+    if (inventoryRows.length === 0) {
+      await conn.rollback()
+      return { ok: false, reason: 'product_not_in_inventory' }
+    }
+
+    const hasDiscountColumns = await hasProductDiscountColumns(conn)
+    const hasFlashSaleColumns = await hasProductFlashSaleColumns(conn)
+
+    let updateSql = `UPDATE products
+         SET name = ?,
+             price = ?,
+             quantity = ?,
+             unit = ?,
+             image = ?,
+             description = ?,
+             category_id = ?`
+    const updateValues = [
+      name,
+      price,
+      quantity != null ? Number(quantity) : null,
+      unit || null,
+      image || null,
+      description || null,
+      categoryId || null,
+    ]
+
+    if (hasDiscountColumns) {
+      updateSql += `,
+             discount_type = ?,
+             discount_value = ?`
+      updateValues.push(discountType || 'none', Number(discountValue || 0))
+    }
+
+    if (hasFlashSaleColumns) {
+      updateSql += `,
+             is_flash_sale = ?,
+             flash_sale_price = ?,
+             flash_sale_end_time = ?`
+      updateValues.push(
+        Number(isFlashSale ? 1 : 0),
+        isFlashSale ? Number(flashSalePrice || 0) : null,
+        isFlashSale ? flashSaleEndTime || null : null
+      )
+    }
+
+    updateSql += `
+         WHERE id = ?`
+    updateValues.push(productId)
+
+    const [result] = await conn.query(updateSql, updateValues)
+
+    if (result.affectedRows === 0) {
+      await conn.rollback()
+      return { ok: false, reason: 'product_not_found' }
+    }
+
+    await conn.commit()
+
+    const discountTypeColumn = hasDiscountColumns ? 'p.discount_type' : `'none'`
+    const discountValueColumn = hasDiscountColumns ? 'p.discount_value' : '0'
+    const flashSaleColumn = hasFlashSaleColumns ? 'COALESCE(p.is_flash_sale, 0)' : '0'
+    const flashSalePriceColumn = hasFlashSaleColumns ? 'p.flash_sale_price' : 'NULL'
+    const flashSaleEndTimeColumn = hasFlashSaleColumns ? 'p.flash_sale_end_time' : 'NULL'
+
+    const rows = await query(
+      `SELECT
+         p.id,
+         p.name,
+         p.price,
+         p.quantity,
+         p.unit,
+         p.image,
+         p.description,
+         p.category_id AS categoryId,
+         ${discountTypeColumn} AS discountType,
+         ${discountValueColumn} AS discountValue,
+         ${flashSaleColumn} AS isFlashSale,
+         ${flashSalePriceColumn} AS flashSalePrice,
+         ${flashSaleEndTimeColumn} AS flashSaleEndTime,
+         c.name AS categoryName,
+         c.slug AS categorySlug
+       FROM products p
+       LEFT JOIN categories c ON c.id = p.category_id
+       WHERE p.id = ?
+       LIMIT 1`,
+      [productId]
+    )
+
+    return { ok: true, product: rows[0] || null }
   } catch (error) {
     await conn.rollback()
     throw error
@@ -687,6 +918,7 @@ module.exports = {
   listDeliveryPartners,
   listProductsForInventory,
   createProductForWarehouse,
+  updateProductForWarehouse,
   setStock,
   updateDeliveryPartnerStatus,
   updateOrderStatus,

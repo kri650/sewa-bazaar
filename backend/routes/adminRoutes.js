@@ -1,6 +1,7 @@
 const express = require('express')
 const adminController = require('../controllers/adminController')
 const warehouseController = require('../controllers/warehouseController')
+const { productImageUpload } = require('../middleware/imageUploadMiddleware')
 
 const router = express.Router()
 
@@ -16,8 +17,8 @@ router.post('/delivery-boys', adminController.addDeliveryPartner)
 router.delete('/delivery-boys/:userId', adminController.removeDeliveryPartner)
 
 router.get('/products', adminController.getProducts)
-router.post('/products', adminController.createProduct)
-router.put('/products/:productId', adminController.editProduct)
+router.post('/products', productImageUpload.single('image'), adminController.createProduct)
+router.put('/products/:productId', productImageUpload.single('image'), adminController.editProduct)
 router.delete('/products', adminController.removeProduct)
 router.delete('/products/:productId', adminController.removeProduct)
 

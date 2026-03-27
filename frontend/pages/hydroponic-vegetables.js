@@ -40,7 +40,7 @@ export default function HydroponicVegetables() {
       query: {
         name: product.name,
         price: product.price,
-        size: product.unit,
+        size: product.quantity ? `${product.quantity} ${product.unit || ''}`.trim() : (product.unit || ''),
         image: product.image,
         category: 'Hydroponic Vegetables',
       },
@@ -70,7 +70,7 @@ export default function HydroponicVegetables() {
               
               <h4 className="p-title" onClick={() => handleProductClick(p)} style={{ cursor: 'pointer' }}>{p.name}</h4>
               <div className="p-price">Rs. {totalAmount}</div>
-              <div className="p-unit">{p.unit}</div>
+              <div className="p-unit">{p.quantity ? `${p.quantity} ${p.unit || ''}`.trim() : (p.unit || '')}</div>
 
               {/* Quantity Picker Logic */}
               <div className="qty-selector">

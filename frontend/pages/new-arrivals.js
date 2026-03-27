@@ -4,8 +4,9 @@ import Link from 'next/link'
 import ShopLayout from '../components/ShopLayout'
 import { useCart } from '../contexts/CartContext'
 import { useDelivery } from '../contexts/DeliveryContext'
+import API_BASE_URL from '../lib/apiBase'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
+const API_BASE = API_BASE_URL || ''
 
 const parseRupees = (price) => {
   if (price == null) return 0
@@ -35,7 +36,7 @@ export default function NewArrivals() {
             id: String(p.id),
             name: p.name || 'Product',
             price: parseRupees(p.price),
-            size: p.unit || '',
+            size: p.quantity ? `${p.quantity} ${p.unit || ''}`.trim() : (p.unit || ''),
             image: p.image || '',
             category: p.category || '',
             description: p.description || '',

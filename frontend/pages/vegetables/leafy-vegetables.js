@@ -26,7 +26,7 @@ export default function LeafyVegetablesPage() {
       query: {
         name: product.name,
         price: String(product.price),
-        size: product.unit,
+        size: product.quantity ? `${product.quantity} ${product.unit || ''}`.trim() : (product.unit || ''),
         image: product.image,
         category: 'Leafy Vegetables',
       },
@@ -76,7 +76,7 @@ export default function LeafyVegetablesPage() {
                 style={{ cursor: 'pointer' }}
               >{p.name}</h4>
               <div className="p-amount">Rs. {totalAmount}</div>
-              <div className="p-unit-badge">{p.unit}</div>
+              <div className="p-unit-badge">{p.quantity ? `${p.quantity} ${p.unit || ''}`.trim() : (p.unit || '')}</div>
 
               {/* Quantity Picker for all products */}
               <div className="qty-picker">

@@ -9,7 +9,8 @@ const DEFAULT_CONFIG = {
   warehouses: [],
 }
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000').replace(/\/$/, '')
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/$/, '')
+console.log('[DeliveryContext] API Base URL:', API_BASE_URL)
 
 // Haversine formula
 function haversineKm(lat1, lon1, lat2, lon2) {

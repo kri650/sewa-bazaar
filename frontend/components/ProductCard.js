@@ -3,6 +3,27 @@ import { useWishlist } from '../contexts/WishlistContext'
 
 const parseRupees = (price) => Number(String(price || '').replace(/[^\d.]/g, '')) || 0
 
+const parseBooleanLike = (value) => {
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'number') return value === 1
+  const normalized = String(value || '').trim().toLowerCase()
+  return normalized === '1' || normalized === 'true' || normalized === 'yes' || normalized === 'on'
+}
+
+const parseDateTimeMs = (value) => {
+  if (!value) return null
+  const ts = new Date(value).getTime()
+  return Number.isFinite(ts) ? ts : null
+}
+
+const formatCountdown = (remainingMs) => {
+  const totalSeconds = Math.max(0, Math.floor(remainingMs / 1000))
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+  return [hours, minutes, seconds].map((part) => String(part).padStart(2, '0')).join(':')
+}
+
 const formatRupees = (amount) =>
   `Rs. ${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
@@ -18,8 +39,13 @@ export default function ProductCard({
   id,
   name,
   price,
+  isFlashSale,
+  flashSalePrice,
+  flashSaleEndTime,
   originalPrice,
   discount,
+  discountType,
+  discountValue,
   size,
   image,
   badge,
@@ -31,16 +57,87 @@ export default function ProductCard({
   onAdd,
   onClick,
 }) {
+  // Debug: Log product data to verify flash sale fields are received
+  if (isFlashSale || flashSalePrice || flashSaleEndTime) {
+    console.log('[ProductCard] Flash Sale Data:', {
+      id,
+      name,
+      price,
+      isFlashSale,
+      flashSalePrice,
+      flashSaleEndTime,
+      parsedFlashSale: parseBooleanLike(isFlashSale),
+      parsedFlashSalePrice: parseRupees(flashSalePrice),
+      parsedFlashSaleEndTime: parseDateTimeMs(flashSaleEndTime),
+      nowMs: Date.now(),
+      endTableMs: parseDateTimeMs(flashSaleEndTime),
+      isActive: parseBooleanLike(isFlashSale) && parseDateTimeMs(flashSaleEndTime) && Date.now() < parseDateTimeMs(flashSaleEndTime),
+    })
+  }
+
   const { items: wishlistItems, toggle } = useWishlist()
+  const [nowMs, setNowMs] = React.useState(() => Date.now())
+
   const myId = String(id ?? name ?? image ?? '')
   const isWished = wishlistItems.some((p) => String(p.id) === myId)
   const numeric = parseRupees(price)
+
+  const flashEndMs = React.useMemo(() => parseDateTimeMs(flashSaleEndTime), [flashSaleEndTime])
+  const flashNumeric = parseRupees(flashSalePrice)
+  const isFlashEnabled = parseBooleanLike(isFlashSale)
+
+  React.useEffect(() => {
+    if (!flashEndMs || flashEndMs <= Date.now()) return undefined
+
+    setNowMs(Date.now())
+    const intervalId = setInterval(() => {
+      setNowMs(Date.now())
+    }, 1000)
+
+    return () => clearInterval(intervalId)
+  }, [flashEndMs])
+
+  const isFlashSaleActive =
+    isFlashEnabled &&
+    flashEndMs &&
+    nowMs < flashEndMs &&
+    flashNumeric > 0 &&
+    numeric > 0 &&
+    flashNumeric < numeric
+
+  const normalizedDiscountType = String(discountType || '').trim().toLowerCase()
+  const numericDiscountValue = Number(String(discountValue || '').replace(/[^\d.]/g, ''))
+  const hasDiscountTypeValue =
+    Number.isFinite(numericDiscountValue) &&
+    numericDiscountValue > 0 &&
+    (normalizedDiscountType === 'percentage' || normalizedDiscountType === 'flat' || normalizedDiscountType === 'fixed')
+
+  let discountedUnitPrice = numeric
+  let discountPercentFromType = 0
+
+  if (hasDiscountTypeValue && numeric > 0) {
+    if (normalizedDiscountType === 'percentage') {
+      discountedUnitPrice = Math.max(0, numeric - (numeric * numericDiscountValue) / 100)
+      discountPercentFromType = Math.round(Math.min(numericDiscountValue, 100))
+    } else if (normalizedDiscountType === 'fixed') {
+      discountedUnitPrice = Math.min(numeric, Math.max(0, numericDiscountValue))
+      discountPercentFromType = Math.round(((numeric - discountedUnitPrice) / numeric) * 100)
+    } else {
+      discountedUnitPrice = Math.max(0, numeric - numericDiscountValue)
+      discountPercentFromType = Math.round(((numeric - discountedUnitPrice) / numeric) * 100)
+    }
+    discountedUnitPrice = Number(discountedUnitPrice.toFixed(2))
+  }
+
+  const unitPrice = isFlashSaleActive ? flashNumeric : discountedUnitPrice
   const displayPrice =
     showQty
-      ? formatRupees(numeric * qty)
+      ? formatRupees(unitPrice * qty)
       : typeof price === 'string' && price.trim().startsWith('Rs')
-        ? price
-        : formatRupees(numeric)
+        ? isFlashSaleActive
+          ? formatRupees(unitPrice)
+          : price
+        : formatRupees(unitPrice)
 
   const origNumericProp = parseRupees(originalPrice)
   const discountFromProp = discount ? Number(String(discount).replace(/[^\d]/g, '')) : null
@@ -48,7 +145,10 @@ export default function ProductCard({
   let finalDiscount = 0
   let finalOrigNumeric = origNumericProp || 0
 
-  if (discountFromProp) {
+  if (!isFlashSaleActive && hasDiscountTypeValue) {
+    finalDiscount = discountPercentFromType
+    finalOrigNumeric = numeric
+  } else if (discountFromProp) {
     finalDiscount = Math.round(discountFromProp)
     if (!finalOrigNumeric && numeric > 0) {
       finalOrigNumeric = Math.round((numeric * 100) / (100 - finalDiscount))
@@ -61,14 +161,15 @@ export default function ProductCard({
     if (numeric > 0) finalOrigNumeric = Math.round((numeric * 100) / (100 - finalDiscount))
   }
 
-  const hasDiscount = Boolean(finalDiscount && finalOrigNumeric > numeric)
+  const hasDiscount = !isFlashSaleActive && Boolean(finalDiscount && finalOrigNumeric > unitPrice)
+  const flashCountdown = isFlashSaleActive ? formatCountdown(flashEndMs - nowMs) : null
 
   return (
     <article className="productCard">
       <div
         className="productImageWrap"
         onClick={() => onClick && onClick()}
-        style={{ cursor: onClick ? 'pointer' : undefined, position: 'relative' }}
+        style={{ cursor: onClick ? 'pointer' : undefined }}
       >
         <img
           className={name && name.includes('Potato') ? 'forceCover' : ''}
@@ -76,6 +177,9 @@ export default function ProductCard({
           alt={name}
           loading="lazy"
         />
+        {isFlashSaleActive ? (
+          <span className="flashSaleBadge">Flash Sale</span>
+        ) : null}
         {/* Wishlist heart — top-right of image */}
         <button
           type="button"
@@ -113,13 +217,22 @@ export default function ProductCard({
         {name}
       </p>
 
+      {description ? <p className="productDescription">{description}</p> : null}
+
       {badge ? (
         <span className="mangoBadge">{badge}</span>
       ) : null}
 
-      {description ? <p className="productDescription">{description}</p> : null}
-
       <p className="productPrice" style={{ margin: 0, textAlign: 'center' }}>{displayPrice}</p>
+
+      {isFlashSaleActive ? (
+        <div className="priceRow" style={{ marginTop: 6 }}>
+          <span className="productOriginal">{formatRupees(numeric)}</span>
+          <span className="productDiscount" style={{ color: '#c2410c', fontWeight: 700 }}>
+            Ends in {flashCountdown}
+          </span>
+        </div>
+      ) : null}
 
       {hasDiscount ? (
         <div className="priceRow">
@@ -130,7 +243,7 @@ export default function ProductCard({
         </div>
       ) : null}
 
-      <span className="productSize">{size}</span>
+      <span className="productSize" suppressHydrationWarning>{size}</span>
       {note ? <small className="productNote">{note}</small> : null}
 
       {showQty ? (

@@ -5,7 +5,8 @@ import { useDelivery } from '../contexts/DeliveryContext'
 import ProductCard from './ProductCard'
 import FilterBar from './FilterBar'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+console.log('[CategoryPage] API Base URL:', API_BASE)
 
 const parseRupees = (price) => Number(String(price ?? '').replace(/[^\d.]/g, '')) || 0
 const formatRupees = (amount) =>
@@ -17,6 +18,12 @@ const normalizeCategoryName = (value) =>
     .toLowerCase()
     .replace(/&/g, ' and ')
     .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+
+const canonicalCategoryName = (value) =>
+  normalizeCategoryName(value)
+    .replace(/\band\b/g, ' ')
+    .replace(/\s+/g, ' ')
     .trim()
 
 const CATEGORY_ALIASES = {
@@ -36,8 +43,15 @@ function categoryMatches(pageCategory, productCategory) {
   if (!a || !b) return false
   if (a === b) return true
 
+  const canonicalA = canonicalCategoryName(a)
+  const canonicalB = canonicalCategoryName(b)
+  if (canonicalA && canonicalA === canonicalB) return true
+
   const aCandidates = new Set([a, ...(CATEGORY_ALIASES[a] || [])])
   const bCandidates = new Set([b, ...(CATEGORY_ALIASES[b] || [])])
+
+  if (canonicalA) aCandidates.add(canonicalA)
+  if (canonicalB) bCandidates.add(canonicalB)
 
   for (const candidate of aCandidates) {
     if (bCandidates.has(candidate)) return true
@@ -77,25 +91,50 @@ export default function CategoryPage({
       ? liveProducts.filter((product) => categoryMatches(category, product.category))
       : []
 
-    const seenNames = new Set(staticList.map((product) => normalizeProductName(product.name)))
     const merged = [...staticList]
+    const indexByName = new Map()
+    merged.forEach((product, index) => {
+      const key = normalizeProductName(product.name)
+      if (key) indexByName.set(key, index)
+    })
 
     for (const product of liveList) {
       const key = normalizeProductName(product.name)
-      if (!key || seenNames.has(key)) continue
-      seenNames.add(key)
-      merged.push({
+      if (!key) continue
+      const quantityValue =
+        product.quantity === undefined || product.quantity === null || product.quantity === ''
+          ? null
+          : Number(product.quantity)
+      const normalizedQuantity = Number.isFinite(quantityValue) ? quantityValue : null
+      const liveNormalized = {
         id: String(product.id),
         name: product.name,
         price: Number(product.price || 0),
-        size: product.unit || '',
+        size: normalizedQuantity ? `${normalizedQuantity} ${product.unit || ''}`.trim() : (product.unit || ''),
+        quantity: normalizedQuantity,
         unit: product.unit || '',
+        discountType: product.discountType || product.discount_type || 'none',
+        discountValue: product.discountValue ?? product.discount_value ?? 0,
+        isFlashSale: product.isFlashSale ?? product.is_flash_sale ?? false,
+        flashSalePrice: product.flashSalePrice ?? product.flash_sale_price ?? null,
+        flashSaleEndTime: product.flashSaleEndTime ?? product.flash_sale_end_time ?? null,
         image: product.image || '',
         category: product.category || category || '',
         description: product.description || '',
         lowStock: Boolean(Number(product.lowStock || 0)),
         stockQuantity: Number(product.stockQuantity || 0),
-      })
+      }
+
+      if (indexByName.has(key)) {
+        const index = indexByName.get(key)
+        merged[index] = {
+          ...merged[index],
+          ...liveNormalized,
+        }
+      } else {
+        indexByName.set(key, merged.length)
+        merged.push(liveNormalized)
+      }
     }
 
     return merged
@@ -239,11 +278,19 @@ export default function CategoryPage({
               const routeId = getRouteId ? getRouteId(product) : String(product.id)
               const qty = quantities[routeId] || 1
               const normalizedPrice = parseRupees(product.price)
-              const normalizedSize = product.size || product.unit || ''
+              const normalizedSize = product.quantity ? `${product.quantity} ${product.unit || ''}`.trim() : (product.size || product.unit || '')
               const stockMeta = stockMetaByName[normalizeProductName(product.name)]
               const lowStockNote = (product.lowStock || stockMeta?.lowStock)
                 ? `Low stock${(product.stockQuantity || stockMeta?.stockQuantity || 0) > 0 ? ` (${product.stockQuantity || stockMeta?.stockQuantity || 0} left)` : ''}`
                 : undefined
+
+              // Debug: Log product data to verify quantity exists
+              console.log('[CategoryPage] Product data:', { 
+                name: product.name, 
+                quantity: product.quantity, 
+                unit: product.unit, 
+                normalizedSize 
+              })
 
               return (
                 <ProductCard
@@ -251,8 +298,14 @@ export default function CategoryPage({
                   id={product.id ?? routeId}
                   name={product.name}
                   price={normalizedPrice}
+                  isFlashSale={product.isFlashSale}
+                  flashSalePrice={product.flashSalePrice}
+                  flashSaleEndTime={product.flashSaleEndTime}
                   originalPrice={product.originalPrice}
                   discount={product.discount}
+                  discountType={product.discountType}
+                  discountValue={product.discountValue}
+                  description={product.description}
                   size={normalizedSize}
                   image={product.image}
                   badge={deliveryBadge || product.badge || undefined}

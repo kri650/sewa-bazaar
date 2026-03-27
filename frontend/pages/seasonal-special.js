@@ -38,7 +38,7 @@ export default function SeasonalSpecialPage() {
       query: {
         name: product.name,
         price: product.price,
-        size: product.unit,
+        size: product.quantity ? `${product.quantity} ${product.unit || ''}`.trim() : (product.unit || ''),
         image: product.image,
         category: 'Seasonal Specials',
       },
@@ -68,7 +68,7 @@ export default function SeasonalSpecialPage() {
               
               <h4 className="item-name" onClick={() => handleProductClick(p)} style={{ cursor: 'pointer' }}>{p.name}</h4>
               <div className="item-price">Rs. {totalAmount}</div>
-              <div className="unit-badge">{p.unit}</div>
+              <div className="unit-badge">{p.quantity ? `${p.quantity} ${p.unit || ''}`.trim() : (p.unit || '')}</div>
 
               {/* Quantity Selector */}
               <div className="qty-control">

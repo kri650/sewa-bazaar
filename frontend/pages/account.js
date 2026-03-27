@@ -6,7 +6,8 @@ import ShopLayout from '../components/ShopLayout'
 import Link from 'next/link'
 import { resolveProductImage } from '../lib/productImage'
 
-const API = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+console.log('[AccountPage] API Base URL:', API)
 const TOKEN_KEY = 'sbUserToken'
 const USER_KEY  = 'sbUserData'
 

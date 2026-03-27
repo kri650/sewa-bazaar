@@ -6,8 +6,9 @@ import Link from 'next/link'
 import ShopLayout from '../../components/ShopLayout'
 import { resolveProductImage } from '../../lib/productImage'
 import { useCart } from '../../contexts/CartContext'
+import API_BASE_URL from '../../lib/apiBase'
 
-const API = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
+const API = API_BASE_URL || ''
 const TOKEN_KEY = 'sbUserToken'
 
 function formatDateShort(value) {

@@ -5,9 +5,88 @@ import ShopLayout from '../../components/ShopLayout';
 import { useCart } from '../../contexts/CartContext';
 import { useDelivery } from '../../contexts/DeliveryContext';
 import { useWishlist } from '../../contexts/WishlistContext';
+import API_BASE_URL from '../../lib/apiBase'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
+const API_BASE = API_BASE_URL || ''
 const normalizeProductName = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+
+const parsePrice = (value) => {
+  if (value == null) return 0
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0
+  const parsed = Number(String(value).replace(/[^\d.]/g, ''))
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+const parseBooleanLike = (value) => {
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'number') return value === 1
+  const normalized = String(value || '').trim().toLowerCase()
+  return normalized === '1' || normalized === 'true' || normalized === 'yes' || normalized === 'on'
+}
+
+const parseDateMs = (value) => {
+  if (!value) return null
+  const timestamp = new Date(value).getTime()
+  return Number.isFinite(timestamp) ? timestamp : null
+}
+
+const resolveEffectivePrice = (product) => {
+  const basePrice = parsePrice(product?.price)
+  const flashPrice = parsePrice(product?.flashSalePrice)
+  const flashEnabled = parseBooleanLike(product?.isFlashSale)
+  const flashEndMs = parseDateMs(product?.flashSaleEndTime)
+  const now = Date.now()
+
+  const flashActive =
+    flashEnabled &&
+    flashEndMs &&
+    now < flashEndMs &&
+    flashPrice > 0 &&
+    basePrice > 0 &&
+    flashPrice < basePrice
+
+  if (flashActive) {
+    return {
+      price: flashPrice,
+      originalPrice: basePrice,
+      discount: Math.round(((basePrice - flashPrice) / basePrice) * 100),
+      isFlashSaleActive: true,
+    }
+  }
+
+  const normalizedDiscountType = String(product?.discountType || '').trim().toLowerCase()
+  const discountValue = parsePrice(product?.discountValue)
+  const hasDiscountTypeValue =
+    discountValue > 0 &&
+    (normalizedDiscountType === 'percentage' || normalizedDiscountType === 'flat' || normalizedDiscountType === 'fixed')
+
+  if (hasDiscountTypeValue && basePrice > 0) {
+    let discountedPrice = basePrice
+    if (normalizedDiscountType === 'percentage') {
+      discountedPrice = Math.max(0, basePrice - (basePrice * discountValue) / 100)
+    } else if (normalizedDiscountType === 'fixed') {
+      discountedPrice = Math.min(basePrice, Math.max(0, discountValue))
+    } else {
+      discountedPrice = Math.max(0, basePrice - discountValue)
+    }
+
+    discountedPrice = Number(discountedPrice.toFixed(2))
+
+    return {
+      price: discountedPrice,
+      originalPrice: basePrice,
+      discount: Math.round(((basePrice - discountedPrice) / basePrice) * 100),
+      isFlashSaleActive: false,
+    }
+  }
+
+  return {
+    price: basePrice,
+    originalPrice: basePrice,
+    discount: 0,
+    isFlashSaleActive: false,
+  }
+}
 
 // All product data from homepage
 const allProducts = [
@@ -88,6 +167,7 @@ export default function ProductDetailPage() {
 
     const idValue = Array.isArray(id) ? id[0] : id;
     const queryData = router.query || {};
+    const canFetchById = /^\d+$/.test(String(idValue))
 
     // 1. Check local hardcoded list first
     const found = allProducts.find((p) => p.id === idValue);
@@ -106,26 +186,45 @@ export default function ProductDetailPage() {
       return;
     }
 
-    // 2. Try query params (passed from homepage card click)
+    // 2. Use query params as temporary fallback while API hydration resolves (when possible)
     if (queryData.name) {
-      const parsedPrice = Number(queryData.price);
+      const parsedPrice = Number(queryData.price)
+      let displaySize = queryData.size || ''
+      if (displaySize && !/^\d/.test(displaySize.trim())) {
+        displaySize = '1 ' + displaySize
+      }
+
       setProduct({
         id: idValue,
         name: String(queryData.name),
         price: Number.isFinite(parsedPrice) ? parsedPrice : 0,
-        size: String(queryData.size || '1 Unit'),
+        size: displaySize || '1 Unit',
         image: String(queryData.image || ''),
         category: String(queryData.category || 'Products'),
         description: queryData.description || `Fresh ${String(queryData.name)} from our collection.`,
+        discountType: String(queryData.discountType || queryData.discount_type || 'none'),
+        discountValue: Number(queryData.discountValue || queryData.discount_value || 0),
+        isFlashSale: parseBooleanLike(queryData.isFlashSale ?? queryData.is_flash_sale),
+        flashSalePrice: parsePrice(queryData.flashSalePrice ?? queryData.flash_sale_price),
+        flashSaleEndTime: queryData.flashSaleEndTime || queryData.flash_sale_end_time || null,
         inStock: true,
         rating: 0,
         totalReviews: 0,
-      });
-      setLoading(false);
-      return;
+      })
+
+      if (!canFetchById) {
+        setLoading(false)
+        return
+      }
     }
 
-    // 3. Fetch from backend API (admin-added products)
+    if (!canFetchById) {
+      setProduct(null)
+      setLoading(false)
+      return
+    }
+
+    // 3. Fetch from backend API for numeric IDs to get authoritative pricing/flash-sale fields
     fetch(`${API_BASE}/products/${idValue}`)
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
@@ -134,10 +233,15 @@ export default function ProductDetailPage() {
             id: String(data.id),
             name: data.name,
             price: Number(data.price) || 0,
-            size: data.unit || '1 Unit',
+            size: data.quantity ? `${data.quantity} ${data.unit || ''}`.trim() : (data.unit || '1 Unit'),
             image: data.image || '',
             category: data.category || 'Products',
             description: data.description || `Fresh ${data.name} from our collection.`,
+            discountType: data.discountType || data.discount_type || 'none',
+            discountValue: Number(data.discountValue ?? data.discount_value ?? 0),
+            isFlashSale: parseBooleanLike(data.isFlashSale ?? data.is_flash_sale),
+            flashSalePrice: parsePrice(data.flashSalePrice ?? data.flash_sale_price),
+            flashSaleEndTime: data.flashSaleEndTime || data.flash_sale_end_time || null,
             inStock: Number(data.stockQuantity || 0) > 0,
             lowStock: Boolean(Number(data.lowStock || 0)),
             stockQuantity: Number(data.stockQuantity || 0),
@@ -320,7 +424,8 @@ export default function ProductDetailPage() {
     );
   }
 
-  const totalAmount = product.price * quantity;
+  const pricing = resolveEffectivePrice(product)
+  const totalAmount = pricing.price * quantity
 
   // Wishlist hook
   const { items: wishlistItems, toggle: toggleWishlist } = useWishlist();
@@ -393,8 +498,16 @@ export default function ProductDetailPage() {
                   <span className="price">{formatRupees(totalAmount)}</span>
                   <span className="unit-info">{product.size}</span>
                 </div>
+                {pricing.originalPrice > pricing.price && (
+                  <div className="price-per-unit" style={{ marginBottom: 4 }}>
+                    <span style={{ textDecoration: 'line-through', marginRight: 8 }}>
+                      {formatRupees(pricing.originalPrice)}
+                    </span>
+                    <span style={{ color: '#007600', fontWeight: 600 }}>{pricing.discount}% OFF</span>
+                  </div>
+                )}
                 <div className="price-per-unit">
-                  {formatRupees(product.price)} per {product.size}
+                  {formatRupees(pricing.price)} per {product.size}
                 </div>
               </div>
 

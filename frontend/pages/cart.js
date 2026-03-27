@@ -8,7 +8,8 @@ import { useDelivery } from '../contexts/DeliveryContext'
 import { resolveProductImage } from '../lib/productImage'
 import { toast } from 'react-hot-toast'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+console.log('[CartPage] API Base URL:', API_BASE)
 
 export default function CartPage() {
   const { cart, removeFromCart, updateQuantity, getCartTotal, clearCart } = useCart()
@@ -31,6 +32,11 @@ export default function CartPage() {
     pincode: '',
     paymentMethod: 'cod',
   })
+  const [couponCode, setCouponCode] = useState('')
+  const [couponLoading, setCouponLoading] = useState(false)
+  const [couponError, setCouponError] = useState('')
+  const [couponSuccess, setCouponSuccess] = useState('')
+  const [appliedCoupon, setAppliedCoupon] = useState(null)
 
   // Pre-fill from logged-in user session
   useEffect(() => {
@@ -116,6 +122,68 @@ export default function CartPage() {
 
   const handleFormChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
+  }
+
+  const getItemUnitPrice = (item) => {
+    const numeric = Number(item?.price)
+    if (!Number.isNaN(numeric)) return numeric
+    return parseFloat(String(item?.price || '').replace(/[^\d.]/g, '')) || 0
+  }
+
+  const handleApplyCoupon = async () => {
+    const code = String(couponCode || '').trim().toUpperCase()
+    setCouponError('')
+    setCouponSuccess('')
+
+    if (!code) {
+      setCouponError('Enter a coupon code')
+      return
+    }
+    if (!cart.length) {
+      setCouponError('Your cart is empty')
+      return
+    }
+
+    setCouponLoading(true)
+    try {
+      const items = cart.map((item) => ({
+        productId: Number(item.id),
+        qty: Number(item.quantity || 0),
+        price: getItemUnitPrice(item),
+      }))
+
+      const res = await fetch(`${API_BASE}/api/coupons/validate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, items }),
+      })
+      const data = await res.json()
+
+      if (!res.ok || !data?.valid) {
+        setAppliedCoupon(null)
+        setCouponError('Invalid coupon')
+        return
+      }
+
+      setAppliedCoupon({
+        code,
+        discountAmount: Number(data.discountAmount || 0),
+      })
+      setCouponSuccess('Coupon Applied')
+      setCouponError('')
+    } catch (_err) {
+      setAppliedCoupon(null)
+      setCouponError('Invalid coupon')
+    } finally {
+      setCouponLoading(false)
+    }
+  }
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null)
+    setCouponCode('')
+    setCouponError('')
+    setCouponSuccess('')
   }
 
   const getAuthHeader = () => {
@@ -241,8 +309,10 @@ export default function CartPage() {
   const cartTotal = getCartTotal()
   const deliveryFee = cartTotal > 500 ? 0 : 50
   const platformFee = 7
-  const discount = Math.round(cartTotal * 0.1) // 10% discount
-  const finalTotal = cartTotal - discount + deliveryFee + platformFee
+  const discount = Math.round(cartTotal * 0.1) // 10% product discount
+  const discountedSubtotal = Math.max(0, cartTotal - discount)
+  const couponDiscount = Math.min(discountedSubtotal, Number(appliedCoupon?.discountAmount || 0))
+  const finalTotal = discountedSubtotal - couponDiscount + deliveryFee + platformFee
 
   if (cart.length === 0 && checkoutStep !== 'success') {
     return (
@@ -526,6 +596,7 @@ export default function CartPage() {
                 <hr className="summaryDivider" />
                 <div className="summaryRow"><span>Subtotal</span><span>₹{cartTotal.toFixed(2)}</span></div>
                 <div className="summaryRow green"><span>Discount (10%)</span><span>−₹{discount.toFixed(2)}</span></div>
+                {couponDiscount > 0 ? <div className="summaryRow green"><span>Coupon Discount</span><span>−₹{couponDiscount.toFixed(2)}</span></div> : null}
                 <div className="summaryRow"><span>Delivery</span><span>{deliveryFee === 0 ? <span className="green">FREE</span> : `₹${deliveryFee}`}</span></div>
                 <div className="summaryRow"><span>Platform Fee</span><span>₹{platformFee}</span></div>
                 <hr className="summaryDivider" />
@@ -621,6 +692,13 @@ export default function CartPage() {
               {cart.map((item) => {
                 const price = parseFloat(String(item.price).replace(/[^\d.]/g, '')) || 0
                 const itemTotal = price * item.quantity
+                const rawDiscount = Number(String(item.discount || '').replace(/[^\d.]/g, ''))
+                const saleLabel = item.isFlashSaleActive ? 'Flash Sale' : 'Sale'
+                const fallbackOriginal = Number((price * 1.3).toFixed(2))
+                const originalPrice = parseFloat(String(item.originalPrice).replace(/[^\d.]/g, '')) || fallbackOriginal
+                const inferredHasDiscount = originalPrice > price
+                const hasDiscount = Number.isFinite(rawDiscount) ? rawDiscount > 0 : inferredHasDiscount
+                const discountPercent = originalPrice > price ? Math.round(((originalPrice - price) / originalPrice) * 100) : rawDiscount
 
                 return (
                   <article key={item.id} className="cartItem">
@@ -637,15 +715,18 @@ export default function CartPage() {
                     </div>
 
                     <div className="itemDetails">
-                      <h3>{item.name}</h3>
+                      <div className="itemTitleRow">
+                        <h3>{item.name}</h3>
+                        {hasDiscount ? <span className="salePill">{saleLabel}</span> : null}
+                      </div>
                       {item.size || item.unit ? (
                         <p className="itemSize">Size: {item.size || item.unit}</p>
                       ) : null}
                       
                       <div className="itemPricing">
                         <span className="discountedPrice">Rs. {price.toFixed(2)}</span>
-                        <span className="originalPrice">Rs. {(price * 1.3).toFixed(2)}</span>
-                        <span className="discountBadge">30% off</span>
+                        {hasDiscount ? <span className="originalPrice">Rs. {originalPrice.toFixed(2)}</span> : null}
+                        {hasDiscount ? <span className="discountBadge">{discountPercent}% off</span> : null}
                       </div>
 
                       <p className="deliveryInfo">
@@ -741,6 +822,47 @@ export default function CartPage() {
                 )}
               </div>
 
+              <div className="couponSection">
+                <div className="couponHeading">Apply Coupon</div>
+                <div className="couponInputRow">
+                  <input
+                    type="text"
+                    value={couponCode}
+                    onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
+                    placeholder="Enter coupon code"
+                    className="couponInput"
+                    disabled={couponLoading || Boolean(appliedCoupon)}
+                  />
+                  {!appliedCoupon ? (
+                    <button
+                      type="button"
+                      className="applyCouponBtn"
+                      onClick={handleApplyCoupon}
+                      disabled={couponLoading}
+                    >
+                      {couponLoading ? 'Applying...' : 'Apply'}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="removeCouponBtn"
+                      onClick={handleRemoveCoupon}
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+                {couponSuccess ? <div className="couponSuccess">{couponSuccess}</div> : null}
+                {couponError ? <div className="couponError">{couponError}</div> : null}
+              </div>
+
+              {couponDiscount > 0 ? (
+                <div className="priceRow discount">
+                  <span>Coupon Discount</span>
+                  <span className="greenText">− ₹{couponDiscount.toFixed(2)}</span>
+                </div>
+              ) : null}
+
               <hr className="priceDivider" />
 
               <div className="priceRow totalRow">
@@ -749,7 +871,7 @@ export default function CartPage() {
               </div>
 
               <div className="savingsMessage">
-                <span className="checkIcon">✓</span> You will save ₹{discount.toFixed(2)} on this order
+                <span className="checkIcon">✓</span> You will save ₹{(discount + couponDiscount).toFixed(2)} on this order
               </div>
 
               <button className="placeOrderBtn checkoutDesktopBtn" onClick={() => setCheckoutStep('details')}>
@@ -855,7 +977,14 @@ export default function CartPage() {
             gap: 8px;
           }
 
-          .itemDetails h3 {
+          .itemTitleRow {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 10px;
+          }
+
+          .itemTitleRow h3 {
             margin: 0;
             font-size: 16px;
             color: #212121;
@@ -865,6 +994,22 @@ export default function CartPage() {
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
+          }
+
+          .salePill {
+            flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 5px 12px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #fb923c 0%, #f97316 45%, #ea580c 100%);
+            color: #fff;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+            box-shadow: 0 3px 10px rgba(234, 88, 12, 0.28);
           }
 
           .itemSize {
@@ -1069,6 +1214,83 @@ export default function CartPage() {
             margin: 20px 0;
           }
 
+          .couponSection {
+            margin-top: 8px;
+            margin-bottom: 8px;
+          }
+
+          .couponHeading {
+            font-size: 13px;
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 8px;
+          }
+
+          .couponInputRow {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          }
+
+          .couponInput {
+            width: 100%;
+            min-width: 0;
+            height: 36px;
+            padding: 0 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #fff;
+            color: #212121;
+            font-size: 13px;
+            font-family: inherit;
+            outline: none;
+            box-sizing: border-box;
+          }
+
+          .couponInput:focus {
+            border-color: #619233;
+          }
+
+          .applyCouponBtn,
+          .removeCouponBtn {
+            height: 36px;
+            border: 1px solid #619233;
+            border-radius: 4px;
+            background: #619233;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 0 14px;
+            cursor: pointer;
+            white-space: nowrap;
+          }
+
+          .applyCouponBtn:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+          }
+
+          .removeCouponBtn {
+            background: #fff;
+            border-color: #d0d7de;
+            color: #4f7a29;
+          }
+
+          .couponSuccess,
+          .couponError {
+            margin-top: 8px;
+            font-size: 12px;
+            font-weight: 500;
+          }
+
+          .couponSuccess {
+            color: #2e7d32;
+          }
+
+          .couponError {
+            color: #e53935;
+          }
+
           .totalRow {
             margin-bottom: 20px;
             font-size: 18px;
@@ -1130,6 +1352,10 @@ export default function CartPage() {
             .placeOrderMobile {
               display: block;
             }
+
+            .couponInputRow {
+              align-items: stretch;
+            }
           }
 
           @media (max-width: 600px) {
@@ -1148,8 +1374,13 @@ export default function CartPage() {
               height: 110px;
             }
 
-            .itemDetails h3 {
+            .itemTitleRow h3 {
               font-size: 14px;
+            }
+
+            .salePill {
+              font-size: 10px;
+              padding: 4px 10px;
             }
 
             .discountedPrice {

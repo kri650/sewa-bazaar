@@ -38,7 +38,7 @@ export default function RootVegetablesPage() {
       query: {
         name: product.name,
         price: String(product.price),
-        size: product.unit,
+        size: product.quantity ? `${product.quantity} ${product.unit || ''}`.trim() : (product.unit || ''),
         image: product.image,
         category: 'Root Vegetables',
       },
@@ -68,7 +68,7 @@ export default function RootVegetablesPage() {
               
               <h4 className="p-title" onClick={() => handleProductClick(p)} style={{ cursor: 'pointer' }}>{p.name}</h4>
               <div className="p-price">Rs. {calculatedPrice}</div>
-              <div className="p-unit-tag">{p.unit}</div>
+              <div className="p-unit-tag">{p.quantity ? `${p.quantity} ${p.unit || ''}`.trim() : (p.unit || '')}</div>
 
               {/* Quantity Picker */}
               <div className="qty-picker">

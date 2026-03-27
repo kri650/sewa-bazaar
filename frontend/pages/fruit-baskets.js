@@ -24,7 +24,7 @@ export default function FruitBaskets() {
       query: {
         name: product.name,
         price: String(product.price),
-        size: product.size || product.unit || '',
+        size: product.quantity ? `${product.quantity} ${product.unit || ''}`.trim() : (product.unit || ''),
         image: product.image,
         category: 'Fruit Baskets',
       },
@@ -67,7 +67,7 @@ export default function FruitBaskets() {
                 
                 <h4 className="p-title" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>{item.name}</h4>
                 <div className="p-amount">Rs. {totalAmount}</div>
-                <div className="p-unit-badge">{item.size}</div>
+                <div className="p-unit-badge">{item.quantity ? `${item.quantity} ${item.unit || ''}`.trim() : (item.size || item.unit || '')}</div>
 
                 {/* Quantity Picker */}
                 <div className="qty-picker">

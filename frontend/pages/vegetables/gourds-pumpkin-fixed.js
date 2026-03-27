@@ -36,7 +36,7 @@ export default function GourdsAndPumpkinPage() {
       query: {
         name: product.name,
         price: String(product.price),
-        size: product.unit,
+        size: product.quantity ? `${product.quantity} ${product.unit || ''}`.trim() : (product.unit || ''),
         image: product.image,
         category: 'Gourds And Pumpkin',
       },
@@ -59,7 +59,7 @@ export default function GourdsAndPumpkinPage() {
               </div>
               <div className="product-info">
                 <h4 className="item-name" onClick={() => handleProductClick(p)} style={{ cursor: 'pointer' }}>{p.name}</h4>
-                <p className="item-unit">{p.unit}</p>
+                <p className="item-unit">{p.quantity ? `${p.quantity} ${p.unit || ''}`.trim() : (p.unit || '')}</p>
                 <p className="item-price">₹ {p.price.toFixed(2)}</p>
                 <div className="quantity-controls">
                   <button onClick={(e) => { e.stopPropagation(); updateQty(p.id, -1); }}>−</button>

@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useRouter } from 'next/router'
 import { createPortal } from 'react-dom'
 import { useCart } from '../contexts/CartContext'
@@ -7,6 +7,9 @@ import { useLocation } from '../contexts/LocationContext'
 import { useDelivery } from '../contexts/DeliveryContext'
 import LocationPicker from './LocationPicker'
 import staticProducts from '../data/products'
+import { buildApiUrl } from '../lib/apiBase'
+
+const normalizeProductName = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
 
 const navItems = [
   'BEST DEAL',
@@ -57,14 +60,84 @@ export default function SiteHeader({ showTopHeader = true }) {
   const suggestionsRef = useRef(null)
   const inputRef = useRef(null)
   const [inlineCompletion, setInlineCompletion] = useState('')
-  const [liveProducts] = useState(staticProducts)
+  const [liveProducts, setLiveProducts] = useState([])
   const [sessionUser, setSessionUser] = useState(null)
+  const locationLabel = typeof location === 'string'
+    ? location
+    : (typeof location?.label === 'string' ? location.label : '')
 
   // read user session from localStorage after mount
   useEffect(() => {
     const raw = localStorage.getItem('sbUserData')
     if (raw) { try { setSessionUser(JSON.parse(raw)) } catch (_) {} }
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const fetchProducts = async () => {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 7000)
+
+      try {
+        const response = await fetch(buildApiUrl('/api/products'), { signal: controller.signal })
+        if (!response.ok) {
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('[SiteHeader] Products API returned non-OK status:', response.status)
+          }
+          return
+        }
+
+        const rows = await response.json()
+        if (cancelled || !Array.isArray(rows)) return
+        setLiveProducts(rows)
+      } catch (error) {
+        if (process.env.NODE_ENV === 'development' && error?.name !== 'AbortError') {
+          console.warn('[SiteHeader] Failed to fetch products')
+        }
+        setLiveProducts([])
+      } finally {
+        clearTimeout(timeoutId)
+      }
+    }
+
+    fetchProducts()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const mergedProducts = useMemo(() => {
+    const staticList = Array.isArray(staticProducts) ? staticProducts : []
+    const rows = Array.isArray(liveProducts) ? liveProducts : []
+    const seenNames = new Set(staticList.map((product) => normalizeProductName(product?.name)))
+    const merged = [...staticList]
+
+    rows.forEach((product) => {
+      const key = normalizeProductName(product?.name)
+      if (!key || seenNames.has(key)) return
+      seenNames.add(key)
+      const quantityValue =
+        product.quantity === undefined || product.quantity === null || product.quantity === ''
+          ? null
+          : Number(product.quantity)
+      const normalizedQuantity = Number.isFinite(quantityValue) ? quantityValue : null
+      merged.push({
+        id: String(product.id),
+        name: product.name || 'Product',
+        price: Number(product.price || 0),
+        size: normalizedQuantity ? `${normalizedQuantity} ${product.unit || ''}`.trim() : (product.unit || ''),
+        quantity: normalizedQuantity,
+        unit: product.unit || '',
+        image: product.image || '',
+        category: product.category || '',
+        description: product.description || '',
+      })
+    })
+
+    return merged
+  }, [liveProducts])
 
   const handleSearch = (e) => {
     e.preventDefault()
@@ -136,20 +209,20 @@ export default function SiteHeader({ showTopHeader = true }) {
       return tokens.every(t => searchable.includes(t))
     }
 
-    const prefix = liveProducts.filter(p => {
+    const prefix = mergedProducts.filter(p => {
       const name = p.name.toLowerCase()
       return matchesAll(p) && tokens.some(t => name.startsWith(t))
     })
-    const contains = liveProducts.filter(p => {
+    const contains = mergedProducts.filter(p => {
       return matchesAll(p) && !prefix.includes(p)
     })
     const merged = [...prefix, ...contains].slice(0, 8)
     setSuggestions(merged)
     setActiveSuggestion(-1)
     // Best prefix match for inline ghost-text completion
-    const bestInline = liveProducts.find(p => p.name.toLowerCase().startsWith(term))
+    const bestInline = mergedProducts.find(p => p.name.toLowerCase().startsWith(term))
     setInlineCompletion(bestInline ? bestInline.name : '')
-  }, [searchQuery, liveProducts])
+  }, [searchQuery, mergedProducts])
   useEffect(() => {
     setMounted(true)
     return () => {
@@ -247,8 +320,8 @@ export default function SiteHeader({ showTopHeader = true }) {
             aria-label="Set delivery location"
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
-            {location && location.label
-              ? (location.label.length > 22 ? location.label.slice(0, 22) + '…' : location.label)
+            {locationLabel
+              ? (locationLabel.length > 22 ? locationLabel.slice(0, 22) + '…' : locationLabel)
               : 'Add your address'}
           </button>
         </div>

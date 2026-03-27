@@ -1,12 +1,17 @@
 import Link from 'next/link'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import SiteHeader from '../components/SiteHeader'
 import FilterBar from '../components/FilterBar'
 import ProductCard from '../components/ProductCard'
 import { useCart } from '../contexts/CartContext'
 
-const products = [
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+console.log('[FruitsPage] API Base URL:', API_BASE)
+const normalizeProductName = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+const normalizeCategoryName = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+
+const staticProducts = [
   { id: 'apple', name: 'Red Apple', price: 180.00, size: '1 KG', brand: 'Fresho', image: 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=400&q=80' },
   { id: 'banana', name: 'Fresh Banana', price: 60.00, size: '1 DOZEN', brand: 'Farm Fresh', image: 'https://images.unsplash.com/photo-1603833665858-e61d17a86224?w=400&q=80' },
   { id: 'mango', name: 'Alphonso Mango', price: 210.00, size: '1 KG', brand: "Nature's Best", image: 'https://images.unsplash.com/photo-1605440846964-c6297a046b0c?w=400&q=80' },
@@ -35,7 +40,8 @@ const formatRupees = (amount) => `Rs. ${amount.toLocaleString('en-IN', { minimum
 export default function Fruits() {
   const { addToCart } = useCart()
   const router = useRouter()
-  const [quantities, setQuantities] = useState(() => products.map(() => 1))
+  const [liveProducts, setLiveProducts] = useState([])
+  const [quantities, setQuantities] = useState({})
   const [filters, setFilters] = useState({
     sort: 'popularity',
     rating: null,
@@ -43,8 +49,100 @@ export default function Fruits() {
     brand: 'all'
   })
 
+  const mergedProducts = useMemo(() => {
+    const staticList = Array.isArray(staticProducts) ? staticProducts : []
+    const rows = Array.isArray(liveProducts)
+      ? liveProducts.filter((product) => {
+        const slug = String(product?.categorySlug || product?.category_slug || '').toLowerCase()
+        const categoryName = normalizeCategoryName(product?.category)
+        return slug === 'fruits' || categoryName === 'fruits'
+      })
+      : []
+
+    const merged = [...staticList]
+    const indexByName = new Map()
+    merged.forEach((product, index) => {
+      const key = normalizeProductName(product?.name)
+      if (key) indexByName.set(key, index)
+    })
+
+    rows.forEach((product) => {
+      const key = normalizeProductName(product?.name)
+      if (!key) return
+      const liveNormalized = {
+        id: String(product.id),
+        name: product.name || 'Product',
+        price: Number(product.price || 0),
+        size: product.quantity ? `${product.quantity} ${product.unit || ''}`.trim() : (product.unit || ''),
+        quantity:
+          product.quantity === undefined || product.quantity === null || product.quantity === ''
+            ? null
+            : Number(product.quantity),
+        unit: product.unit || '',
+        isFlashSale: product.isFlashSale,
+        flashSalePrice: product.flashSalePrice,
+        flashSaleEndTime: product.flashSaleEndTime,
+        image: product.image || '',
+        category: product.category || 'Fruits',
+        description: product.description || '',
+        brand: product.brand || '',
+      }
+
+      if (indexByName.has(key)) {
+        const index = indexByName.get(key)
+        merged[index] = {
+          ...merged[index],
+          ...liveNormalized,
+        }
+      } else {
+        indexByName.set(key, merged.length)
+        merged.push(liveNormalized)
+      }
+    })
+
+    return merged
+  }, [liveProducts])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const fetchProducts = async () => {
+      try {
+        const response = await fetch(`${API_BASE}/api/products`)
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`)
+        }
+        const rows = await response.json()
+        if (cancelled || !Array.isArray(rows)) return
+        console.log('[Fruits] Fetched products from API:', rows.length, 'items')
+        setLiveProducts(rows)
+      } catch (error) {
+        console.error('[Fruits] Failed to fetch products:', error)
+        setLiveProducts([])
+      }
+    }
+
+    fetchProducts()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    const next = {}
+    mergedProducts.forEach((product) => {
+      next[String(product.id)] = quantities[String(product.id)] || 1
+    })
+    setQuantities(next)
+  }, [mergedProducts])
+
   const changeQty = (index, delta) => {
-    setQuantities((prev) => prev.map((qty, i) => i === index ? Math.max(1, qty + delta) : qty))
+    const key = String(index)
+    setQuantities((prev) => ({
+      ...prev,
+      [key]: Math.max(1, (prev[key] || 1) + delta),
+    }))
   }
 
   const handleProductClick = (product) => {
@@ -63,7 +161,7 @@ export default function Fruits() {
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
-    let result = [...products]
+    let result = [...mergedProducts]
 
     // Apply price range filter
     if (filters.priceRange !== 'all') {
@@ -112,7 +210,7 @@ export default function Fruits() {
     }
 
     return result
-  }, [filters])
+  }, [filters, mergedProducts])
 
   return (
     <main className="pageShell">
@@ -141,21 +239,27 @@ export default function Fruits() {
             
             <div className="productGrid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px' }}>
               {filteredProducts.map((item) => {
-                const originalIndex = products.findIndex(p => p.id === item.id)
+                const qtyKey = String(item.id)
                 return (
                   <ProductCard
                     key={item.id}
                     id={item.id}
                     name={item.name}
                     price={item.price}
+                    isFlashSale={item.isFlashSale}
+                    flashSalePrice={item.flashSalePrice}
+                    flashSaleEndTime={item.flashSaleEndTime}
                     originalPrice={item.originalPrice}
                     discount={item.discount}
+                    discountType={item.discountType}
+                    discountValue={item.discountValue}
+                    description={item.description}
                     size={item.size}
                     image={item.image}
                     showQty={true}
-                    qty={quantities[originalIndex] || 1}
-                    onQtyChange={(delta) => changeQty(originalIndex, delta)}
-                    onAdd={() => addToCart(item, quantities[originalIndex] || 1)}
+                    qty={quantities[qtyKey] || 1}
+                    onQtyChange={(delta) => changeQty(qtyKey, delta)}
+                    onAdd={() => addToCart(item, quantities[qtyKey] || 1)}
                     onClick={() => handleProductClick(item)}
                   />
                 )

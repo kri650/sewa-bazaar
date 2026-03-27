@@ -79,7 +79,7 @@ export default function SaladVegetablesPage() {
                   </span>
                 </div>
               )}
-              <div className="p-unit-badge">{p.unit}</div>
+              <div className="p-unit-badge">{p.quantity ? `${p.quantity} ${p.unit || ''}`.trim() : (p.unit || '')}</div>
 
               <div className="qty-picker">
                 <button onClick={() => updateQty(p.id, -1)}>-</button>

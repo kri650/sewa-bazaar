@@ -1154,6 +1154,48 @@ main > section {
 	overflow:hidden;
 	margin-bottom:10px;
 }
+
+.flashSaleBadge {
+	position:absolute;
+	top:9px;
+	left:9px;
+	z-index:2;
+	display:inline-flex;
+	align-items:center;
+	justify-content:center;
+	gap:4px;
+	padding:5px 11px;
+	border-radius:999px;
+	background:linear-gradient(135deg, #fb923c 0%, #f97316 46%, #ea580c 100%);
+	color:#fff;
+	font-size:9px;
+	font-weight:700;
+	line-height:1;
+	letter-spacing:0.45px;
+	text-transform:uppercase;
+	box-shadow:0 4px 12px rgba(234, 88, 12, 0.28);
+	border:1px solid rgba(255,255,255,0.24);
+	pointer-events:none;
+	animation:flashSaleBadgePulse 2.3s ease-in-out infinite;
+}
+
+@keyframes flashSaleBadgePulse {
+	0%,
+	100% {
+		transform:translateY(0);
+		box-shadow:0 4px 12px rgba(234, 88, 12, 0.28);
+	}
+	50% {
+		transform:translateY(-1px);
+		box-shadow:0 7px 16px rgba(234, 88, 12, 0.34);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.flashSaleBadge {
+		animation:none;
+	}
+}
 /* ── Delivery badge under product name ── */
 .mangoBadge {
 	display:block;
@@ -1235,8 +1277,18 @@ main > section {
 	color:var(--theme-green-dark);
 	background:var(--theme-green-soft);
 }
-/* small product description and a subtle note used on basket pages */
-.productDescription { color:#445444; font-size:13px; margin:8px 0 0 }
+/* small, muted product description under name (1-2 lines max) */
+.productDescription {
+	margin: 2px 0 6px;
+	font-size: 12px;
+	line-height: 1.35;
+	color: #6b7280;
+	text-align: center;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
 .productNote { display:block; color:#7a887f; margin-top:6px; font-size:12px }
 .qtyRow {
 	display:grid;
@@ -1276,8 +1328,8 @@ main > section {
 
 /* Reserve space for the description so cards don't collapse when some items lack a description */
 .productCard .productDescription {
-    flex: 1 1 auto;
-    min-height: 36px; /* ensures a consistent visual block even when empty */
+	flex: 1 1 auto;
+	min-height: 30px;
 }
 
 /* Ensure the image area keeps a fixed footprint inside the flex layout */

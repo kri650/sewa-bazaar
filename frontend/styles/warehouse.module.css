@@ -375,6 +375,36 @@
   gap: 8px;
 }
 
+.inventoryActionButtons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.inventoryActionBtn {
+  height: 34px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.inventoryEditBtn {
+  border: 0;
+  background: #4caf50;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.inventoryEditBtn:hover {
+  background: #429a46;
+}
+
 .ordersTable {
   min-width: 960px;
 }
@@ -437,6 +467,21 @@
   gap: 8px;
 }
 
+.fieldCheckbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #334155;
+  font-weight: 600;
+}
+
+.fieldCheckbox input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+
 .field span {
   font-size: 13px;
   font-weight: 700;
@@ -445,16 +490,26 @@
 
 .field input,
 .field select,
+.field textarea,
 .searchInput,
 .selectInput {
   width: 100%;
   min-width: 0;
-  border: 1px solid #cbd5e1;
+  border: 1px solid #bfc8d4;
   border-radius: 14px;
   padding: 12px 14px;
   background: #fff;
   color: #0f172a;
   font-size: 14px;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus,
+.searchInput:focus,
+.selectInput:focus {
+  outline: none;
+  border-color: #22c55e;
 }
 
 .searchInput {
@@ -503,6 +558,12 @@
   border: 1px solid #cbd5e1;
 }
 
+.inventoryActionButtons .inventoryActionBtn {
+  height: 34px;
+  padding: 6px 14px;
+  border-radius: 20px;
+}
+
 .formStack {
   display: flex;
   flex-direction: column;
@@ -526,6 +587,27 @@
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.productNameCell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.flashTimerPill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #fb923c 0%, #f97316 45%, #ea580c 100%);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  box-shadow: 0 3px 10px rgba(234, 88, 12, 0.28);
 }
 
 .lowStockPill {
@@ -573,14 +655,19 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
+  overflow: hidden;
 }
 
 .modalCard {
   width: 100%;
   max-width: 520px;
+  max-height: 90vh;
   border-radius: 24px;
   background: #fff;
   box-shadow: 0 30px 60px rgba(15, 23, 42, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .modalHeader {
@@ -589,10 +676,16 @@
   justify-content: space-between;
   gap: 12px;
   border-bottom: 1px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #fff;
 }
 
 .modalBody {
-  padding: 22px;
+  padding: 20px 22px 24px;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .modalClose {
@@ -618,9 +711,26 @@
 }
 
 @media (max-width: 640px) {
+  .modalBackdrop {
+    padding: 12px;
+  }
+
   .loginCard,
   .modalCard {
     border-radius: 18px;
+  }
+
+  .modalCard {
+    max-width: 100%;
+    max-height: 90vh;
+  }
+
+  .modalHeader {
+    padding: 16px;
+  }
+
+  .modalBody {
+    padding: 16px;
   }
 
   .cardHeader,

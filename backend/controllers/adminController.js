@@ -2,6 +2,64 @@ const adminModel = require('../models/adminModel')
 const bcrypt = require('bcryptjs')
 const warehouseAuthModel = require('../models/warehouseAuthModel')
 const warehouseAdminModel = require('../models/warehouseAdminModel')
+const { isCloudinaryConfigured, uploadBufferToCloudinary } = require('../utils/cloudinary')
+const { parsePricingInput, calculateFinalPrices } = require('../utils/pricing')
+
+function parseBooleanLike(value) {
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'number') return value === 1
+  if (typeof value !== 'string') return false
+  const normalized = value.trim().toLowerCase()
+  return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on'
+}
+
+function validateFlashSale({ isFlashSale, flashSalePrice, flashSaleEndTime, originalPrice }) {
+  if (!isFlashSale) {
+    return {
+      isFlashSale: false,
+      flashSalePrice: null,
+      flashSaleEndTime: null,
+      error: null,
+    }
+  }
+
+  const numericFlashPrice = Number(flashSalePrice)
+  if (Number.isNaN(numericFlashPrice) || numericFlashPrice <= 0) {
+    return {
+      error: 'flashSalePrice must be a valid number greater than 0 when flash sale is enabled',
+    }
+  }
+  if (numericFlashPrice >= Number(originalPrice)) {
+    return {
+      error: 'flashSalePrice must be less than original price',
+    }
+  }
+
+  if (!flashSaleEndTime) {
+    return {
+      error: 'flashSaleEndTime is required when flash sale is enabled',
+    }
+  }
+
+  const parsedEndTime = new Date(flashSaleEndTime)
+  if (Number.isNaN(parsedEndTime.getTime())) {
+    return {
+      error: 'flashSaleEndTime must be a valid datetime',
+    }
+  }
+  if (parsedEndTime.getTime() <= Date.now()) {
+    return {
+      error: 'flashSaleEndTime must be a future date',
+    }
+  }
+
+  return {
+    isFlashSale: true,
+    flashSalePrice: numericFlashPrice,
+    flashSaleEndTime: parsedEndTime,
+    error: null,
+  }
+}
 
 async function getOrders(_req, res) {
   try {
@@ -41,16 +99,71 @@ async function getProducts(_req, res) {
 
 async function createProduct(req, res) {
   try {
-    const { name, price, unit, image, description, categoryId, latitude, longitude } = req.body || {}
+    const { name, price, category, quantity, unit, description, categoryId, latitude, longitude } = req.body || {}
+    const isFlashSale = parseBooleanLike(req.body?.isFlashSale)
+    const flashSalePrice = req.body?.flashSalePrice
+    const flashSaleEndTime = req.body?.flashSaleEndTime
+    const imageUrl = req.body?.imageUrl != null
+      ? String(req.body.imageUrl).trim()
+      : (req.body?.image != null ? String(req.body.image).trim() : '')
+    let image = imageUrl || null
+
+    if (req.file) {
+      if (!isCloudinaryConfigured()) {
+        return res.status(500).json({ error: 'Cloudinary is not configured on server' })
+      }
+      image = await uploadBufferToCloudinary(req.file.buffer, 'sewa-bazaar-products')
+    }
 
     if (!name || price === undefined) {
       return res.status(400).json({ error: 'name and price are required' })
+    }
+    if (!image) {
+      return res.status(400).json({ error: 'Upload image or provide image URL' })
     }
 
     const numericPrice = Number(price)
     if (Number.isNaN(numericPrice) || numericPrice <= 0) {
       return res.status(400).json({ error: 'price must be a valid number greater than 0' })
     }
+
+    const flashSaleValidation = validateFlashSale({
+      isFlashSale,
+      flashSalePrice,
+      flashSaleEndTime,
+      originalPrice: numericPrice,
+    })
+    if (flashSaleValidation.error) {
+      return res.status(400).json({ error: flashSaleValidation.error })
+    }
+
+    const numericQuantity = Number(quantity)
+    if (Number.isNaN(numericQuantity) || numericQuantity <= 0) {
+      return res.status(400).json({ error: 'quantity must be a valid number greater than 0' })
+    }
+
+    let categorySlug = String(category || '').trim().toLowerCase()
+    if (!categorySlug && categoryId !== undefined && categoryId !== null && categoryId !== '') {
+      categorySlug = await adminModel.getCategorySlugById(Number(categoryId))
+    }
+    if (!categorySlug) {
+      return res.status(400).json({ error: 'category is required' })
+    }
+
+    const pricingParse = parsePricingInput(req.body || {})
+    if (pricingParse.error) {
+      return res.status(400).json({ error: pricingParse.error })
+    }
+
+    const { discountType, discountValue } = pricingParse.data
+    const priceSummary = calculateFinalPrices({
+      originalPrice: numericPrice,
+      discountType,
+      discountValue,
+      isFlashSale: flashSaleValidation.isFlashSale,
+      flashSalePrice: flashSaleValidation.flashSalePrice,
+      flashSaleEndTime: flashSaleValidation.flashSaleEndTime,
+    })
 
     const lat = latitude === undefined || latitude === '' ? 0 : Number(latitude)
     const lng = longitude === undefined || longitude === '' ? 0 : Number(longitude)
@@ -61,14 +174,23 @@ async function createProduct(req, res) {
     const created = await adminModel.createProduct({
       name: String(name).trim(),
       price: numericPrice,
+      category: categorySlug,
+      quantity: numericQuantity,
       unit,
       image,
       description,
-      categoryId: categoryId ? Number(categoryId) : null,
       latitude: lat,
       longitude: lng,
+      discountType,
+      discountValue,
+      isFlashSale: flashSaleValidation.isFlashSale,
+      flashSalePrice: flashSaleValidation.flashSalePrice,
+      flashSaleEndTime: flashSaleValidation.flashSaleEndTime,
     })
-    return res.status(201).json(created)
+    return res.status(201).json({
+      ...created,
+      ...priceSummary,
+    })
   } catch (error) {
     return res.status(500).json({ error: error.message })
   }
@@ -80,7 +202,21 @@ async function editProduct(req, res) {
     if (Number.isNaN(productId) || productId <= 0) {
       return res.status(400).json({ error: 'valid productId is required' })
     }
-    const { name, price, unit, image, description, categoryId } = req.body || {}
+    const { name, price, category, quantity, unit, image: imageField, description, categoryId } = req.body || {}
+    const isFlashSale = parseBooleanLike(req.body?.isFlashSale)
+    const flashSalePrice = req.body?.flashSalePrice
+    const flashSaleEndTime = req.body?.flashSaleEndTime
+    const imageUrl = req.body?.imageUrl != null
+      ? String(req.body.imageUrl).trim()
+      : (imageField != null ? String(imageField).trim() : '')
+    let image = imageUrl || null
+
+    if (req.file) {
+      if (!isCloudinaryConfigured()) {
+        return res.status(500).json({ error: 'Cloudinary is not configured on server' })
+      }
+      image = await uploadBufferToCloudinary(req.file.buffer, 'sewa-bazaar-products')
+    }
     if (!name || price === undefined) {
       return res.status(400).json({ error: 'name and price are required' })
     }
@@ -88,9 +224,50 @@ async function editProduct(req, res) {
     if (Number.isNaN(numericPrice) || numericPrice <= 0) {
       return res.status(400).json({ error: 'price must be a valid number greater than 0' })
     }
+
+    const flashSaleValidation = validateFlashSale({
+      isFlashSale,
+      flashSalePrice,
+      flashSaleEndTime,
+      originalPrice: numericPrice,
+    })
+    if (flashSaleValidation.error) {
+      return res.status(400).json({ error: flashSaleValidation.error })
+    }
+
+    const numericQuantity = Number(quantity)
+    if (Number.isNaN(numericQuantity) || numericQuantity <= 0) {
+      return res.status(400).json({ error: 'quantity must be a valid number greater than 0' })
+    }
+
+    let categorySlug = String(category || '').trim().toLowerCase()
+    if (!categorySlug && categoryId !== undefined && categoryId !== null && categoryId !== '') {
+      categorySlug = await adminModel.getCategorySlugById(Number(categoryId))
+    }
+    if (!categorySlug) {
+      return res.status(400).json({ error: 'category is required' })
+    }
+
+    const pricingParse = parsePricingInput(req.body || {})
+    if (pricingParse.error) {
+      return res.status(400).json({ error: pricingParse.error })
+    }
+
+    const { discountType, discountValue } = pricingParse.data
+
     const updated = await adminModel.updateProduct(productId, {
-      name: String(name).trim(), price: numericPrice, unit, image, description,
-      categoryId: categoryId ? Number(categoryId) : null,
+      name: String(name).trim(),
+      price: numericPrice,
+      category: categorySlug,
+      quantity: numericQuantity,
+      unit,
+      image,
+      description,
+      discountType,
+      discountValue,
+      isFlashSale: flashSaleValidation.isFlashSale,
+      flashSalePrice: flashSaleValidation.flashSalePrice,
+      flashSaleEndTime: flashSaleValidation.flashSaleEndTime,
     })
     if (!updated) return res.status(404).json({ error: 'product not found' })
     return res.json({ ok: true })

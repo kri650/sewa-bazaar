@@ -82,7 +82,7 @@ export default function ExoticVegetablesPage() {
                   </span>
                 </div>
               )}
-              <div className="p-unit-badge">{p.unit}</div>
+              <div className="p-unit-badge">{p.quantity ? `${p.quantity} ${p.unit || ''}`.trim() : (p.unit || '')}</div>
 
               {/* Quantity Picker for all products */}
               <div className="qty-picker">

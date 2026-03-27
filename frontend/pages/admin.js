@@ -1,8 +1,43 @@
 import { useEffect, useRef, useMemo, useState } from 'react'
 import { io } from 'socket.io-client'
 import styles from '../styles/admin.module.css'
+import ImageUpload from '../components/ImageUpload'
+import API_BASE_URL from '../lib/apiBase'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
+const API_BASE = API_BASE_URL || ''
+
+const PRODUCT_CATEGORY_OPTIONS = [
+  { value: 'fruits', label: 'Fruits' },
+  { value: 'root-vegetables', label: 'Root Vegetables' },
+  { value: 'hydroponic-vegetables', label: 'Hydroponic Vegetables' },
+  { value: 'seasonal-special', label: 'Seasonal Special' },
+  { value: 'farm-fresh-picks', label: 'Farm Fresh Picks' },
+  { value: 'organic-specials', label: 'Organic Specials' },
+  { value: 'value-combos', label: 'Value Combos' },
+  { value: 'best-deal', label: 'Best Deal' },
+  { value: 'exotic-fruits', label: 'Exotic Fruits' },
+  { value: 'imported-fruits', label: 'Imported Fruits' },
+  { value: 'fruit-baskets', label: 'Fruit Baskets' },
+  { value: 'dry-fruits-nuts', label: 'Dry Fruits & Nuts' },
+  { value: 'atta-rice-grains', label: 'Atta Rice Grains' },
+  { value: 'oil-ghee', label: 'Oil & Ghee' },
+  { value: 'milk-dairy', label: 'Milk & Dairy' },
+  { value: 'chips-biscuits', label: 'Chips & Biscuits' },
+  { value: 'bath-body', label: 'Bath & Body' },
+  { value: 'soap-detergents', label: 'Soap & Detergents' },
+  { value: 'baby-care', label: 'Baby Care' },
+  { value: 'pooja-essentials', label: 'Pooja Essentials' },
+  { value: 'beverages', label: 'Beverages' },
+]
+
+const PRODUCT_UNIT_OPTIONS = [
+  { value: 'g', label: 'g' },
+  { value: 'kg', label: 'kg' },
+  { value: 'ml', label: 'ml' },
+  { value: 'litre', label: 'litre' },
+  { value: 'piece', label: 'piece' },
+  { value: 'packet', label: 'packet' },
+]
 
 function StatusBadge({ status }) {
   const map = {
@@ -32,6 +67,23 @@ function formatDate(v) {
   if (!v) return '—'
   const d = new Date(v)
   return isNaN(d) ? '—' : d.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
+}
+
+function toDateTimeLocalValue(value) {
+  if (!value) return ''
+  const d = new Date(value)
+  if (isNaN(d.getTime())) return ''
+  const tzOffsetMs = d.getTimezoneOffset() * 60 * 1000
+  const local = new Date(d.getTime() - tzOffsetMs)
+  return local.toISOString().slice(0, 16)
+}
+
+function isFlashSaleActive(product) {
+  if (!product?.isFlashSale) return false
+  if (!product?.flashSaleEndTime) return false
+  const endTime = new Date(product.flashSaleEndTime)
+  if (isNaN(endTime.getTime())) return false
+  return endTime.getTime() > Date.now()
 }
 
 function StatTile({ label, value }) {
@@ -499,8 +551,26 @@ export default function AdminPage() {
   const [orderStatusFilter, setOrderStatusFilter] = useState('')
   const [warehouseOrderStatusFilter, setWarehouseOrderStatusFilter] = useState('')
 
-  const [newProduct, setNewProduct]       = useState({ name: '', price: '', unit: '', image: '', description: '', categoryId: '' })
+  const [newProduct, setNewProduct]       = useState({
+    name: '',
+    price: '',
+    category: '',
+    quantity: '',
+    unit: '',
+    description: '',
+    discountType: 'none',
+    discountValue: '',
+    isFlashSale: false,
+    flashSalePrice: '',
+    flashSaleEndTime: '',
+  })
+  const [newProductImage, setNewProductImage] = useState(null)
+  const [newProductImageUrl, setNewProductImageUrl] = useState('')
+  const [newProductImageError, setNewProductImageError] = useState('')
   const [editingProduct, setEditingProduct] = useState(null)
+  const [editingProductImage, setEditingProductImage] = useState(null)
+  const [editingProductImageUrl, setEditingProductImageUrl] = useState('')
+  const [editingProductImageError, setEditingProductImageError] = useState('')
   const [newPartner, setNewPartner]       = useState({ name: '', email: '', phone: '', password: '' })
   const [notifications, setNotifications] = useState([])
   const socketRef = useRef(null)
@@ -569,7 +639,7 @@ export default function AdminPage() {
 
     // Ensure API_BASE is available in this scope or import it from top of file
     // Ideally API_BASE is defined outside component or as a prop, but here let's safeguard it.
-    const socket = io(API_BASE, {
+    const socket = io(API_BASE || undefined, {
       path: '/socket.io',
       auth: { token },
       transports: ['websocket', 'polling'],
@@ -758,15 +828,75 @@ if (!res.ok || (data?.role !== 'admin' && data?.role !== 'superadmin')) throw ne
 
   const handleCreateProduct = async (e) => {
     e.preventDefault()
+    setNewProductImageError('')
+
+    if (!newProductImage && !String(newProductImageUrl || '').trim()) {
+      setNewProductImageError('Upload image or paste image URL.')
+      return
+    }
+
+    const formData = new FormData()
+    formData.append('name', newProduct.name.trim())
+    formData.append('price', String(Number(newProduct.price)))
+    formData.append('category', newProduct.category || '')
+    formData.append('quantity', String(Number(newProduct.quantity)))
+    formData.append('unit', newProduct.unit || '')
+    formData.append('stock', '0')
+    formData.append('description', newProduct.description || '')
+    formData.append('discountType', newProduct.discountType || 'none')
+    formData.append('discountValue', newProduct.discountValue === '' ? '0' : String(Number(newProduct.discountValue)))
+    formData.append('isFlashSale', newProduct.isFlashSale ? 'true' : 'false')
+    if (newProduct.isFlashSale) {
+      const numericPrice = Number(newProduct.price)
+      const numericFlashSalePrice = Number(newProduct.flashSalePrice)
+      if (Number.isNaN(numericFlashSalePrice) || numericFlashSalePrice <= 0) {
+        flash('Flash Sale Price must be greater than 0.', true)
+        return
+      }
+      if (!Number.isNaN(numericPrice) && numericFlashSalePrice >= numericPrice) {
+        flash('Flash Sale Price must be less than product price.', true)
+        return
+      }
+      const endTime = new Date(newProduct.flashSaleEndTime)
+      if (!newProduct.flashSaleEndTime || isNaN(endTime.getTime())) {
+        flash('Flash Sale End Time is required.', true)
+        return
+      }
+      if (endTime.getTime() <= Date.now()) {
+        flash('Flash Sale End Time must be in the future.', true)
+        return
+      }
+      formData.append('flashSalePrice', String(numericFlashSalePrice))
+      formData.append('flashSaleEndTime', endTime.toISOString())
+    }
+    if (newProductImage) formData.append('image', newProductImage)
+    else formData.append('imageUrl', String(newProductImageUrl || '').trim())
+
     try {
       const r = await fetch(`${API_BASE}/admin/products`, {
-        method: 'POST', headers: authHeaders,
-        body: JSON.stringify({ name: newProduct.name.trim(), price: Number(newProduct.price), unit: newProduct.unit, image: newProduct.image, description: newProduct.description, categoryId: newProduct.categoryId ? Number(newProduct.categoryId) : null }),
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
       })
       if (r.status === 401 || r.status === 403) { handleAuthError(); return }
       const d = await r.json()
       if (!r.ok) { flash(d?.error || 'Failed.', true); return }
-      flash('Product created!'); setNewProduct({ name: '', price: '', unit: '', image: '', description: '', categoryId: '' })
+      flash('Product created!')
+      setNewProduct({
+        name: '',
+        price: '',
+        category: '',
+        quantity: '',
+        unit: '',
+        description: '',
+        discountType: 'none',
+        discountValue: '',
+        isFlashSale: false,
+        flashSalePrice: '',
+        flashSaleEndTime: '',
+      })
+      setNewProductImage(null)
+      setNewProductImageUrl('')
       await loadData()
     } catch (e) { flash(e.message, true) }
   }
@@ -784,22 +914,69 @@ if (!res.ok || (data?.role !== 'admin' && data?.role !== 'superadmin')) throw ne
   const handleUpdateProduct = async (e) => {
     e.preventDefault()
     if (!editingProduct) return
+    setEditingProductImageError('')
+
+    if (editingProduct.isFlashSale) {
+      const numericPrice = Number(editingProduct.price)
+      const numericFlashSalePrice = Number(editingProduct.flashSalePrice)
+      if (Number.isNaN(numericFlashSalePrice) || numericFlashSalePrice <= 0) {
+        flash('Flash Sale Price must be greater than 0.', true)
+        return
+      }
+      if (!Number.isNaN(numericPrice) && numericFlashSalePrice >= numericPrice) {
+        flash('Flash Sale Price must be less than product price.', true)
+        return
+      }
+      const endTime = new Date(editingProduct.flashSaleEndTime)
+      if (!editingProduct.flashSaleEndTime || isNaN(endTime.getTime())) {
+        flash('Flash Sale End Time is required.', true)
+        return
+      }
+      if (endTime.getTime() <= Date.now()) {
+        flash('Flash Sale End Time must be in the future.', true)
+        return
+      }
+    }
+
     try {
+      const formData = new FormData()
+      formData.append('name', editingProduct.name.trim())
+      formData.append('price', String(Number(editingProduct.price)))
+      formData.append('category', editingProduct.category || '')
+      formData.append('quantity', String(Number(editingProduct.quantity)))
+      formData.append('unit', editingProduct.unit || '')
+      formData.append('stock', String(Number(editingProduct.stock || 0)))
+      formData.append('description', editingProduct.description || '')
+      formData.append('discountType', editingProduct.discountType || 'none')
+      formData.append('discountValue', editingProduct.discountType === 'none' ? '0' : String(editingProduct.discountValue || '0'))
+      formData.append('isFlashSale', editingProduct.isFlashSale ? 'true' : 'false')
+      if (editingProduct.isFlashSale) {
+        formData.append('flashSalePrice', String(Number(editingProduct.flashSalePrice)))
+        formData.append('flashSaleEndTime', new Date(editingProduct.flashSaleEndTime).toISOString())
+      }
+
+      const resolvedImageUrl = String(editingProductImageUrl || '').trim() || String(editingProduct.image || '').trim()
+      if (!editingProductImage && !resolvedImageUrl) {
+        setEditingProductImageError('Upload image or paste image URL.')
+        return
+      }
+      if (editingProductImage) formData.append('image', editingProductImage)
+      else formData.append('imageUrl', resolvedImageUrl)
+
       const r = await fetch(`${API_BASE}/admin/products/${editingProduct.id}`, {
-        method: 'PUT', headers: authHeaders,
-        body: JSON.stringify({
-          name: editingProduct.name.trim(),
-          price: Number(editingProduct.price),
-          unit: editingProduct.unit,
-          image: editingProduct.image,
-          description: editingProduct.description,
-          categoryId: editingProduct.categoryId ? Number(editingProduct.categoryId) : null,
-        }),
+        method: 'PUT',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
       })
       if (r.status === 401 || r.status === 403) { handleAuthError(); return }
       const d = await r.json()
       if (!r.ok) { flash(d?.error || 'Update failed.', true); return }
-      flash('Product updated!'); setEditingProduct(null); await loadData()
+      flash('Product updated!')
+      setEditingProduct(null)
+      setEditingProductImage(null)
+      setEditingProductImageUrl('')
+      setEditingProductImageError('')
+      await loadData()
     } catch (e) { flash(e.message, true) }
   }
 
@@ -1440,18 +1617,102 @@ if (!res.ok || (data?.role !== 'admin' && data?.role !== 'superadmin')) throw ne
             {/* Edit product modal */}
             {editingProduct && (
               <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.45)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}}>
-                <div style={{background:'#fff',borderRadius:12,padding:32,minWidth:340,maxWidth:480,width:'100%',boxShadow:'0 8px 40px rgba(0,0,0,0.18)'}}>
+                <div style={{background:'#fff',borderRadius:12,padding:32,minWidth:340,maxWidth:480,width:'100%',maxHeight:'90vh',overflowY:'auto',boxShadow:'0 8px 40px rgba(0,0,0,0.18)'}}>
                   <h2 style={{marginBottom:16}}>Edit Product</h2>
                   <form onSubmit={handleUpdateProduct} className={styles.productForm}>
                     <label>Name *<input value={editingProduct.name} onChange={e => setEditingProduct(p => ({...p, name: e.target.value}))} required /></label>
                     <label>Price (₹) *<input type="number" step="0.01" min="0" value={editingProduct.price} onChange={e => setEditingProduct(p => ({...p, price: e.target.value}))} required /></label>
-                    <label>Unit<input value={editingProduct.unit || ''} onChange={e => setEditingProduct(p => ({...p, unit: e.target.value}))} placeholder="kg / piece / bunch" /></label>
-                    <label>Image URL<input value={editingProduct.image || ''} onChange={e => setEditingProduct(p => ({...p, image: e.target.value}))} /></label>
-                    <label>Category ID<input value={editingProduct.categoryId || ''} onChange={e => setEditingProduct(p => ({...p, categoryId: e.target.value}))} /></label>
+                    <label>
+                      Category *
+                      <select value={editingProduct.category || ''} onChange={e => setEditingProduct(p => ({...p, category: e.target.value}))} required>
+                        <option value="" disabled>Select category</option>
+                        {PRODUCT_CATEGORY_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+                      </select>
+                    </label>
+                    <label>Quantity *<input type="number" min="0" step="0.01" value={editingProduct.quantity || ''} onChange={e => setEditingProduct(p => ({...p, quantity: e.target.value}))} placeholder="Enter quantity (e.g. 250)" required /></label>
+                    <label>
+                      Unit *
+                      <select value={editingProduct.unit || ''} onChange={e => setEditingProduct(p => ({...p, unit: e.target.value}))} required>
+                        <option value="" disabled>Select unit</option>
+                        {PRODUCT_UNIT_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+                      </select>
+                    </label>
+                    <label>
+                      Discount Type
+                      <select value={editingProduct.discountType || 'none'} onChange={e => setEditingProduct(p => ({ ...p, discountType: e.target.value }))}>
+                        <option value="none">No Discount</option>
+                        <option value="percentage">Percentage (%)</option>
+                        <option value="flat">Flat (₹)</option>
+                      </select>
+                    </label>
+                    <label>
+                      Discount Value
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={editingProduct.discountValue || ''}
+                        onChange={e => setEditingProduct(p => ({ ...p, discountValue: e.target.value }))}
+                        placeholder="Enter discount value"
+                        disabled={(editingProduct.discountType || 'none') === 'none'}
+                      />
+                    </label>
+                    <ImageUpload
+                      file={editingProductImage}
+                      imageUrl={editingProductImageUrl}
+                      variant="admin"
+                      onFileChange={(file) => {
+                        setEditingProductImage(file)
+                        if (file) setEditingProductImageError('')
+                      }}
+                      onImageUrlChange={(value) => {
+                        setEditingProductImageUrl(value)
+                        if (String(value || '').trim()) setEditingProductImageError('')
+                      }}
+                      error={editingProductImageError}
+                      helperText="Upload image or paste URL"
+                    />
                     <label>Description<textarea value={editingProduct.description || ''} onChange={e => setEditingProduct(p => ({...p, description: e.target.value}))} /></label>
+                    <label style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(editingProduct.isFlashSale)}
+                        onChange={e => setEditingProduct(p => ({
+                          ...p,
+                          isFlashSale: e.target.checked,
+                          flashSalePrice: e.target.checked ? (p.flashSalePrice || '') : '',
+                          flashSaleEndTime: e.target.checked ? (p.flashSaleEndTime || '') : '',
+                        }))}
+                      />
+                      Enable Flash Sale
+                    </label>
+                    {editingProduct.isFlashSale && (
+                      <>
+                        <label>
+                          Flash Sale Price (₹)
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={editingProduct.flashSalePrice || ''}
+                            onChange={e => setEditingProduct(p => ({ ...p, flashSalePrice: e.target.value }))}
+                            required
+                          />
+                        </label>
+                        <label>
+                          Flash Sale End Time
+                          <input
+                            type="datetime-local"
+                            value={editingProduct.flashSaleEndTime || ''}
+                            onChange={e => setEditingProduct(p => ({ ...p, flashSaleEndTime: e.target.value }))}
+                            required
+                          />
+                        </label>
+                      </>
+                    )}
                     <div style={{display:'flex',gap:10,marginTop:8}}>
                       <button type="submit" className="styles.addBtn" style={{flex:1}}>Save Changes</button>
-                      <button type="button" onClick={() => setEditingProduct(null)} style={{flex:1,padding:'10px 0',borderRadius:8,border:'1px solid #ddd',background:'#f3f4f6',cursor:'pointer'}}>Cancel</button>
+                      <button type="button" onClick={() => { setEditingProduct(null); setEditingProductImage(null); setEditingProductImageUrl(''); setEditingProductImageError('') }} style={{flex:1,padding:'10px 0',borderRadius:8,border:'1px solid #ddd',background:'#f3f4f6',cursor:'pointer'}}>Cancel</button>
                     </div>
                   </form>
                 </div>
@@ -1462,9 +1723,93 @@ if (!res.ok || (data?.role !== 'admin' && data?.role !== 'superadmin')) throw ne
               <form onSubmit={handleCreateProduct} className={styles.productForm}>
                 <label>Name *<input value={newProduct.name} onChange={e => setNewProduct(p => ({...p, name: e.target.value}))} placeholder="e.g. Organic Tomatoes" required /></label>
                 <label>Price (₹) *<input type="number" step="0.01" min="0" value={newProduct.price} onChange={e => setNewProduct(p => ({...p, price: e.target.value}))} placeholder="0.00" required /></label>
-                <label>Unit<input value={newProduct.unit} onChange={e => setNewProduct(p => ({...p, unit: e.target.value}))} placeholder="kg / piece / bunch" /></label>
-                <label>Image URL<input value={newProduct.image} onChange={e => setNewProduct(p => ({...p, image: e.target.value}))} placeholder="https://…" /></label>
-                <label>Category ID<input value={newProduct.categoryId} onChange={e => setNewProduct(p => ({...p, categoryId: e.target.value}))} placeholder="1" /></label>
+                <label>
+                  Category *
+                  <select value={newProduct.category} onChange={e => setNewProduct(p => ({...p, category: e.target.value}))} required>
+                    <option value="" disabled>Select category</option>
+                    {PRODUCT_CATEGORY_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+                  </select>
+                </label>
+                <label>Quantity *<input type="number" min="0" step="0.01" value={newProduct.quantity} onChange={e => setNewProduct(p => ({...p, quantity: e.target.value}))} placeholder="Enter quantity (e.g. 250)" required /></label>
+                <label>
+                  Unit *
+                  <select value={newProduct.unit} onChange={e => setNewProduct(p => ({...p, unit: e.target.value}))} required>
+                    <option value="" disabled>Select unit</option>
+                    {PRODUCT_UNIT_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+                  </select>
+                </label>
+                <label>
+                  Discount Type
+                  <select value={newProduct.discountType} onChange={e => setNewProduct(p => ({ ...p, discountType: e.target.value }))}>
+                    <option value="none">No Discount</option>
+                    <option value="percentage">Percentage (%)</option>
+                    <option value="flat">Flat (₹)</option>
+                  </select>
+                </label>
+                <label>
+                  Discount Value
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={newProduct.discountValue}
+                    onChange={e => setNewProduct(p => ({ ...p, discountValue: e.target.value }))}
+                    placeholder="Enter discount value"
+                  />
+                </label>
+                <label style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(newProduct.isFlashSale)}
+                    onChange={e => setNewProduct(p => ({
+                      ...p,
+                      isFlashSale: e.target.checked,
+                      flashSalePrice: e.target.checked ? p.flashSalePrice : '',
+                      flashSaleEndTime: e.target.checked ? p.flashSaleEndTime : '',
+                    }))}
+                  />
+                  Enable Flash Sale
+                </label>
+                {newProduct.isFlashSale && (
+                  <>
+                    <label>
+                      Flash Sale Price (₹)
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={newProduct.flashSalePrice}
+                        onChange={e => setNewProduct(p => ({ ...p, flashSalePrice: e.target.value }))}
+                        placeholder="0.00"
+                        required
+                      />
+                    </label>
+                    <label>
+                      Flash Sale End Time
+                      <input
+                        type="datetime-local"
+                        value={newProduct.flashSaleEndTime}
+                        onChange={e => setNewProduct(p => ({ ...p, flashSaleEndTime: e.target.value }))}
+                        required
+                      />
+                    </label>
+                  </>
+                )}
+                <ImageUpload
+                  file={newProductImage}
+                  imageUrl={newProductImageUrl}
+                  variant="admin"
+                  onFileChange={(file) => {
+                    setNewProductImage(file)
+                    if (file) setNewProductImageError('')
+                  }}
+                  onImageUrlChange={(value) => {
+                    setNewProductImageUrl(value)
+                    if (String(value || '').trim()) setNewProductImageError('')
+                  }}
+                  error={newProductImageError}
+                  helperText="Upload image or paste URL"
+                />
                 <label>Description<textarea value={newProduct.description} onChange={e => setNewProduct(p => ({...p, description: e.target.value}))} placeholder="Short description…" /></label>
                 <button type="submit" className={styles.addBtn}>+ Add Product</button>
               </form>
@@ -1483,18 +1828,47 @@ if (!res.ok || (data?.role !== 'admin' && data?.role !== 'superadmin')) throw ne
                     {filteredProducts.map(p => (
                       <tr key={p.id}>
                         <td>{p.id}</td>
-                        <td>{p.image ? <img src={p.image} alt={p.name} style={{width:40,height:40,objectFit:'cover',borderRadius:6}} /> : '—'}</td>
-                        <td>{p.name}</td>
+                        <td>{p.image ? <img src={p.image} alt={p.name} /> : '—'}</td>
+                        <td>
+                          <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                            <span>{p.name}</span>
+                            {isFlashSaleActive(p) && (
+                              <span style={{display:'inline-block',width:'fit-content',padding:'2px 8px',borderRadius:99,fontSize:11,fontWeight:700,background:'#fef3c7',color:'#92400e'}}>
+                                Flash Sale Active
+                              </span>
+                            )}
+                          </div>
+                        </td>
                         <td>₹{Number(p.price||0).toLocaleString('en-IN')}</td>
-                        <td>{p.unit || '—'}</td>
+                        <td>{p.quantity ? `${p.quantity} ${p.unit || ''}`.trim() : (p.unit || '—')}</td>
                         <td>{p.isActive ? 'Active' : 'Inactive'}</td>
-                        <td style={{display:'flex',gap:6}}>
-                          <button className={styles.addBtn} style={{padding:'4px 12px',fontSize:12}} onClick={() => setEditingProduct({ id: p.id, name: p.name, price: p.price, unit: p.unit || '', image: p.image || '', description: p.description || '', categoryId: p.categoryId || '' })}>Edit</button>
-                          <button className={styles.deleteBtn} onClick={() => handleDeleteProduct(p.id)}>Delete</button>
+                        <td style={{display:'flex',gap:10,alignItems:'center',justifyContent:'flex-start'}}>
+                          <button className={styles.tableEditBtn} onClick={() => {
+                            setEditingProduct({
+                              id: p.id,
+                              name: p.name,
+                              price: p.price,
+                              category: p.category || '',
+                              quantity: p.quantity || '',
+                              unit: p.unit || '',
+                              discountType: p.discountType || 'none',
+                              discountValue: p.discountValue ?? '',
+                              stock: p.stock || 0,
+                              image: p.image || '',
+                              description: p.description || '',
+                              isFlashSale: Boolean(p.isFlashSale),
+                              flashSalePrice: p.flashSalePrice ?? '',
+                              flashSaleEndTime: toDateTimeLocalValue(p.flashSaleEndTime),
+                            })
+                            setEditingProductImage(null)
+                            setEditingProductImageUrl(p.image || '')
+                            setEditingProductImageError('')
+                          }}>Edit</button>
+                          <button className={styles.tableDeleteBtn} onClick={() => handleDeleteProduct(p.id)}>Delete</button>
                         </td>
                       </tr>
                     ))}
-                    {filteredProducts.length === 0 && <tr><td colSpan={7} style={{textAlign:'center',color:'#aaa',padding:32}}>No products found</td></tr>}
+                    {filteredProducts.length === 0 && <tr><td colSpan={7} style={{textAlign:'center',color:'#aaa',padding:'12px',height:'56px',display:'flex',alignItems:'center',justifyContent:'center'}}>No products found</td></tr>}
                   </tbody>
                 </table>
               </div>

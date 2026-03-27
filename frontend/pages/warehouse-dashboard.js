@@ -3,9 +3,14 @@ import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { useRouter } from 'next/router'
 import { io } from 'socket.io-client'
 import OrdersTable from '../components/warehouse/OrdersTable'
+import ImageUpload from '../components/ImageUpload'
 import styles from '../styles/warehouse.module.css'
 
-const API = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+console.log('[WarehouseDashboard] API Base URL:', API_BASE_URL)
+
+const API = API_BASE_URL || ''
+const SOCKET_BASE = API_BASE_URL || undefined
 
 const STATUS_LABELS = {
   placed:           'Pending',
@@ -32,35 +37,38 @@ function getWarehouseUpdateOptions(currentStatus) {
   return WAREHOUSE_ADMIN_STATUSES.filter(s => s !== currentStatus)
 }
 
-const FRONTEND_CATEGORY_OPTIONS = [
-  'BEST DEAL',
-  'FRUITS & VEGETABLES',
-  'ATTA, RICE & GRAINS',
-  'OIL & GHEE',
-  'MILK & DAIRY',
-  'CHIPS & BISCUITS',
-  'BATH & BODY',
-  'SOAP & DETERGENTS',
-  'BABY CARE',
-  'POOJA ESSENTIALS',
-  'BEVERAGES',
-  'DRY FRUITS & NUTS',
+const PRODUCT_CATEGORY_OPTIONS = [
+  { value: 'fruits', label: 'Fruits' },
+  { value: 'root-vegetables', label: 'Root Vegetables' },
+  { value: 'hydroponic-vegetables', label: 'Hydroponic Vegetables' },
+  { value: 'seasonal-special', label: 'Seasonal Special' },
+  { value: 'farm-fresh-picks', label: 'Farm Fresh Picks' },
+  { value: 'organic-specials', label: 'Organic Specials' },
+  { value: 'value-combos', label: 'Value Combos' },
+  { value: 'best-deal', label: 'Best Deal' },
+  { value: 'exotic-fruits', label: 'Exotic Fruits' },
+  { value: 'imported-fruits', label: 'Imported Fruits' },
+  { value: 'fruit-baskets', label: 'Fruit Baskets' },
+  { value: 'dry-fruits-nuts', label: 'Dry Fruits & Nuts' },
+  { value: 'atta-rice-grains', label: 'Atta Rice Grains' },
+  { value: 'oil-ghee', label: 'Oil & Ghee' },
+  { value: 'milk-dairy', label: 'Milk & Dairy' },
+  { value: 'chips-biscuits', label: 'Chips & Biscuits' },
+  { value: 'bath-body', label: 'Bath & Body' },
+  { value: 'soap-detergents', label: 'Soap & Detergents' },
+  { value: 'baby-care', label: 'Baby Care' },
+  { value: 'pooja-essentials', label: 'Pooja Essentials' },
+  { value: 'beverages', label: 'Beverages' },
 ]
 
-const CATEGORY_NAME_ALIASES = {
-  'BEST DEAL': ['Best Deals'],
-  'FRUITS & VEGETABLES': ['Fruits & Vegetables', 'Fruits and Vegetables', 'Fruits & Veg', 'Fruits', 'Vegetables'],
-  'ATTA, RICE & GRAINS': ['Atta, Rice & Grains', 'Atta Rice & Grains', 'Grains'],
-  'OIL & GHEE': ['Oil & Ghee'],
-  'MILK & DAIRY': ['Milk & Dairy', 'Dairy'],
-  'CHIPS & BISCUITS': ['Chips & Biscuits', 'Snacks'],
-  'BATH & BODY': ['Bath & Body'],
-  'SOAP & DETERGENTS': ['Soap & Detergents', 'Cleaning'],
-  'BABY CARE': ['Baby Care'],
-  'POOJA ESSENTIALS': ['Pooja Essentials', 'Pooja'],
-  'BEVERAGES': ['Beverages'],
-  'DRY FRUITS & NUTS': ['Dry Fruits & Nuts', 'Dry Fruits'],
-}
+const PRODUCT_UNIT_OPTIONS = [
+  { value: 'g', label: 'g' },
+  { value: 'kg', label: 'kg' },
+  { value: 'ml', label: 'ml' },
+  { value: 'litre', label: 'litre' },
+  { value: 'piece', label: 'piece' },
+  { value: 'packet', label: 'packet' },
+]
 
 function normalizeCategoryName(value) {
   return String(value || '')
@@ -70,8 +78,72 @@ function normalizeCategoryName(value) {
     .trim()
 }
 
+function parseBooleanLike(value) {
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'number') return value === 1
+  const normalized = String(value || '').trim().toLowerCase()
+  return normalized === '1' || normalized === 'true' || normalized === 'yes' || normalized === 'on'
+}
+
+function parseDateMs(value) {
+  if (!value) return null
+  const timestamp = new Date(value).getTime()
+  return Number.isFinite(timestamp) ? timestamp : null
+}
+
+function toDateTimeLocalValue(value) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  const tzOffsetMs = date.getTimezoneOffset() * 60 * 1000
+  const local = new Date(date.getTime() - tzOffsetMs)
+  return local.toISOString().slice(0, 16)
+}
+
+function formatCountdown(remainingMs) {
+  const totalSeconds = Math.max(0, Math.floor(remainingMs / 1000))
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+  return [hours, minutes, seconds].map((part) => String(part).padStart(2, '0')).join(':')
+}
+
+function getActiveFlashSale(product, nowMs = Date.now()) {
+  const basePrice = Number(product?.price || 0)
+  const flashEnabled = parseBooleanLike(product?.isFlashSale)
+  const flashPrice = Number(product?.flashSalePrice || 0)
+  const flashEndMs = parseDateMs(product?.flashSaleEndTime)
+
+  const isActive =
+    flashEnabled &&
+    flashEndMs &&
+    nowMs < flashEndMs &&
+    flashPrice > 0 &&
+    basePrice > 0 &&
+    flashPrice < basePrice
+
+  if (!isActive) {
+    return {
+      isActive: false,
+      countdown: null,
+    }
+  }
+
+  return {
+    isActive: true,
+    countdown: formatCountdown(flashEndMs - nowMs),
+  }
+}
+
+function normalizeAuthToken(rawToken) {
+  const token = String(rawToken || '').trim()
+  if (!token) return ''
+  return token.toLowerCase().startsWith('bearer ') ? token.slice(7).trim() : token
+}
+
 async function apiFetch(path, token, options = {}) {
   let response
+  const authToken = normalizeAuthToken(token)
   const { warehouseId, ...fetchOptions } = options || {}
   const method = String(fetchOptions.method || 'GET').toUpperCase()
   let url = `${API}${path}`
@@ -81,17 +153,24 @@ async function apiFetch(path, token, options = {}) {
   }
 
   let body = fetchOptions.body
+  const isFormDataBody = typeof FormData !== 'undefined' && body instanceof FormData
   if (warehouseId !== undefined && warehouseId !== null && method !== 'GET' && method !== 'HEAD') {
-    try {
-      const payload = body ? JSON.parse(body) : {}
-      if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
-        if (payload.warehouse_id == null && payload.warehouseId == null) {
-          payload.warehouse_id = Number(warehouseId)
-        }
-        body = JSON.stringify(payload)
+    if (isFormDataBody) {
+      if (!body.has('warehouse_id') && !body.has('warehouseId')) {
+        body.append('warehouse_id', String(Number(warehouseId)))
       }
-    } catch (_err) {
-      // Keep original body if it isn't JSON (shouldn't happen here).
+    } else {
+      try {
+        const payload = body ? JSON.parse(body) : {}
+        if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+          if (payload.warehouse_id == null && payload.warehouseId == null) {
+            payload.warehouse_id = Number(warehouseId)
+          }
+          body = JSON.stringify(payload)
+        }
+      } catch (_err) {
+        // Keep original body if it isn't JSON.
+      }
     }
   }
   try {
@@ -99,8 +178,8 @@ async function apiFetch(path, token, options = {}) {
       ...fetchOptions,
       body,
       headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(isFormDataBody ? {} : { 'Content-Type': 'application/json' }),
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
         ...(fetchOptions.headers || {}),
       },
     })
@@ -714,6 +793,21 @@ function DeliveryPartnersPanel({ token, warehouseId, notify }) {
 }
 
 function InventoryPanel({ token, warehouseId, notify }) {
+  const defaultProductForm = {
+    name: '',
+    category: '',
+    price: '',
+    quantity: '',
+    unit: '',
+    description: '',
+    initialStock: '',
+    discountType: 'none',
+    discountValue: '',
+    isFlashSale: false,
+    flashSalePrice: '',
+    flashSaleEndTime: '',
+  }
+
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
   const [categoryOptions, setCategoryOptions] = useState([])
@@ -721,18 +815,16 @@ function InventoryPanel({ token, warehouseId, notify }) {
   const [loading, setLoading] = useState(true)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showCreateProductModal, setShowCreateProductModal] = useState(false)
+  const [productModalMode, setProductModalMode] = useState('create')
+  const [editingProductId, setEditingProductId] = useState(null)
   const [stockModal, setStockModal] = useState({ open: false, productId: '', mode: 'set', stock: '' })
-  const [productForm, setProductForm] = useState({
-    name: '',
-    categoryName: '',
-    price: '',
-    unit: '',
-    image: '',
-    description: '',
-    initialStock: '',
-  })
+  const [productForm, setProductForm] = useState(defaultProductForm)
+  const [productImage, setProductImage] = useState(null)
+  const [productImageUrl, setProductImageUrl] = useState('')
+  const [productImageError, setProductImageError] = useState('')
+  const [nowMs, setNowMs] = useState(() => Date.now())
 
-  const categoryIdByFrontendName = useMemo(() => {
+  const categoryIdByFrontendValue = useMemo(() => {
     const byNormalizedBackendName = new Map()
     categoryOptions.forEach((category) => {
       const normalized = normalizeCategoryName(category?.name)
@@ -741,12 +833,12 @@ function InventoryPanel({ token, warehouseId, notify }) {
     })
 
     const resolved = new Map()
-    FRONTEND_CATEGORY_OPTIONS.forEach((frontendName) => {
-      const candidates = [frontendName, ...(CATEGORY_NAME_ALIASES[frontendName] || [])]
+    PRODUCT_CATEGORY_OPTIONS.forEach((option) => {
+      const candidates = [option.label, option.value]
       for (const candidate of candidates) {
         const categoryId = byNormalizedBackendName.get(normalizeCategoryName(candidate))
         if (categoryId) {
-          resolved.set(frontendName, categoryId)
+          resolved.set(option.value, categoryId)
           break
         }
       }
@@ -754,6 +846,77 @@ function InventoryPanel({ token, warehouseId, notify }) {
 
     return resolved
   }, [categoryOptions])
+
+  const productById = useMemo(() => {
+    const byId = new Map()
+    products.forEach((product) => {
+      byId.set(Number(product.id), product)
+    })
+    return byId
+  }, [products])
+
+  useEffect(() => {
+    const hasAnyFlash = products.some((product) => getActiveFlashSale(product, Date.now()).isActive)
+    if (!hasAnyFlash) return undefined
+
+    const intervalId = setInterval(() => {
+      setNowMs(Date.now())
+    }, 1000)
+
+    return () => clearInterval(intervalId)
+  }, [products])
+
+  const resolveCategoryValue = useCallback((rawCategoryName) => {
+    const normalizedRawName = normalizeCategoryName(rawCategoryName)
+    if (!normalizedRawName) return ''
+
+    for (const option of PRODUCT_CATEGORY_OPTIONS) {
+      if (normalizeCategoryName(option.label) === normalizedRawName) return option.value
+      if (normalizeCategoryName(option.value) === normalizedRawName) return option.value
+    }
+
+    return ''
+  }, [])
+
+  const resetProductModalState = useCallback(() => {
+    setProductModalMode('create')
+    setEditingProductId(null)
+    setProductForm(defaultProductForm)
+    setProductImage(null)
+    setProductImageUrl('')
+    setProductImageError('')
+  }, [])
+
+  const openCreateProductModal = useCallback(() => {
+    resetProductModalState()
+    setShowCreateProductModal(true)
+  }, [resetProductModalState])
+
+  const openEditProductModal = useCallback((product) => {
+    const productDetails = productById.get(Number(product.id)) || product
+    const selectedCategoryValue = resolveCategoryValue(productDetails.categoryName || product.categoryName)
+
+    setProductModalMode('edit')
+    setEditingProductId(Number(product.id))
+    setProductForm({
+      name: productDetails.name || '',
+      category: selectedCategoryValue,
+      price: String(productDetails.price ?? ''),
+      quantity: String(productDetails.quantity ?? ''),
+      unit: productDetails.unit || '',
+      description: productDetails.description || '',
+      initialStock: String(product.stock ?? ''),
+      discountType: productDetails.discountType || 'none',
+      discountValue: String(productDetails.discountValue ?? ''),
+      isFlashSale: parseBooleanLike(productDetails.isFlashSale),
+      flashSalePrice: String(productDetails.flashSalePrice ?? ''),
+      flashSaleEndTime: toDateTimeLocalValue(productDetails.flashSaleEndTime),
+    })
+    setProductImage(null)
+    setProductImageUrl(productDetails.image || '')
+    setProductImageError('')
+    setShowCreateProductModal(true)
+  }, [productById, resolveCategoryValue])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -820,44 +983,89 @@ function InventoryPanel({ token, warehouseId, notify }) {
     load()
   }
 
-  const handleCreateProduct = async (event) => {
+  const handleSubmitProduct = async (event) => {
     event.preventDefault()
-    const selectedCategoryName = productForm.categoryName || null
-    const selectedCategoryId = selectedCategoryName
-      ? categoryIdByFrontendName.get(selectedCategoryName) || null
-      : null
+    setProductImageError('')
 
-    const result = await apiFetch('/api/warehouse/products', token, {
-      method: 'POST',
-      body: JSON.stringify({
-        name: productForm.name,
-        categoryId: selectedCategoryId,
-        categoryName: selectedCategoryName,
-        price: Number(productForm.price),
-        unit: productForm.unit || null,
-        image: productForm.image || null,
-        description: productForm.description || null,
-        initialStock: productForm.initialStock ? Number(productForm.initialStock) : 0,
-      }),
+    if (productModalMode === 'create' && !productImage && !String(productImageUrl || '').trim()) {
+      setProductImageError('Upload image or paste image URL.')
+      return
+    }
+
+    const selectedCategoryValue = productForm.category || null
+    const selectedCategoryId = selectedCategoryValue
+      ? categoryIdByFrontendValue.get(selectedCategoryValue) || null
+      : null
+    const selectedCategoryName = selectedCategoryValue
+      ? PRODUCT_CATEGORY_OPTIONS.find((option) => option.value === selectedCategoryValue)?.label || ''
+      : ''
+
+    const formData = new FormData()
+    formData.append('name', productForm.name)
+    formData.append('categoryId', selectedCategoryId ? String(selectedCategoryId) : '')
+    formData.append('categoryName', selectedCategoryName || '')
+    formData.append('price', String(Number(productForm.price)))
+    formData.append('quantity', String(Number(productForm.quantity)))
+    formData.append('unit', productForm.unit || '')
+    formData.append('description', productForm.description || '')
+    if (productModalMode === 'create') {
+      formData.append('initialStock', productForm.initialStock ? String(Number(productForm.initialStock)) : '0')
+    }
+    formData.append('discountType', productForm.discountType || 'none')
+    formData.append('discountValue', productForm.discountValue === '' ? '0' : String(productForm.discountValue).trim())
+    formData.append('isFlashSale', productForm.isFlashSale ? 'true' : 'false')
+
+    if (productForm.isFlashSale) {
+      const numericPrice = Number(productForm.price)
+      const numericFlashPrice = Number(productForm.flashSalePrice)
+      if (Number.isNaN(numericFlashPrice) || numericFlashPrice <= 0) {
+        notify({ type: 'error', text: 'Flash Sale Price must be greater than 0' })
+        return
+      }
+      if (!Number.isNaN(numericPrice) && numericFlashPrice >= numericPrice) {
+        notify({ type: 'error', text: 'Flash Sale Price must be less than product price' })
+        return
+      }
+      const endTime = new Date(productForm.flashSaleEndTime)
+      if (!productForm.flashSaleEndTime || Number.isNaN(endTime.getTime())) {
+        notify({ type: 'error', text: 'Flash Sale End Time is required' })
+        return
+      }
+      if (endTime.getTime() <= Date.now()) {
+        notify({ type: 'error', text: 'Flash Sale End Time must be in the future' })
+        return
+      }
+      formData.append('flashSalePrice', String(numericFlashPrice))
+      formData.append('flashSaleEndTime', endTime.toISOString())
+    }
+
+    if (productImage) {
+      formData.append('image', productImage)
+    } else if (String(productImageUrl || '').trim()) {
+      formData.append('imageUrl', String(productImageUrl || '').trim())
+    }
+
+    const isEditMode = productModalMode === 'edit'
+    const path = isEditMode ? `/api/warehouse/products/${editingProductId}` : '/api/warehouse/products'
+    const method = isEditMode ? 'PUT' : 'POST'
+
+    const result = await apiFetch(path, token, {
+      method,
+      body: formData,
       warehouseId,
     })
 
     if (!result.ok) {
-      notify({ type: 'error', text: result.data?.error || 'Failed to create product' })
+      notify({ type: 'error', text: result.data?.error || (isEditMode ? 'Failed to update product' : 'Failed to create product') })
       return
     }
 
-    notify({ type: 'success', text: 'Product created and added to warehouse inventory' })
-    setShowCreateProductModal(false)
-    setProductForm({
-      name: '',
-      categoryName: '',
-      price: '',
-      unit: '',
-      image: '',
-      description: '',
-      initialStock: '',
+    notify({
+      type: 'success',
+      text: isEditMode ? 'Product updated successfully' : 'Product created and added to warehouse inventory',
     })
+    setShowCreateProductModal(false)
+    resetProductModalState()
     load()
   }
 
@@ -882,7 +1090,7 @@ function InventoryPanel({ token, warehouseId, notify }) {
             <button
               type="button"
               className={styles.secondaryBtn}
-              onClick={() => setShowCreateProductModal(true)}
+              onClick={openCreateProductModal}
             >
               + Add Product
             </button>
@@ -939,7 +1147,19 @@ function InventoryPanel({ token, warehouseId, notify }) {
                     <tbody>
                       {category.products.map((product) => (
                         <tr key={product.id}>
-                          <td>{product.name}</td>
+                          <td>
+                            <div className={styles.productNameCell}>
+                              <span>{product.name}</span>
+                              {(() => {
+                                const productDetails = productById.get(Number(product.id))
+                                const flash = getActiveFlashSale(productDetails, nowMs)
+                                if (!flash.isActive) return null
+                                return (
+                                  <span className={styles.flashTimerPill}>Flash Sale {flash.countdown}</span>
+                                )
+                              })()}
+                            </div>
+                          </td>
                           <td>{product.categoryName}</td>
                           <td>
                             <div className={styles.stockValue}>
@@ -949,17 +1169,24 @@ function InventoryPanel({ token, warehouseId, notify }) {
                           </td>
                           <td>{formatMoney(product.price)}</td>
                           <td>
-                            <div className={styles.inlineForm}>
+                            <div className={styles.inventoryActionButtons}>
                               <button
                                 type="button"
-                                className={styles.secondaryBtnSmall}
+                                className={`${styles.inventoryEditBtn} ${styles.inventoryActionBtn}`}
+                                onClick={() => openEditProductModal(product)}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                className={`${styles.secondaryBtnSmall} ${styles.inventoryActionBtn}`}
                                 onClick={() => setStockModal({ open: true, productId: product.id, mode: 'add', stock: '' })}
                               >
                                 Add Stock
                               </button>
                               <button
                                 type="button"
-                                className={styles.secondaryBtnSmall}
+                                className={`${styles.secondaryBtnSmall} ${styles.inventoryActionBtn}`}
                                 onClick={() => setStockModal({ open: true, productId: product.id, mode: 'set', stock: String(product.stock) })}
                               >
                                 Update Stock
@@ -1017,10 +1244,13 @@ function InventoryPanel({ token, warehouseId, notify }) {
 
       <Modal
         open={showCreateProductModal}
-        title="Add Product To Category"
-        onClose={() => setShowCreateProductModal(false)}
+        title={productModalMode === 'edit' ? 'Edit Product' : 'Add Product To Category'}
+        onClose={() => {
+          setShowCreateProductModal(false)
+          resetProductModalState()
+        }}
       >
-        <form className={styles.formStack} onSubmit={handleCreateProduct}>
+        <form className={styles.formStack} onSubmit={handleSubmitProduct}>
           <label className={styles.field}>
             <span>Product Name</span>
             <input
@@ -1032,14 +1262,14 @@ function InventoryPanel({ token, warehouseId, notify }) {
           <label className={styles.field}>
             <span>Category</span>
             <select
-              value={productForm.categoryName}
-              onChange={(event) => setProductForm((current) => ({ ...current, categoryName: event.target.value }))}
+              value={productForm.category}
+              onChange={(event) => setProductForm((current) => ({ ...current, category: event.target.value }))}
               required
             >
               <option value="">Select category</option>
-              {FRONTEND_CATEGORY_OPTIONS.map((categoryName) => (
-                <option key={categoryName} value={categoryName}>
-                  {categoryName}
+              {PRODUCT_CATEGORY_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
                 </option>
               ))}
             </select>
@@ -1056,29 +1286,124 @@ function InventoryPanel({ token, warehouseId, notify }) {
             />
           </label>
           <label className={styles.field}>
-            <span>Unit</span>
-            <input
-              value={productForm.unit}
-              onChange={(event) => setProductForm((current) => ({ ...current, unit: event.target.value }))}
-              placeholder="kg, packet, piece"
-            />
-          </label>
-          <label className={styles.field}>
-            <span>Initial Stock</span>
+            <span>Quantity</span>
             <input
               type="number"
               min="0"
-              value={productForm.initialStock}
-              onChange={(event) => setProductForm((current) => ({ ...current, initialStock: event.target.value }))}
+              value={productForm.quantity}
+              onChange={(event) => setProductForm((current) => ({ ...current, quantity: event.target.value }))}
+              placeholder="Enter quantity (e.g. 250)"
+              required
             />
           </label>
           <label className={styles.field}>
-            <span>Image URL (optional)</span>
+            <span>Unit</span>
+            <select
+              value={productForm.unit}
+              onChange={(event) => setProductForm((current) => ({ ...current, unit: event.target.value }))}
+              required
+            >
+              <option value="">Select unit</option>
+              {PRODUCT_UNIT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </label>
+          {productModalMode === 'create' ? (
+            <label className={styles.field}>
+              <span>Initial Stock</span>
+              <input
+                type="number"
+                min="0"
+                value={productForm.initialStock}
+                onChange={(event) => setProductForm((current) => ({ ...current, initialStock: event.target.value }))}
+              />
+            </label>
+          ) : null}
+          <label className={styles.field}>
+            <span>Discount Type</span>
+            <select
+              value={productForm.discountType}
+              onChange={(event) => setProductForm((current) => ({ ...current, discountType: event.target.value }))}
+            >
+              <option value="none">No Discount</option>
+              <option value="percentage">Percentage (%)</option>
+              <option value="flat">Flat (₹)</option>
+            </select>
+          </label>
+          <label className={styles.field}>
+            <span>Discount Value</span>
             <input
-              value={productForm.image}
-              onChange={(event) => setProductForm((current) => ({ ...current, image: event.target.value }))}
+              type="text"
+              inputMode="decimal"
+              value={productForm.discountValue}
+              onChange={(event) => {
+                const nextValue = event.target.value
+                if (nextValue === '' || /^\d+(\.\d{0,2})?$/.test(nextValue)) {
+                  setProductForm((current) => ({ ...current, discountValue: nextValue }))
+                }
+              }}
+              placeholder="Enter discount value"
             />
           </label>
+          <label className={styles.fieldCheckbox}>
+            <input
+              type="checkbox"
+              checked={Boolean(productForm.isFlashSale)}
+              onChange={(event) => {
+                const checked = event.target.checked
+                setProductForm((current) => ({
+                  ...current,
+                  isFlashSale: checked,
+                  flashSalePrice: checked ? current.flashSalePrice : '',
+                  flashSaleEndTime: checked ? current.flashSaleEndTime : '',
+                }))
+              }}
+            />
+            <span>Enable Flash Sale</span>
+          </label>
+          {productForm.isFlashSale ? (
+            <>
+              <label className={styles.field}>
+                <span>Flash Sale Price</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={productForm.flashSalePrice}
+                  onChange={(event) => setProductForm((current) => ({ ...current, flashSalePrice: event.target.value }))}
+                  required
+                />
+              </label>
+              <label className={styles.field}>
+                <span>Flash Sale End Time</span>
+                <input
+                  type="datetime-local"
+                  value={productForm.flashSaleEndTime}
+                  onChange={(event) => setProductForm((current) => ({ ...current, flashSaleEndTime: event.target.value }))}
+                  required
+                />
+              </label>
+            </>
+          ) : null}
+          <div className={styles.field}>
+            <span>Image</span>
+            <ImageUpload
+              file={productImage}
+              imageUrl={productImageUrl}
+              variant="warehouse"
+              onFileChange={(file) => {
+                setProductImage(file)
+                if (file) setProductImageError('')
+              }}
+              onImageUrlChange={(value) => {
+                setProductImageUrl(value)
+                if (String(value || '').trim()) setProductImageError('')
+              }}
+              error={productImageError}
+              helperText="Upload image or paste URL"
+            />
+          </div>
           <label className={styles.field}>
             <span>Description (optional)</span>
             <textarea
@@ -1087,7 +1412,9 @@ function InventoryPanel({ token, warehouseId, notify }) {
               rows={3}
             />
           </label>
-          <button type="submit" className={styles.primaryBtn}>Create Product</button>
+          <button type="submit" className={styles.primaryBtn}>
+            {productModalMode === 'edit' ? 'Update Product' : 'Create Product'}
+          </button>
         </form>
       </Modal>
 
@@ -1201,7 +1528,7 @@ export default function WarehouseDashboard() {
   useEffect(() => {
     if (!token || !warehouseId) return undefined
 
-    const socket = io(API, {
+    const socket = io(SOCKET_BASE, {
       path: '/socket.io',
       transports: ['websocket'],
       auth: { token },
@@ -1302,7 +1629,7 @@ export default function WarehouseDashboard() {
     const savedWarehouseTitle = window.localStorage.getItem('warehouse_title')
     const savedWarehouseId = window.localStorage.getItem('warehouse_id')
     const savedAdminId = window.localStorage.getItem('admin_id')
-    if (savedToken) setToken(savedToken)
+    if (savedToken) setToken(normalizeAuthToken(savedToken))
     if (savedName) setAdminName(savedName)
     if (savedWarehouseTitle) setWarehouseTitle(savedWarehouseTitle)
     if (savedWarehouseId) setWarehouseId(savedWarehouseId)
@@ -1315,7 +1642,7 @@ export default function WarehouseDashboard() {
     const adminRequested = router.query?.admin === '1' || router.query?.mode === 'admin'
     if (!adminRequested) return
 
-    const adminToken = window.localStorage.getItem('authToken') || ''
+    const adminToken = normalizeAuthToken(window.localStorage.getItem('authToken') || '')
     const adminRole = window.localStorage.getItem('authUserRole') || ''
     const adminNameStored = window.localStorage.getItem('authUserName') || 'Super Admin'
     const qWarehouseId = router.query?.warehouseId
@@ -1447,7 +1774,8 @@ export default function WarehouseDashboard() {
   }, [token, warehouseTitle, warehouseId])
 
   const handleLogin = ({ token: nextToken, name, warehouseId: nextWarehouseId, adminId: nextAdminId, warehouseName, warehouseCity }) => {
-    window.localStorage.setItem('warehouseToken', nextToken)
+    const normalizedToken = normalizeAuthToken(nextToken)
+    window.localStorage.setItem('warehouseToken', normalizedToken)
     window.localStorage.setItem('warehouseName', name || '')
     const title = warehouseName
       ? `${warehouseName}${warehouseCity ? ` (${warehouseCity})` : ''}`
@@ -1455,7 +1783,7 @@ export default function WarehouseDashboard() {
     if (title) window.localStorage.setItem('warehouse_title', title)
     if (nextWarehouseId != null) window.localStorage.setItem('warehouse_id', String(nextWarehouseId))
     if (nextAdminId != null) window.localStorage.setItem('admin_id', String(nextAdminId))
-    setToken(nextToken)
+    setToken(normalizedToken)
     setAdminName(name || '')
     setWarehouseTitle(title)
     setWarehouseId(nextWarehouseId != null ? String(nextWarehouseId) : null)

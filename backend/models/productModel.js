@@ -1,11 +1,29 @@
 const { query } = require('../config/db')
 
+/**
+ * Safe operation to get is_flash_sale column
+ * Falls back to 0 if the column doesn't exist in the database
+ * Uses COALESCE to handle NULL values
+ */
+function getFlashSaleColumn() {
+  return `COALESCE(p.is_flash_sale, 0) AS isFlashSale`
+}
+
+function getFlashSalePriceColumn() {
+  return `p.flash_sale_price AS flashSalePrice`
+}
+
+function getFlashSaleEndTimeColumn() {
+  return `p.flash_sale_end_time AS flashSaleEndTime`
+}
+
 async function listActiveProducts() {
   return query(
     `SELECT
       p.id,
       p.name,
       p.price,
+      p.quantity,
       p.unit,
       p.image,
       p.description,
@@ -13,11 +31,18 @@ async function listActiveProducts() {
       p.latitude,
       p.longitude,
       c.name AS category,
-      COALESCE(inv.totalStock, 0) AS stockQuantity,
+      c.slug AS categorySlug,
+      c.slug AS category_slug,
+      p.discount_type AS discountType,
+      p.discount_value AS discountValue,
+      COALESCE(inv.totalStock, p.quantity, 0) AS stockQuantity,
       CASE
-        WHEN COALESCE(inv.totalStock, 0) > 0 AND COALESCE(inv.totalStock, 0) < 10 THEN 1
+        WHEN COALESCE(inv.totalStock, p.quantity, 0) > 0 AND COALESCE(inv.totalStock, p.quantity, 0) < 10 THEN 1
         ELSE 0
-      END AS lowStock
+      END AS lowStock,
+      ${getFlashSaleColumn()},
+      ${getFlashSalePriceColumn()},
+      ${getFlashSaleEndTimeColumn()}
     FROM products p
     LEFT JOIN categories c ON c.id = p.category_id
     LEFT JOIN (
@@ -36,6 +61,7 @@ async function findById(id) {
       p.id,
       p.name,
       p.price,
+      p.quantity,
       p.unit,
       p.image,
       p.description,
@@ -43,11 +69,18 @@ async function findById(id) {
       p.latitude,
       p.longitude,
       c.name AS category,
-      COALESCE(inv.totalStock, 0) AS stockQuantity,
+      c.slug AS categorySlug,
+      c.slug AS category_slug,
+      p.discount_type AS discountType,
+      p.discount_value AS discountValue,
+      COALESCE(inv.totalStock, p.quantity, 0) AS stockQuantity,
       CASE
-        WHEN COALESCE(inv.totalStock, 0) > 0 AND COALESCE(inv.totalStock, 0) < 10 THEN 1
+        WHEN COALESCE(inv.totalStock, p.quantity, 0) > 0 AND COALESCE(inv.totalStock, p.quantity, 0) < 10 THEN 1
         ELSE 0
-      END AS lowStock
+      END AS lowStock,
+      ${getFlashSaleColumn()},
+      ${getFlashSalePriceColumn()},
+      ${getFlashSaleEndTimeColumn()}
     FROM products p
     LEFT JOIN categories c ON c.id = p.category_id
     LEFT JOIN (
@@ -69,6 +102,7 @@ async function searchActiveProducts(searchTerm) {
       p.id,
       p.name,
       p.price,
+      p.quantity,
       p.unit,
       p.image,
       p.description,
@@ -76,11 +110,18 @@ async function searchActiveProducts(searchTerm) {
       p.latitude,
       p.longitude,
       c.name AS category,
-      COALESCE(inv.totalStock, 0) AS stockQuantity,
+      c.slug AS categorySlug,
+      c.slug AS category_slug,
+      p.discount_type AS discountType,
+      p.discount_value AS discountValue,
+      COALESCE(inv.totalStock, p.quantity, 0) AS stockQuantity,
       CASE
-        WHEN COALESCE(inv.totalStock, 0) > 0 AND COALESCE(inv.totalStock, 0) < 10 THEN 1
+        WHEN COALESCE(inv.totalStock, p.quantity, 0) > 0 AND COALESCE(inv.totalStock, p.quantity, 0) < 10 THEN 1
         ELSE 0
-      END AS lowStock
+      END AS lowStock,
+      ${getFlashSaleColumn()},
+      ${getFlashSalePriceColumn()},
+      ${getFlashSaleEndTimeColumn()}
      FROM products p
      LEFT JOIN categories c ON c.id = p.category_id
      LEFT JOIN (
@@ -104,21 +145,22 @@ async function exists(id) {
   return rows.length > 0
 }
 
-async function createProduct({ name, price, unit, image, description, categoryId, latitude, longitude }) {
+async function createProduct({ name, price, quantity, unit, image, description, categoryId, latitude, longitude }) {
   const result = await query(
-    `INSERT INTO products (name, price, unit, image, description, category_id, latitude, longitude, is_active)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)`,
-    [name, price, unit || null, image || null, description || null, categoryId || null, latitude, longitude]
+    `INSERT INTO products (name, price, quantity, unit, image, description, category_id, latitude, longitude, is_active)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+    [name, price, quantity || null, unit || null, image || null, description || null, categoryId || null, latitude, longitude]
   )
   return result.insertId
 }
 
-async function updateProduct({ id, name, price, unit, image, description, categoryId, latitude, longitude, isActive }) {
+async function updateProduct({ id, name, price, quantity, unit, image, description, categoryId, latitude, longitude, isActive }) {
   const result = await query(
     `UPDATE products
      SET
        name = COALESCE(?, name),
        price = COALESCE(?, price),
+       quantity = COALESCE(?, quantity),
        unit = COALESCE(?, unit),
        image = COALESCE(?, image),
        description = COALESCE(?, description),
@@ -127,7 +169,7 @@ async function updateProduct({ id, name, price, unit, image, description, catego
        longitude = COALESCE(?, longitude),
        is_active = COALESCE(?, is_active)
      WHERE id = ?`,
-    [name, price, unit, image, description, categoryId, latitude, longitude, isActive, id]
+    [name, price, quantity, unit, image, description, categoryId, latitude, longitude, isActive, id]
   )
   return result.affectedRows > 0
 }

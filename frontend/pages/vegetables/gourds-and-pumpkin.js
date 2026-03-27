@@ -77,7 +77,7 @@ export default function GourdsAndPumpkinPage() {
                   </span>
                 </div>
               )}
-              <div className="unit-badge">{p.unit}</div>
+              <div className="unit-badge">{p.quantity ? `${p.quantity} ${p.unit || ''}`.trim() : (p.unit || '')}</div>
 
               <div className="qty-control">
                 <button onClick={() => updateQty(p.id, -1)}>-</button>

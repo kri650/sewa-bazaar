@@ -4,7 +4,8 @@ import ShopLayout from '../components/ShopLayout'
 import { useCart } from '../contexts/CartContext'
 import allStaticProducts from '../data/products'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+console.log('[SearchPage] API Base URL:', API_BASE)
 const normalizeProductName = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
 
 export default function SearchPage() {
@@ -30,7 +31,7 @@ export default function SearchPage() {
           id: String(product.id),
           name: product.name || 'Product',
           price: Number(product.price || 0),
-          size: product.unit || '',
+          size: product.quantity ? `${product.quantity} ${product.unit || ''}`.trim() : (product.unit || ''),
           unit: product.unit || '',
           image: product.image || '',
           category: product.category || '',
@@ -123,7 +124,7 @@ export default function SearchPage() {
       query: {
         name: product.name,
         price: product.price,
-        size: product.unit,
+        size: product.quantity ? `${product.quantity} ${product.unit || ''}`.trim() : (product.unit || ''),
         image: product.image,
         category: product.category,
       },
@@ -196,7 +197,7 @@ export default function SearchPage() {
                     ) : null}
                     <h3 className="productName" onClick={() => handleProductClick(product)} style={{ cursor: 'pointer' }}>{product.name}</h3>
                     <div className="productPrice">₹{totalAmount}</div>
-                    <div className="productUnit">{product.unit || product.size}</div>
+                    <div className="productUnit">{product.quantity ? `${product.quantity} ${product.unit || ''}`.trim() : (product.unit || product.size)}</div>
 
                     <div className="quantityControls">
                       <button onClick={() => updateQty(product.id, -1)}>−</button>

@@ -5,6 +5,9 @@ import SiteHeader from '../components/SiteHeader'
 import { useCart } from '../contexts/CartContext'
 import { useDelivery } from '../contexts/DeliveryContext'
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+console.log('[HomePage] API Base URL:', API_BASE)
+
 const CATEGORY_ROUTES = {
   'Best Deal': '/best-deal',
   'Fruits & Vegetables': '/vegetables',
@@ -222,12 +225,85 @@ const deterministicDiscount = (key) => {
   return choices[h % choices.length]
 }
 
+const parseBooleanLike = (value) => {
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'number') return value === 1
+  const normalized = String(value || '').trim().toLowerCase()
+  return normalized === '1' || normalized === 'true' || normalized === 'yes' || normalized === 'on'
+}
+
+const parseDateTimeMs = (value) => {
+  if (!value) return null
+  const ts = new Date(value).getTime()
+  return Number.isFinite(ts) ? ts : null
+}
+
+const getCardPricing = (item, qty = 1, fallbackKey = '') => {
+  const unitBasePrice = parseRupees(item?.price)
+  const unitFlashPrice = parseRupees(item?.flashSalePrice)
+  const flashEndMs = parseDateTimeMs(item?.flashSaleEndTime)
+  const flashEnabled = parseBooleanLike(item?.isFlashSale)
+  const flashActive = flashEnabled && flashEndMs && Date.now() < flashEndMs && unitFlashPrice > 0 && unitFlashPrice < unitBasePrice
+
+  let unitFinalPrice = unitBasePrice
+  let unitOriginalPrice = unitBasePrice
+  let discountPercent = 0
+
+  if (flashActive) {
+    unitFinalPrice = unitFlashPrice
+    unitOriginalPrice = unitBasePrice
+    if (unitOriginalPrice > 0) {
+      discountPercent = Math.round(((unitOriginalPrice - unitFinalPrice) / unitOriginalPrice) * 100)
+    }
+  } else {
+    const discountType = String(item?.discountType || '').trim().toLowerCase()
+    const discountValue = parseRupees(item?.discountValue)
+    const hasTypeDiscount = discountValue > 0 && (discountType === 'percentage' || discountType === 'flat' || discountType === 'fixed')
+    const hasExplicitDiscountConfig =
+      item && (
+        Object.prototype.hasOwnProperty.call(item, 'discountType') ||
+        Object.prototype.hasOwnProperty.call(item, 'discount_type') ||
+        Object.prototype.hasOwnProperty.call(item, 'discountValue') ||
+        Object.prototype.hasOwnProperty.call(item, 'discount_value')
+      )
+
+    if (hasTypeDiscount && unitBasePrice > 0) {
+      if (discountType === 'percentage') {
+        unitFinalPrice = Math.max(0, unitBasePrice - (unitBasePrice * discountValue) / 100)
+        discountPercent = Math.round(Math.min(discountValue, 100))
+      } else if (discountType === 'fixed') {
+        unitFinalPrice = Math.min(unitBasePrice, Math.max(0, discountValue))
+        discountPercent = Math.round(((unitBasePrice - unitFinalPrice) / unitBasePrice) * 100)
+      } else {
+        unitFinalPrice = Math.max(0, unitBasePrice - discountValue)
+        discountPercent = Math.round(((unitBasePrice - unitFinalPrice) / unitBasePrice) * 100)
+      }
+      unitFinalPrice = Number(unitFinalPrice.toFixed(2))
+      unitOriginalPrice = unitBasePrice
+    } else if (hasExplicitDiscountConfig) {
+      // If admin explicitly set discount fields but no valid discount is active, show base price without synthetic % off.
+      unitFinalPrice = unitBasePrice
+      unitOriginalPrice = unitBasePrice
+      discountPercent = 0
+    } else {
+      const fallbackDiscount = deterministicDiscount(fallbackKey || item?.name || item?.id)
+      discountPercent = fallbackDiscount
+      unitOriginalPrice = unitBasePrice > 0 ? Math.round((unitBasePrice * 100) / (100 - fallbackDiscount)) : unitBasePrice
+    }
+  }
+
+  return {
+    currentPrice: Number((unitFinalPrice * qty).toFixed(2)),
+    originalPrice: Number((unitOriginalPrice * qty).toFixed(2)),
+    discountPercent,
+  }
+}
+
 const getSectionItems = (items, page, size) => {
   const start = page * size
   return items.slice(start, start + size).map((item, offset) => ({ item, index: start + offset }))
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
 
 export default function Home() {
   const { addToCart } = useCart()
@@ -293,12 +369,17 @@ export default function Home() {
             id: String(p.id),
             name: p.name || 'Product',
             price: parseRupees(p.price),
-            size: p.unit || '',
+            discountType: p.discountType || p.discount_type || 'none',
+            discountValue: p.discountValue ?? p.discount_value ?? 0,
+            isFlashSale: p.isFlashSale ?? p.is_flash_sale ?? false,
+            flashSalePrice: p.flashSalePrice ?? p.flash_sale_price ?? null,
+            flashSaleEndTime: p.flashSaleEndTime ?? p.flash_sale_end_time ?? null,
+            size: p.quantity ? `${p.quantity} ${p.unit || ''}`.trim() : (p.unit || ''),
             image: p.image || '',
             category: p.category || '',
             description: p.description || '',
-            latitude: p.latitude || 0,
-            longitude: p.longitude || 0,
+            latitude: p.latitude ?? p.lat ?? 0,
+            longitude: p.longitude ?? p.lng ?? 0,
           }))
           setAdminProducts(normalized)
           setAdminQty(normalized.map(() => 1))
@@ -312,10 +393,24 @@ export default function Home() {
                   normalized.map((p) => {
                     const plParams = (p.latitude !== 0 || p.longitude !== 0)
                       ? `&plat=${p.latitude}&plng=${p.longitude}` : ''
-                    return fetch(`/api/delivery/check-distance?lat=${uLat}&lng=${uLng}${plParams}`)
-                      .then((r) => r.ok ? r.json() : null)
-                      .then((info) => ({ id: p.id, eligible: info?.sewa_minutes_eligible || false }))
-                      .catch(() => ({ id: p.id, eligible: false }))
+                    const checkDistanceUrl = `${API_BASE}/api/delivery/check-distance?lat=${uLat}&lng=${uLng}${plParams}`
+                    console.log('[HomePage] Checking delivery distance at URL:', checkDistanceUrl)
+                    return fetch(checkDistanceUrl)
+                      .then((r) => {
+                        if (!r.ok) {
+                          console.warn('[HomePage] Check-distance API returned:', r.status)
+                          return null
+                        }
+                        return r.json()
+                      })
+                      .then((info) => {
+                        console.log('[HomePage] Delivery check result:', info)
+                        return { id: p.id, eligible: info?.sewa_minutes_eligible || false }
+                      })
+                      .catch((error) => {
+                        console.error('[HomePage] Check-distance API error:', error)
+                        return { id: p.id, eligible: false }
+                      })
                   })
                 ).then((results) => {
                   const map = {}
@@ -623,9 +718,7 @@ export default function Home() {
                 )}
                 <div className="productGrid">
                   {getSectionItems(adminProducts, adminPage, 6).map(({ item, index }) => {
-                    const currentPrice = parseRupees(item.price) * (adminQty[index] || 1)
-                    const discountPercent = deterministicDiscount(item.name || item.id)
-                    const originalPrice = Math.round((currentPrice * 100) / (100 - discountPercent))
+                    const { currentPrice, discountPercent, originalPrice } = getCardPricing(item, adminQty[index] || 1, item.name || item.id)
                     return (
                       <article className="productCard" key={`admin-${item.id}`}>
                         <div className="productImageWrap" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
@@ -649,6 +742,22 @@ export default function Home() {
                         )}
                         {item.category && <span style={{ fontSize: 11, color: '#4caf50', fontWeight: 600, textTransform: 'uppercase', marginBottom: 2, display: 'block' }}>{item.category}</span>}
                         <p className="productName" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>{item.name}</p>
+                        {item.description ? (
+                          <p
+                            style={{
+                              margin: '0 0 6px',
+                              fontSize: 12,
+                              color: '#64748b',
+                              lineHeight: 1.35,
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden',
+                            }}
+                          >
+                            {item.description}
+                          </p>
+                        ) : null}
                         {deliveryBadge && <span className="mangoBadge">{deliveryBadge}</span>}
                         <p className="productPrice">{formatRupees(currentPrice)}</p>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
@@ -694,9 +803,7 @@ export default function Home() {
               <button type="button" className="productNav productNavLeft" onClick={() => setFruitsVegPage((p) => (p - 1 + fruitsVegPageCount) % fruitsVegPageCount)} aria-label="Previous products">‹</button>
               <div className="productGrid">
                 {getSectionItems(fruitsVegetables, fruitsVegPage, 6).map(({ item, index }) => {
-                  const currentPrice = parseRupees(item.price) * (fruitsVegQty[index] || 1)
-                  const discountPercent = deterministicDiscount(item.name || item.id)
-                  const originalPrice = Math.round((currentPrice * 100) / (100 - discountPercent))
+                  const { currentPrice, discountPercent, originalPrice } = getCardPricing(item, fruitsVegQty[index] || 1, item.name || item.id)
                   return (
                 <article className="productCard" key={item.name}>
                   <div className="productImageWrap" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
@@ -745,9 +852,7 @@ export default function Home() {
               <button type="button" className="productNav productNavLeft" onClick={() => setAttaPage((p) => (p - 1 + attaPageCount) % attaPageCount)} aria-label="Previous products">‹</button>
               <div className="productGrid">
                 {getSectionItems(attaRiceGrains, attaPage, 6).map(({ item, index }) => {
-                  const currentPrice = parseRupees(item.price) * (attaQty[index] || 1)
-                  const discountPercent = deterministicDiscount(item.name || item.id)
-                  const originalPrice = Math.round((currentPrice * 100) / (100 - discountPercent))
+                  const { currentPrice, discountPercent, originalPrice } = getCardPricing(item, attaQty[index] || 1, item.name || item.id)
                   return (
                 <article className="productCard" key={item.name}>
                   <div className="productImageWrap" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
@@ -796,9 +901,7 @@ export default function Home() {
               <button type="button" className="productNav productNavLeft" onClick={() => setOilPage((p) => (p - 1 + oilPageCount) % oilPageCount)} aria-label="Previous products">‹</button>
               <div className="productGrid">
                 {getSectionItems(oilGhee, oilPage, 6).map(({ item, index }) => {
-                  const currentPrice = parseRupees(item.price) * (oilQty[index] || 1)
-                  const discountPercent = deterministicDiscount(item.name || item.id)
-                  const originalPrice = Math.round((currentPrice * 100) / (100 - discountPercent))
+                  const { currentPrice, discountPercent, originalPrice } = getCardPricing(item, oilQty[index] || 1, item.name || item.id)
                   return (
                 <article className="productCard" key={item.name}>
                   <div className="productImageWrap" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
@@ -847,9 +950,7 @@ export default function Home() {
               <button type="button" className="productNav productNavLeft" onClick={() => setMilkPage((p) => (p - 1 + milkPageCount) % milkPageCount)} aria-label="Previous products">‹</button>
               <div className="productGrid">
                 {getSectionItems(milkDairy, milkPage, 6).map(({ item, index }) => {
-                  const currentPrice = parseRupees(item.price) * (milkQty[index] || 1)
-                  const discountPercent = deterministicDiscount(item.name || item.id)
-                  const originalPrice = Math.round((currentPrice * 100) / (100 - discountPercent))
+                  const { currentPrice, discountPercent, originalPrice } = getCardPricing(item, milkQty[index] || 1, item.name || item.id)
                   return (
                 <article className="productCard" key={item.name}>
                   <div className="productImageWrap" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
@@ -898,9 +999,7 @@ export default function Home() {
               <button type="button" className="productNav productNavLeft" onClick={() => setChipsPage((p) => (p - 1 + chipsPageCount) % chipsPageCount)} aria-label="Previous products">‹</button>
               <div className="productGrid">
                 {getSectionItems(chipsBiscuits, chipsPage, 6).map(({ item, index }) => {
-                  const currentPrice = parseRupees(item.price) * (chipsQty[index] || 1)
-                  const discountPercent = deterministicDiscount(item.name || item.id)
-                  const originalPrice = Math.round((currentPrice * 100) / (100 - discountPercent))
+                  const { currentPrice, discountPercent, originalPrice } = getCardPricing(item, chipsQty[index] || 1, item.name || item.id)
                   return (
                 <article className="productCard" key={item.name}>
                   <div className="productImageWrap" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
@@ -949,9 +1048,7 @@ export default function Home() {
               <button type="button" className="productNav productNavLeft" onClick={() => setBathPage((p) => (p - 1 + bathPageCount) % bathPageCount)} aria-label="Previous products">‹</button>
               <div className="productGrid">
                 {getSectionItems(bathBody, bathPage, 6).map(({ item, index }) => {
-                  const currentPrice = parseRupees(item.price) * (bathQty[index] || 1)
-                  const discountPercent = deterministicDiscount(item.name || item.id)
-                  const originalPrice = Math.round((currentPrice * 100) / (100 - discountPercent))
+                  const { currentPrice, discountPercent, originalPrice } = getCardPricing(item, bathQty[index] || 1, item.name || item.id)
                   return (
                 <article className="productCard" key={item.name}>
                   <div className="productImageWrap" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
@@ -1000,9 +1097,7 @@ export default function Home() {
               <button type="button" className="productNav productNavLeft" onClick={() => setSoapPage((p) => (p - 1 + soapPageCount) % soapPageCount)} aria-label="Previous products">‹</button>
               <div className="productGrid">
                 {getSectionItems(soapDetergents, soapPage, 6).map(({ item, index }) => {
-                  const currentPrice = parseRupees(item.price) * (soapQty[index] || 1)
-                  const discountPercent = deterministicDiscount(item.name || item.id)
-                  const originalPrice = Math.round((currentPrice * 100) / (100 - discountPercent))
+                  const { currentPrice, discountPercent, originalPrice } = getCardPricing(item, soapQty[index] || 1, item.name || item.id)
                   return (
                 <article className="productCard" key={item.name}>
                   <div className="productImageWrap" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>
@@ -1051,9 +1146,7 @@ export default function Home() {
               <button type="button" className="productNav productNavLeft" onClick={() => setBabyPage((p) => (p - 1 + babyPageCount) % babyPageCount)} aria-label="Previous products">‹</button>
               <div className="productGrid">
                 {getSectionItems(babyCare, babyPage, 6).map(({ item, index }) => {
-                  const currentPrice = parseRupees(item.price) * (babyQty[index] || 1)
-                  const discountPercent = deterministicDiscount(item.name || item.id)
-                  const originalPrice = Math.round((currentPrice * 100) / (100 - discountPercent))
+                  const { currentPrice, discountPercent, originalPrice } = getCardPricing(item, babyQty[index] || 1, item.name || item.id)
                   return (
                 <article className="productCard" key={item.name}>
                   <div className="productImageWrap" onClick={() => handleProductClick(item)} style={{ cursor: 'pointer' }}>

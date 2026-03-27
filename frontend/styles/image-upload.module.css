@@ -1,0 +1,229 @@
+/* ─── ImageUpload Component Styles ────────────────────────────────────── */
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.helperText {
+  margin: 0;
+  color: #555;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.hiddenInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+/* Upload Box – matches form input styling */
+.uploadBox {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 12px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 7px;
+  background-color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.uploadBoxAdmin {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 48px;
+  padding: 8px 12px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 7px;
+  background-color: #fff;
+}
+
+.uploadBoxWarehouse {
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid #bfc8d4;
+  border-radius: 14px;
+  background-color: #fff;
+}
+
+.uploadBoxWarehouse:hover {
+  border-color: #cbd5e1;
+}
+
+.uploadBoxWarehouse:active,
+.uploadBoxWarehouse:focus-within {
+  border-color: #22c55e;
+}
+
+.uploadBox:hover {
+  border-color: #bfc8d4;
+}
+
+.uploadBox:active {
+  border-color: #22c55e;
+}
+
+.uploadIcon {
+  flex-shrink: 0;
+  color: #a7d8a8;
+  stroke-width: 2;
+  transition: color 0.2s ease;
+}
+
+.uploadIconAdmin {
+  color: #94a3b8;
+}
+
+.uploadIconWarehouse {
+  color: #94a3b8;
+}
+
+.uploadText {
+  font-size: 13px;
+  color: #334155;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.uploadTextAdmin {
+  font-size: 13px;
+  font-weight: 500;
+  color: #334155;
+  text-align: left;
+}
+
+.uploadTextWarehouse {
+  font-size: 14px;
+  color: #0f172a;
+  text-align: left;
+}
+
+.uploadBox:hover .uploadIcon {
+  color: #7cbc7f;
+}
+
+.uploadBoxAdmin:hover,
+.uploadBoxAdmin:focus-within {
+  border-color: #22c55e;
+}
+
+.uploadBoxAdmin:hover .uploadIconAdmin,
+.uploadBoxAdmin:focus-within .uploadIconAdmin {
+  color: #94a3b8;
+}
+
+/* OR Divider */
+.orDivider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.orDivider::before,
+.orDivider::after {
+  content: '';
+  flex: 1;
+  border-top: 1px solid #e2e8f0;
+}
+
+.orDivider span {
+  padding: 0 10px;
+}
+
+/* URL Input – matches form input styling */
+.urlInput {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 7px;
+  background-color: #ffffff;
+  font-size: 13px;
+  font-family: inherit;
+  color: #334155;
+  outline: none;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.urlInputAdmin {
+  min-height: 48px;
+  padding: 8px 12px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 7px;
+  background-color: #fff;
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.urlInputAdmin:focus {
+  border-color: #22c55e;
+}
+
+.urlInputWarehouse {
+  padding: 12px 14px;
+  border: 1px solid #bfc8d4;
+  border-radius: 14px;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.urlInputWarehouse:focus {
+  border-color: #22c55e;
+}
+
+.urlInput::placeholder {
+  color: #64748b;
+}
+
+.urlInput:focus {
+  border-color: #22c55e;
+}
+
+/* Error Message */
+.error {
+  margin: 2px 0 0;
+  color: #b91c1c;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Mobile Responsive */
+@media (max-width: 640px) {
+  .uploadBox {
+    gap: 10px;
+    padding: 8px 12px;
+  }
+
+  .uploadIcon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .uploadText {
+    font-size: 12px;
+  }
+
+  .urlInput {
+    font-size: 14px;
+  }
+}

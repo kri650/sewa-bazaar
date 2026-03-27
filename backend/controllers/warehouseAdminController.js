@@ -1,6 +1,64 @@
 const bcrypt = require('bcryptjs')
 const model = require('../models/warehouseAdminModel')
+const { isCloudinaryConfigured, uploadBufferToCloudinary } = require('../utils/cloudinary')
 const notificationModel = require('../models/notificationModel')
+const { parsePricingInput, calculateFinalPrices } = require('../utils/pricing')
+
+function parseBooleanLike(value) {
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'number') return value === 1
+  if (typeof value !== 'string') return false
+  const normalized = value.trim().toLowerCase()
+  return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on'
+}
+
+function validateFlashSale({ isFlashSale, flashSalePrice, flashSaleEndTime, originalPrice }) {
+  if (!isFlashSale) {
+    return {
+      isFlashSale: false,
+      flashSalePrice: null,
+      flashSaleEndTime: null,
+      error: null,
+    }
+  }
+
+  const numericFlashPrice = Number(flashSalePrice)
+  if (Number.isNaN(numericFlashPrice) || numericFlashPrice <= 0) {
+    return {
+      error: 'flashSalePrice must be a valid number greater than 0 when flash sale is enabled',
+    }
+  }
+  if (numericFlashPrice >= Number(originalPrice)) {
+    return {
+      error: 'flashSalePrice must be less than original price',
+    }
+  }
+
+  if (!flashSaleEndTime) {
+    return {
+      error: 'flashSaleEndTime is required when flash sale is enabled',
+    }
+  }
+
+  const parsedEndTime = new Date(flashSaleEndTime)
+  if (Number.isNaN(parsedEndTime.getTime())) {
+    return {
+      error: 'flashSaleEndTime must be a valid datetime',
+    }
+  }
+  if (parsedEndTime.getTime() <= Date.now()) {
+    return {
+      error: 'flashSaleEndTime must be a future date',
+    }
+  }
+
+  return {
+    isFlashSale: true,
+    flashSalePrice: numericFlashPrice,
+    flashSaleEndTime: parsedEndTime,
+    error: null,
+  }
+}
 
 // Warehouse admins may only update to these 4 warehouse-side statuses.
 // Delivery-side statuses (picked_up, out_for_delivery, delivered) are controlled by delivery partners.
@@ -277,18 +335,60 @@ async function createProduct(req, res) {
   try {
     const name = String(req.body?.name || '').trim()
     const price = Number(req.body?.price)
+    const isFlashSale = parseBooleanLike(req.body?.isFlashSale)
+    const flashSalePrice = req.body?.flashSalePrice
+    const flashSaleEndTime = req.body?.flashSaleEndTime
+    const quantity = req.body?.quantity != null ? Number(req.body.quantity) : null
     const unit = req.body?.unit != null ? String(req.body.unit).trim() : null
-    const image = req.body?.image != null ? String(req.body.image).trim() : null
+    const imageUrl = req.body?.imageUrl != null
+      ? String(req.body.imageUrl).trim()
+      : (req.body?.image != null ? String(req.body.image).trim() : '')
+    let image = imageUrl || null
     const description = req.body?.description != null ? String(req.body.description).trim() : null
     const categoryId = req.body?.categoryId != null ? Number(req.body.categoryId) : null
     const categoryName = req.body?.categoryName != null ? String(req.body.categoryName).trim() : null
     const initialStock = req.body?.initialStock != null ? Number(req.body.initialStock) : 0
+
+    if (req.file) {
+      if (!isCloudinaryConfigured()) {
+        return res.status(500).json({ error: 'Cloudinary is not configured on server' })
+      }
+      image = await uploadBufferToCloudinary(req.file.buffer, 'sewa-bazaar-products')
+    }
 
     if (!name) {
       return res.status(400).json({ error: 'product name is required' })
     }
     if (Number.isNaN(price) || price <= 0) {
       return res.status(400).json({ error: 'price must be a valid number greater than 0' })
+    }
+
+    const flashSaleValidation = validateFlashSale({
+      isFlashSale,
+      flashSalePrice,
+      flashSaleEndTime,
+      originalPrice: price,
+    })
+    if (flashSaleValidation.error) {
+      return res.status(400).json({ error: flashSaleValidation.error })
+    }
+
+    const pricingParse = parsePricingInput(req.body || {})
+    if (pricingParse.error) {
+      return res.status(400).json({ error: pricingParse.error })
+    }
+
+    const { discountType, discountValue } = pricingParse.data
+    const priceSummary = calculateFinalPrices({
+      originalPrice: price,
+      discountType,
+      discountValue,
+      isFlashSale: flashSaleValidation.isFlashSale,
+      flashSalePrice: flashSaleValidation.flashSalePrice,
+      flashSaleEndTime: flashSaleValidation.flashSaleEndTime,
+    })
+    if (!image) {
+      return res.status(400).json({ error: 'Upload image or provide image URL' })
     }
     if (categoryId != null && (Number.isNaN(categoryId) || categoryId <= 0)) {
       return res.status(400).json({ error: 'categoryId must be a valid category id' })
@@ -309,14 +409,129 @@ async function createProduct(req, res) {
       warehouseId: req.warehouseId,
       name,
       price,
+      quantity,
       unit,
       image,
       description,
       categoryId: resolvedCategoryId,
       initialStock,
+      discountType,
+      discountValue,
+      isFlashSale: flashSaleValidation.isFlashSale,
+      flashSalePrice: flashSaleValidation.flashSalePrice,
+      flashSaleEndTime: flashSaleValidation.flashSaleEndTime,
     })
 
-    return res.status(201).json({ ok: true, ...created })
+    return res.status(201).json({
+      ok: true,
+      ...created,
+      ...priceSummary,
+    })
+  } catch (err) {
+    return res.status(500).json({ error: err.message })
+  }
+}
+
+async function updateProduct(req, res) {
+  try {
+    const productId = Number(req.params.productId)
+    const name = String(req.body?.name || '').trim()
+    const price = Number(req.body?.price)
+    const isFlashSale = parseBooleanLike(req.body?.isFlashSale)
+    const flashSalePrice = req.body?.flashSalePrice
+    const flashSaleEndTime = req.body?.flashSaleEndTime
+    const quantity = req.body?.quantity != null ? Number(req.body.quantity) : null
+    const unit = req.body?.unit != null ? String(req.body.unit).trim() : null
+    const imageUrl = req.body?.imageUrl != null
+      ? String(req.body.imageUrl).trim()
+      : (req.body?.image != null ? String(req.body.image).trim() : '')
+    let image = imageUrl || null
+    const description = req.body?.description != null ? String(req.body.description).trim() : null
+    const categoryId = req.body?.categoryId != null ? Number(req.body.categoryId) : null
+    const categoryName = req.body?.categoryName != null ? String(req.body.categoryName).trim() : null
+
+    if (!productId || Number.isNaN(productId)) {
+      return res.status(400).json({ error: 'valid productId is required' })
+    }
+
+    if (req.file) {
+      if (!isCloudinaryConfigured()) {
+        return res.status(500).json({ error: 'Cloudinary is not configured on server' })
+      }
+      image = await uploadBufferToCloudinary(req.file.buffer, 'sewa-bazaar-products')
+    }
+
+    if (!name) {
+      return res.status(400).json({ error: 'product name is required' })
+    }
+    if (Number.isNaN(price) || price <= 0) {
+      return res.status(400).json({ error: 'price must be a valid number greater than 0' })
+    }
+
+    const flashSaleValidation = validateFlashSale({
+      isFlashSale,
+      flashSalePrice,
+      flashSaleEndTime,
+      originalPrice: price,
+    })
+    if (flashSaleValidation.error) {
+      return res.status(400).json({ error: flashSaleValidation.error })
+    }
+
+    const pricingParse = parsePricingInput(req.body || {})
+    if (pricingParse.error) {
+      return res.status(400).json({ error: pricingParse.error })
+    }
+
+    const { discountType, discountValue } = pricingParse.data
+    const priceSummary = calculateFinalPrices({
+      originalPrice: price,
+      discountType,
+      discountValue,
+      isFlashSale: flashSaleValidation.isFlashSale,
+      flashSalePrice: flashSaleValidation.flashSalePrice,
+      flashSaleEndTime: flashSaleValidation.flashSaleEndTime,
+    })
+
+    if (categoryId != null && (Number.isNaN(categoryId) || categoryId <= 0)) {
+      return res.status(400).json({ error: 'categoryId must be a valid category id' })
+    }
+    if (categoryName != null && !categoryName) {
+      return res.status(400).json({ error: 'categoryName cannot be empty when provided' })
+    }
+
+    const resolvedCategoryId = await resolveCategoryId({ categoryId, categoryName })
+    if ((categoryId != null || categoryName) && !resolvedCategoryId) {
+      return res.status(400).json({ error: 'Category not found. Please sync frontend and backend categories.' })
+    }
+
+    const updated = await model.updateProductForWarehouse({
+      warehouseId: req.warehouseId,
+      productId,
+      name,
+      price,
+      quantity,
+      unit,
+      image,
+      description,
+      categoryId: resolvedCategoryId,
+      discountType,
+      discountValue,
+      isFlashSale: flashSaleValidation.isFlashSale,
+      flashSalePrice: flashSaleValidation.flashSalePrice,
+      flashSaleEndTime: flashSaleValidation.flashSaleEndTime,
+    })
+
+    if (!updated.ok) {
+      const code = updated.reason === 'product_not_in_inventory' ? 404 : 400
+      return res.status(code).json({ error: updated.reason.replace(/_/g, ' ') })
+    }
+
+    return res.json({
+      ok: true,
+      product: updated.product,
+      ...priceSummary,
+    })
   } catch (err) {
     return res.status(500).json({ error: err.message })
   }
@@ -588,6 +803,7 @@ module.exports = {
   getMetrics,
   getDashboardStats,
   createProduct,
+  updateProduct,
   getOverviewByWarehouseId,
   getOrders,
   getOrdersByWarehouseId,

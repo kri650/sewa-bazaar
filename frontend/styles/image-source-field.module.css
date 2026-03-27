@@ -1,0 +1,108 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.helper {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.hiddenInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.uploadBox {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 12px;
+  border: 1.5px solid #d4e8bb;
+  border-radius: 7px;
+  background-color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.uploadBox:hover {
+  border-color: #a7d8a8;
+}
+
+.uploadBox:active {
+  border-color: #619233;
+}
+
+.uploadIcon {
+  flex-shrink: 0;
+  color: #a7d8a8;
+  stroke-width: 2;
+}
+
+.uploadText {
+  font-size: 13px;
+  color: #334155;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.uploadBox:hover .uploadIcon {
+  color: #7cbc7f;
+}
+
+.orRow {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.orRow::before,
+.orRow::after {
+  content: '';
+  flex: 1;
+  border-top: 1px solid #e2e8f0;
+}
+
+.orRow span {
+  padding: 0 10px;
+}
+
+.error {
+  margin: 2px 0 0;
+  color: #b91c1c;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .uploadBox {
+    gap: 10px;
+    padding: 8px 12px;
+  }
+
+  .uploadIcon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .uploadText {
+    font-size: 13px;
+  }
+}
