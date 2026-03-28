@@ -10,6 +10,7 @@ const authRoutes           = require('./routes/authRoutes')
 const adminAuthRoutes      = require('./routes/adminAuthRoutes')
 const otpAuthRoutes        = require('./routes/otpAuthRoutes')   // OTP signup + login
 const productRoutes        = require('./routes/productRoutes')
+const requestProductRoutes = require('./routes/requestProductRoutes')
 const orderRoutes          = require('./routes/orderRoutes')
 const adminRoutes          = require('./routes/adminRoutes')
 const adminDashboardRoutes = require('./routes/adminDashboardRoutes')
@@ -74,8 +75,10 @@ app.use('/api/otp-auth',   otpAuthRoutes)        // OTP signup + login
 app.use('/api/warehouse-admin', warehouseAuthRoutes) // warehouse admin auth (public: login + create — MUST be before generic /api mounts)
 app.use('/api/warehouse', warehouseRoutes) // warehouse admin login alias
 app.use('/api/products',   productRoutes)  // Public products API
+app.use('/api',            requestProductRoutes)
 app.use('/api/coupons',    couponRoutes)
 app.use('/products',       productRoutes)  // Backward compatibility
+app.use('/',               requestProductRoutes)
 app.use('/',               orderRoutes)
 app.use('/admin',          requireAdminAuth, adminRoutes)
 app.use('/api/admin',      requireAdminAuth, adminRoutes)

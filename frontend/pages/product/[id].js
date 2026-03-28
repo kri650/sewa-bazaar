@@ -157,6 +157,10 @@ export default function ProductDetailPage() {
   const [reviews, setReviews] = useState([])
   const [newReview, setNewReview] = useState({ name: '', rating: 5, comment: '' })
   const [stockMeta, setStockMeta] = useState({ inStock: true, lowStock: false, stockQuantity: null })
+  const [requestModalOpen, setRequestModalOpen] = useState(false)
+  const [requestForm, setRequestForm] = useState({ userName: '', phone: '' })
+  const [requestLoading, setRequestLoading] = useState(false)
+  const [requestMessage, setRequestMessage] = useState('')
 
   // Sewa Bazaar Minutes delivery state
   const [deliveryInfo, setDeliveryInfo] = useState(null)   // null = checking, false = no geo, object = result
@@ -390,6 +394,61 @@ export default function ProductDetailPage() {
     router.push('/cart')
   }
 
+  const openRequestModal = () => {
+    setRequestModalOpen(true)
+    setRequestForm({ userName: '', phone: '' })
+    setRequestMessage('')
+  }
+
+  const closeRequestModal = () => {
+    setRequestModalOpen(false)
+    setRequestLoading(false)
+    setRequestMessage('')
+  }
+
+  const handleRequestProduct = async (e) => {
+    e.preventDefault()
+    if (!product) return
+
+    const userName = String(requestForm.userName || '').trim()
+    const phone = String(requestForm.phone || '').replace(/\D/g, '')
+
+    if (!userName || !/^\d{10}$/.test(phone)) {
+      setRequestMessage('Please enter your name and a valid 10-digit phone number.')
+      return
+    }
+
+    setRequestLoading(true)
+    setRequestMessage('')
+    try {
+      const res = await fetch(`${API_BASE}/api/request-product`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: Number(product.id) || null,
+          productName: product.name,
+          userName,
+          phone,
+        }),
+      })
+
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setRequestMessage(data?.error || 'Could not submit your request. Please try again.')
+        return
+      }
+
+      setRequestMessage('Request submitted successfully. We will notify you when it is available.')
+      setTimeout(() => {
+        closeRequestModal()
+      }, 1200)
+    } catch (_err) {
+      setRequestMessage('Could not submit your request. Please try again.')
+    } finally {
+      setRequestLoading(false)
+    }
+  }
+
   const formatRupees = (amount) => `Rs. ${amount.toLocaleString('en-IN', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -522,21 +581,27 @@ export default function ProductDetailPage() {
               )}
 
               {/* Quantity Selector */}
-              <div className="quantity-section">
-                <label>Quantity:</label>
-                <div className="qty-picker-large">
-                  <button onClick={() => updateQty(-1)}>−</button>
-                  <input type="text" value={quantity} readOnly />
-                  <button onClick={() => updateQty(1)}>+</button>
+              {stockMeta.inStock && (
+                <div className="quantity-section">
+                  <label>Quantity:</label>
+                  <div className="qty-picker-large">
+                    <button onClick={() => updateQty(-1)}>−</button>
+                    <input type="text" value={quantity} readOnly />
+                    <button onClick={() => updateQty(1)}>+</button>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Action Buttons */}
               <div className="action-buttons">
-                <button className="add-to-cart-btn-large" onClick={handleAddToCart} disabled={!stockMeta.inStock}>
-                  {stockMeta.inStock ? 'Add to Cart' : 'Out of Stock'}
-                </button>
-                <button className="buy-now-btn" onClick={handleBuyNow} disabled={!stockMeta.inStock}>Buy Now</button>
+                {stockMeta.inStock ? (
+                  <>
+                    <button className="add-to-cart-btn-large" onClick={handleAddToCart}>Add to Cart</button>
+                    <button className="buy-now-btn" onClick={handleBuyNow}>Buy Now</button>
+                  </>
+                ) : (
+                  <button className="request-product-btn" onClick={openRequestModal}>Request Product</button>
+                )}
               </div>
 
               {/* ── Sewa Bazaar Minutes Delivery Badge ── */}
@@ -650,6 +715,44 @@ export default function ProductDetailPage() {
               </div>
             </div>
           </div>
+
+          {requestModalOpen && (
+            <div className="request-modal-overlay" role="dialog" aria-modal="true">
+              <div className="request-modal-card">
+                <h3>Request Product</h3>
+                <p>{product.name}</p>
+                <form onSubmit={handleRequestProduct}>
+                  <label>
+                    Name
+                    <input
+                      type="text"
+                      value={requestForm.userName}
+                      onChange={(e) => setRequestForm((prev) => ({ ...prev, userName: e.target.value }))}
+                      placeholder="Enter your name"
+                      required
+                    />
+                  </label>
+                  <label>
+                    Phone
+                    <input
+                      type="tel"
+                      value={requestForm.phone}
+                      onChange={(e) => setRequestForm((prev) => ({ ...prev, phone: e.target.value.replace(/\D/g, '').slice(0, 10) }))}
+                      placeholder="10-digit phone number"
+                      required
+                    />
+                  </label>
+                  {requestMessage ? <div className="request-modal-msg">{requestMessage}</div> : null}
+                  <div className="request-modal-actions">
+                    <button type="button" className="request-cancel-btn" onClick={closeRequestModal} disabled={requestLoading}>Cancel</button>
+                    <button type="submit" className="request-submit-btn" disabled={requestLoading}>
+                      {requestLoading ? 'Submitting...' : 'Submit Request'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
 
           {/* Tabs */}
           <div className="product-tabs-section">
@@ -1048,6 +1151,20 @@ export default function ProductDetailPage() {
             letter-spacing: 0.2px;
           }
 
+          .request-product-btn {
+            width: 100%;
+            max-width: 300px;
+            padding: 11px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            border: 1px solid #d97706;
+            background: linear-gradient(to bottom, #fbbf24, #f59e0b);
+            color: #fff;
+            letter-spacing: 0.2px;
+          }
+
           .add-to-cart-btn-large {
             background: linear-gradient(to bottom, #f7dfa5, #f0c14b);
             border-color: #a88734 #9c7e31 #846a29;
@@ -1080,6 +1197,85 @@ export default function ProductDetailPage() {
           .buy-now-btn:active {
             background: #f12711;
             box-shadow: 0 1px 3px rgba(0,0,0,.2) inset;
+          }
+
+          .request-modal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 1100;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+          }
+
+          .request-modal-card {
+            width: 100%;
+            max-width: 420px;
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px;
+          }
+
+          .request-modal-card h3 {
+            margin: 0 0 6px;
+          }
+
+          .request-modal-card p {
+            margin: 0 0 14px;
+            color: #6b7280;
+            font-size: 14px;
+          }
+
+          .request-modal-card label {
+            display: block;
+            margin-bottom: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #374151;
+          }
+
+          .request-modal-card input {
+            display: block;
+            width: 100%;
+            margin-top: 6px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 14px;
+          }
+
+          .request-modal-msg {
+            margin: 0 0 10px;
+            color: #b45309;
+            font-size: 13px;
+          }
+
+          .request-modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+          }
+
+          .request-cancel-btn,
+          .request-submit-btn {
+            border: none;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+          }
+
+          .request-cancel-btn {
+            background: #f3f4f6;
+            color: #374151;
+          }
+
+          .request-submit-btn {
+            background: #16a34a;
+            color: #fff;
           }
 
           /* Product Features */

@@ -21,6 +21,9 @@ router.post('/products', productImageUpload.single('image'), adminController.cre
 router.put('/products/:productId', productImageUpload.single('image'), adminController.editProduct)
 router.delete('/products', adminController.removeProduct)
 router.delete('/products/:productId', adminController.removeProduct)
+router.get('/product-requests', adminController.getProductRequests)
+router.patch('/product-requests/:id/fulfilled', adminController.markProductRequestFulfilled)
+router.delete('/product-requests/:id', adminController.deleteProductRequest)
 
 // Warehouse / delivery config routes
 router.get('/warehouses',           warehouseController.getWarehouses)

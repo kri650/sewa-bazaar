@@ -34,6 +34,7 @@ async function checkWarehouseAdmin(req, res, next) {
     const requestedWarehouseId = Number(
       req.params?.warehouseId
       ?? req.query?.warehouseId
+      ?? req.query?.warehouse_id
       ?? req.body?.warehouse_id
       ?? req.body?.warehouseId
     )

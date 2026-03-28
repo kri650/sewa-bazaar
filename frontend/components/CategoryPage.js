@@ -84,6 +84,10 @@ export default function CategoryPage({
     rating: null,
     priceRange: 'all'
   })
+  const [requestProduct, setRequestProduct] = useState(null)
+  const [requestForm, setRequestForm] = useState({ userName: '', phone: '' })
+  const [requestSubmitting, setRequestSubmitting] = useState(false)
+  const [requestMessage, setRequestMessage] = useState('')
 
   const mergedProducts = useMemo(() => {
     const staticList = Array.isArray(products) ? products : []
@@ -197,6 +201,65 @@ export default function CategoryPage({
     }))
   }
 
+  const openRequestModal = (product) => {
+    if (!product) return
+    setRequestProduct({
+      id: product.id,
+      name: product.name,
+    })
+    setRequestForm({ userName: '', phone: '' })
+    setRequestMessage('')
+  }
+
+  const closeRequestModal = () => {
+    setRequestProduct(null)
+    setRequestSubmitting(false)
+    setRequestMessage('')
+  }
+
+  const submitRequestProduct = async (e) => {
+    e.preventDefault()
+    if (!requestProduct) return
+
+    const userName = String(requestForm.userName || '').trim()
+    const phone = String(requestForm.phone || '').replace(/\D/g, '')
+
+    if (!userName || !/^\d{10}$/.test(phone)) {
+      setRequestMessage('Please enter your name and a valid 10-digit phone number.')
+      return
+    }
+
+    setRequestSubmitting(true)
+    setRequestMessage('')
+    try {
+      const res = await fetch(`${API_BASE}/api/request-product`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: Number(requestProduct.id) || null,
+          productName: requestProduct.name,
+          userName,
+          phone,
+        }),
+      })
+
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setRequestMessage(data?.error || 'Could not submit your request. Please try again.')
+        return
+      }
+
+      setRequestMessage('Request submitted successfully. We will notify you when it is available.')
+      setTimeout(() => {
+        closeRequestModal()
+      }, 1200)
+    } catch (_err) {
+      setRequestMessage('Could not submit your request. Please try again.')
+    } finally {
+      setRequestSubmitting(false)
+    }
+  }
+
   const handleProductClick = (product, routeId) => {
     const normalizedPrice = parseRupees(product.price)
     const normalizedSize = product.size || product.unit || ''
@@ -280,6 +343,12 @@ export default function CategoryPage({
               const normalizedPrice = parseRupees(product.price)
               const normalizedSize = product.quantity ? `${product.quantity} ${product.unit || ''}`.trim() : (product.size || product.unit || '')
               const stockMeta = stockMetaByName[normalizeProductName(product.name)]
+              const hasStockQuantity =
+                (product.stockQuantity !== undefined && product.stockQuantity !== null) ||
+                (stockMeta?.stockQuantity !== undefined && stockMeta?.stockQuantity !== null)
+              const stockQuantity = hasStockQuantity
+                ? Number(product.stockQuantity ?? stockMeta?.stockQuantity ?? 0)
+                : null
               const lowStockNote = (product.lowStock || stockMeta?.lowStock)
                 ? `Low stock${(product.stockQuantity || stockMeta?.stockQuantity || 0) > 0 ? ` (${product.stockQuantity || stockMeta?.stockQuantity || 0} left)` : ''}`
                 : undefined
@@ -310,10 +379,12 @@ export default function CategoryPage({
                   image={product.image}
                   badge={deliveryBadge || product.badge || undefined}
                   note={lowStockNote}
+                  stockQuantity={stockQuantity}
                   showQty={true}
                   qty={qty}
                   onQtyChange={(delta) => changeQty(routeId, delta)}
                   onAdd={() => addToCart({ ...product, price: normalizedPrice, size: normalizedSize }, qty)}
+                  onRequestProduct={() => openRequestModal(product)}
                   onClick={() => handleProductClick(product, routeId)}
                 />
               )
@@ -321,6 +392,44 @@ export default function CategoryPage({
           </div>
         </div>
       </div>
+
+      {requestProduct && (
+        <div className="requestModalOverlay" role="dialog" aria-modal="true">
+          <div className="requestModalCard">
+            <h3>Request Product</h3>
+            <p className="requestModalSub">{requestProduct.name}</p>
+            <form onSubmit={submitRequestProduct}>
+              <label>
+                Name
+                <input
+                  type="text"
+                  value={requestForm.userName}
+                  onChange={(e) => setRequestForm((prev) => ({ ...prev, userName: e.target.value }))}
+                  placeholder="Enter your name"
+                  required
+                />
+              </label>
+              <label>
+                Phone
+                <input
+                  type="tel"
+                  value={requestForm.phone}
+                  onChange={(e) => setRequestForm((prev) => ({ ...prev, phone: e.target.value.replace(/\D/g, '').slice(0, 10) }))}
+                  placeholder="10-digit phone number"
+                  required
+                />
+              </label>
+              {requestMessage ? <p className="requestModalMsg">{requestMessage}</p> : null}
+              <div className="requestModalActions">
+                <button type="button" className="requestCancelBtn" onClick={closeRequestModal} disabled={requestSubmitting}>Cancel</button>
+                <button type="submit" className="requestSubmitBtn" disabled={requestSubmitting}>
+                  {requestSubmitting ? 'Submitting...' : 'Submit Request'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         .categoryContent {
@@ -335,6 +444,94 @@ export default function CategoryPage({
           .categoryContent {
             grid-template-columns: 1fr;
           }
+        }
+
+        .requestModalOverlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.45);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 16px;
+          z-index: 1000;
+        }
+
+        .requestModalCard {
+          width: 100%;
+          max-width: 420px;
+          background: #fff;
+          border-radius: 12px;
+          padding: 20px;
+          box-shadow: 0 18px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .requestModalCard h3 {
+          margin: 0 0 6px;
+          font-size: 20px;
+          color: #1f2937;
+        }
+
+        .requestModalSub {
+          margin: 0 0 14px;
+          color: #6b7280;
+          font-size: 14px;
+        }
+
+        .requestModalCard label {
+          display: block;
+          margin-bottom: 12px;
+          font-size: 13px;
+          font-weight: 600;
+          color: #374151;
+        }
+
+        .requestModalCard input {
+          display: block;
+          width: 100%;
+          margin-top: 6px;
+          border: 1px solid #d1d5db;
+          border-radius: 8px;
+          padding: 10px 12px;
+          font-size: 14px;
+          outline: none;
+        }
+
+        .requestModalCard input:focus {
+          border-color: #16a34a;
+        }
+
+        .requestModalMsg {
+          margin: 0 0 12px;
+          font-size: 13px;
+          color: #b45309;
+        }
+
+        .requestModalActions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 10px;
+          margin-top: 6px;
+        }
+
+        .requestCancelBtn,
+        .requestSubmitBtn {
+          border: none;
+          border-radius: 8px;
+          padding: 10px 14px;
+          font-size: 13px;
+          font-weight: 700;
+          cursor: pointer;
+        }
+
+        .requestCancelBtn {
+          background: #f3f4f6;
+          color: #374151;
+        }
+
+        .requestSubmitBtn {
+          background: #16a34a;
+          color: #fff;
         }
       `}</style>
     </main>

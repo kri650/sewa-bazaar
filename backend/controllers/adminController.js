@@ -2,6 +2,7 @@ const adminModel = require('../models/adminModel')
 const bcrypt = require('bcryptjs')
 const warehouseAuthModel = require('../models/warehouseAuthModel')
 const warehouseAdminModel = require('../models/warehouseAdminModel')
+const productRequestModel = require('../models/productRequestModel')
 const { isCloudinaryConfigured, uploadBufferToCloudinary } = require('../utils/cloudinary')
 const { parsePricingInput, calculateFinalPrices } = require('../utils/pricing')
 
@@ -509,6 +510,47 @@ async function getWarehouseSnapshot(req, res) {
   }
 }
 
+async function getProductRequests(_req, res) {
+  try {
+    const rows = await productRequestModel.listProductRequests()
+    return res.json(rows)
+  } catch (error) {
+    return res.status(500).json({ error: error.message })
+  }
+}
+
+async function markProductRequestFulfilled(req, res) {
+  try {
+    const id = Number(req.params.id)
+    if (!id || Number.isNaN(id)) {
+      return res.status(400).json({ error: 'valid request id is required' })
+    }
+
+    const updated = await productRequestModel.updateProductRequestStatus(id, 'fulfilled')
+    if (!updated) return res.status(404).json({ error: 'request not found' })
+
+    return res.json({ ok: true, id, status: 'fulfilled' })
+  } catch (error) {
+    return res.status(500).json({ error: error.message })
+  }
+}
+
+async function deleteProductRequest(req, res) {
+  try {
+    const id = Number(req.params.id)
+    if (!id || Number.isNaN(id)) {
+      return res.status(400).json({ error: 'valid request id is required' })
+    }
+
+    const deleted = await productRequestModel.deleteProductRequest(id)
+    if (!deleted) return res.status(404).json({ error: 'request not found' })
+
+    return res.json({ ok: true })
+  } catch (error) {
+    return res.status(500).json({ error: error.message })
+  }
+}
+
 module.exports = {
   getOrders,
   getUsers,
@@ -526,4 +568,7 @@ module.exports = {
   createWarehouseAdmin,
   updateWarehouseAdminWarehouse,
   getWarehouseSnapshot,
+  getProductRequests,
+  markProductRequestFulfilled,
+  deleteProductRequest,
 }

@@ -9,6 +9,7 @@ import { resolveProductImage } from '../lib/productImage'
 import { toast } from 'react-hot-toast'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+const COD_MIN_ORDER_AMOUNT = 200
 console.log('[CartPage] API Base URL:', API_BASE)
 
 export default function CartPage() {
@@ -198,6 +199,13 @@ export default function CartPage() {
     setOrderError('')
     setLoading(true)
 
+    if (form.paymentMethod === 'cod' && finalTotal < COD_MIN_ORDER_AMOUNT) {
+      setOrderError('COD available only for orders above ₹200')
+      setForm((prev) => ({ ...prev, paymentMethod: 'online' }))
+      setLoading(false)
+      return
+    }
+
     // Check login
     if (typeof window !== 'undefined' && !localStorage.getItem('sbUserToken')) {
       toast.error('Please log in to place an order')
@@ -313,6 +321,13 @@ export default function CartPage() {
   const discountedSubtotal = Math.max(0, cartTotal - discount)
   const couponDiscount = Math.min(discountedSubtotal, Number(appliedCoupon?.discountAmount || 0))
   const finalTotal = discountedSubtotal - couponDiscount + deliveryFee + platformFee
+  const isCodAllowed = finalTotal >= COD_MIN_ORDER_AMOUNT
+
+  useEffect(() => {
+    if (!isCodAllowed && form.paymentMethod === 'cod') {
+      setForm((prev) => ({ ...prev, paymentMethod: 'online' }))
+    }
+  }, [isCodAllowed, form.paymentMethod])
 
   if (cart.length === 0 && checkoutStep !== 'success') {
     return (
@@ -556,8 +571,8 @@ export default function CartPage() {
                   <div className="paymentSection">
                     <h3>Payment Method</h3>
                     <div className="paymentOptions">
-                      <label className={`paymentOption ${form.paymentMethod === 'cod' ? 'selected' : ''}`}>
-                        <input type="radio" name="paymentMethod" value="cod" checked={form.paymentMethod === 'cod'} onChange={handleFormChange} />
+                      <label className={`paymentOption ${form.paymentMethod === 'cod' ? 'selected' : ''} ${!isCodAllowed ? 'disabled' : ''}`}>
+                        <input type="radio" name="paymentMethod" value="cod" checked={form.paymentMethod === 'cod'} onChange={handleFormChange} disabled={!isCodAllowed} />
                         <div className="paymentOptionContent">
                           <span className="paymentIcon">COD</span>
                           <div><strong>Cash on Delivery</strong><p>Pay when your order arrives</p></div>
@@ -571,10 +586,11 @@ export default function CartPage() {
                         </div>
                       </label>
                     </div>
+                    {!isCodAllowed ? <p className="codRestrictionMsg">COD available only for orders above ₹200</p> : null}
                   </div>
                   {orderError && <div className="errorMsg">⚠ {orderError}</div>}
                   <button type="submit" className="submitOrderBtn" disabled={loading}>
-                    {loading ? 'Processing…' : form.paymentMethod === 'cod' ? 'Place Order (COD)' : 'Pay Now with Razorpay'}
+                    {loading ? 'Processing…' : !isCodAllowed ? 'Pay Now' : form.paymentMethod === 'cod' ? 'Place Order (COD)' : 'Pay Now with Razorpay'}
                   </button>
                 </form>
               </section>
@@ -625,6 +641,7 @@ export default function CartPage() {
             .paymentOption { display: flex; align-items: center; padding: 14px 18px; border: 1.5px solid #e0e0e0; border-radius: 8px; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
             .paymentOption input[type="radio"] { margin-right: 14px; accent-color: #619233; width: 18px; height: 18px; flex-shrink: 0; }
             .paymentOption.selected { border-color: #619233; background: #f8faf5; }
+            .paymentOption.disabled { opacity: 0.6; cursor: not-allowed; background: #f8f8f8; border-color: #ececec; }
             .paymentOptionContent { display: flex; align-items: center; gap: 12px; }
             .paymentIcon {
               background: #f1f5f9;
@@ -638,6 +655,7 @@ export default function CartPage() {
             }
             .paymentOptionContent strong { display: block; font-size: 15px; color: #212121; }
             .paymentOptionContent p { margin: 2px 0 0; font-size: 13px; color: #666; }
+            .codRestrictionMsg { margin: 10px 0 0; font-size: 13px; color: #b45309; font-weight: 600; }
             .errorMsg { margin: 16px 0; padding: 12px 16px; background: #fff2f2; border: 1px solid #fcc; border-radius: 6px; color: #c0392b; font-size: 14px; }
             .submitOrderBtn { width: 100%; margin-top: 24px; background: linear-gradient(135deg, #619233 0%, #4f7a29 100%); color: #fff; border: none; padding: 15px; border-radius: 8px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; letter-spacing: 0.3px; box-shadow: 0 4px 14px rgba(97,146,51,0.35); }
             .submitOrderBtn:hover:not(:disabled) { background: linear-gradient(135deg, #4f7a29 0%, #3d6b1a 100%); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(97,146,51,0.45); }

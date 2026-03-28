@@ -1,4 +1,5 @@
 const productModel = require('../models/productModel')
+const productRequestModel = require('../models/productRequestModel')
 
 /**
  * List all active products
@@ -145,9 +146,61 @@ async function adminDeleteProduct(req, res) {
   }
 }
 
+async function requestProduct(req, res) {
+  try {
+    const productId = req.body?.productId ? Number(req.body.productId) : null
+    const requestedWarehouseId = req.body?.warehouseId ? Number(req.body.warehouseId) : null
+    const rawProductName = String(req.body?.productName || '').trim()
+    const userName = String(req.body?.userName || '').trim()
+    const phone = String(req.body?.phone || '').trim()
+
+    if (!userName || !phone) {
+      return res.status(400).json({ error: 'userName and phone are required' })
+    }
+
+    if (!/^\d{10}$/.test(phone)) {
+      return res.status(400).json({ error: 'phone must be a valid 10-digit number' })
+    }
+
+    let productName = rawProductName
+    if (productId && !Number.isNaN(productId)) {
+      const product = await productModel.findById(productId)
+      if (!product) {
+        return res.status(404).json({ error: 'Product not found' })
+      }
+      productName = product?.name || productName
+    }
+
+    if (!productName) {
+      return res.status(400).json({ error: 'productName is required' })
+    }
+
+    let warehouseId = null
+    if (requestedWarehouseId && !Number.isNaN(requestedWarehouseId)) {
+      warehouseId = requestedWarehouseId
+    } else if (productId && !Number.isNaN(productId)) {
+      warehouseId = await productRequestModel.findPreferredWarehouseIdForProduct(productId)
+    }
+
+    const created = await productRequestModel.createProductRequest({
+      productId: productId && !Number.isNaN(productId) ? productId : null,
+      warehouseId,
+      productName,
+      userName,
+      phone,
+    })
+
+    return res.status(201).json({ ok: true, request: created })
+  } catch (error) {
+    console.error('[productController.requestProduct] Error:', error.message)
+    return res.status(500).json({ error: 'Failed to submit product request' })
+  }
+}
+
 module.exports = {
   listProducts,
   getProduct,
+  requestProduct,
   adminAddProduct,
   adminUpdateProduct,
   adminDeleteProduct,

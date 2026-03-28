@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs')
 const model = require('../models/warehouseAdminModel')
 const { isCloudinaryConfigured, uploadBufferToCloudinary } = require('../utils/cloudinary')
 const notificationModel = require('../models/notificationModel')
+const productRequestModel = require('../models/productRequestModel')
 const { parsePricingInput, calculateFinalPrices } = require('../utils/pricing')
 
 function parseBooleanLike(value) {
@@ -788,6 +789,58 @@ async function getCodCollectionsByWarehouseId(req, res) {
   }
 }
 
+async function getProductRequests(req, res) {
+  try {
+    const requestedWarehouseId = req.query?.warehouse_id ? Number(req.query.warehouse_id) : null
+    const tokenWarehouseId = Number(req.warehouseId)
+
+    if (!tokenWarehouseId || Number.isNaN(tokenWarehouseId)) {
+      return res.status(403).json({ error: 'warehouse not assigned to this admin' })
+    }
+
+    if (requestedWarehouseId && requestedWarehouseId !== tokenWarehouseId) {
+      return res.status(403).json({ error: 'forbidden for requested warehouse' })
+    }
+
+    const requests = await productRequestModel.listProductRequestsByWarehouse(tokenWarehouseId)
+    return res.json({ warehouseId: tokenWarehouseId, requests })
+  } catch (err) {
+    return res.status(500).json({ error: err.message })
+  }
+}
+
+async function markProductRequestFulfilled(req, res) {
+  try {
+    const id = Number(req.params.id)
+    if (!id || Number.isNaN(id)) {
+      return res.status(400).json({ error: 'valid request id is required' })
+    }
+
+    const updated = await productRequestModel.updateProductRequestStatusForWarehouse(id, req.warehouseId, 'fulfilled')
+    if (!updated) return res.status(404).json({ error: 'request not found in this warehouse' })
+
+    return res.json({ ok: true, id, status: 'fulfilled' })
+  } catch (err) {
+    return res.status(500).json({ error: err.message })
+  }
+}
+
+async function deleteProductRequest(req, res) {
+  try {
+    const id = Number(req.params.id)
+    if (!id || Number.isNaN(id)) {
+      return res.status(400).json({ error: 'valid request id is required' })
+    }
+
+    const deleted = await productRequestModel.deleteProductRequestForWarehouse(id, req.warehouseId)
+    if (!deleted) return res.status(404).json({ error: 'request not found in this warehouse' })
+
+    return res.json({ ok: true })
+  } catch (err) {
+    return res.status(500).json({ error: err.message })
+  }
+}
+
 module.exports = {
   addInventoryStock,
   assignDelivery,
@@ -802,6 +855,9 @@ module.exports = {
   getMe,
   getMetrics,
   getDashboardStats,
+  getProductRequests,
+  markProductRequestFulfilled,
+  deleteProductRequest,
   createProduct,
   updateProduct,
   getOverviewByWarehouseId,

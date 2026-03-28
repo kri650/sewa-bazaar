@@ -51,10 +51,12 @@ export default function ProductCard({
   badge,
   description,
   note,
+  stockQuantity,
   showQty = false,
   qty = 1,
   onQtyChange,
   onAdd,
+  onRequestProduct,
   onClick,
 }) {
   // Debug: Log product data to verify flash sale fields are received
@@ -163,6 +165,8 @@ export default function ProductCard({
 
   const hasDiscount = !isFlashSaleActive && Boolean(finalDiscount && finalOrigNumeric > unitPrice)
   const flashCountdown = isFlashSaleActive ? formatCountdown(flashEndMs - nowMs) : null
+  const hasStockInfo = stockQuantity !== undefined && stockQuantity !== null
+  const isOutOfStock = hasStockInfo && Number(stockQuantity) <= 0
 
   return (
     <article className="productCard">
@@ -246,7 +250,16 @@ export default function ProductCard({
       <span className="productSize" suppressHydrationWarning>{size}</span>
       {note ? <small className="productNote">{note}</small> : null}
 
-      {showQty ? (
+      {isOutOfStock ? (
+        <button
+          type="button"
+          className="pickNowBtn"
+          onClick={onRequestProduct}
+          style={{ background: '#f59e0b' }}
+        >
+          Request Product
+        </button>
+      ) : showQty ? (
         <>
           <div className="qtyRow">
             <button type="button" onClick={() => onQtyChange && onQtyChange(-1)}>-</button>

@@ -1505,6 +1505,140 @@ function CodCollectionsPanel({ token, warehouseId }) {
   )
 }
 
+function ProductRequestsPanel({ token, warehouseId, notify, onCountChange }) {
+  const [requests, setRequests] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [busyId, setBusyId] = useState(null)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    const result = await apiFetch('/api/product-requests', token, { warehouseId })
+    if (result.ok) {
+      const rows = result.data?.requests || []
+      setRequests(rows)
+      onCountChange(rows.length)
+    } else {
+      notify({ type: 'error', text: result.data?.error || 'Failed to load product requests' })
+    }
+    setLoading(false)
+  }, [token, warehouseId, onCountChange, notify])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  const handleMarkFulfilled = async (id) => {
+    if (!id) return
+    setBusyId(id)
+    const result = await apiFetch(`/api/product-requests/${id}/fulfilled`, token, {
+      method: 'PATCH',
+      body: JSON.stringify({}),
+      warehouseId,
+    })
+    setBusyId(null)
+    if (!result.ok) {
+      notify({ type: 'error', text: result.data?.error || 'Failed to mark request as fulfilled' })
+      return
+    }
+    notify({ type: 'success', text: 'Request marked as fulfilled' })
+    load()
+  }
+
+  const handleDelete = async (id) => {
+    if (!id) return
+    if (!window.confirm('Delete this product request?')) return
+    setBusyId(id)
+    const result = await apiFetch(`/api/product-requests/${id}`, token, {
+      method: 'DELETE',
+      warehouseId,
+    })
+    setBusyId(null)
+    if (!result.ok) {
+      notify({ type: 'error', text: result.data?.error || 'Failed to delete request' })
+      return
+    }
+    notify({ type: 'success', text: 'Request deleted' })
+    load()
+  }
+
+  return (
+    <div className={styles.card}>
+      <div className={styles.cardHeader}>
+        <div>
+          <h3>Product Requests ({requests.length})</h3>
+          <p>Only requests for this warehouse are shown</p>
+        </div>
+        <button type="button" className={styles.secondaryBtn} onClick={load}>Refresh</button>
+      </div>
+      {loading ? (
+        <div className={styles.loadingBlock}>Loading product requests...</div>
+      ) : (
+        <div className={styles.tableWrap}>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Product</th>
+                <th>Requester</th>
+                <th>Phone</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Requests/Product</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {requests.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className={styles.emptyCell}>No product requests found</td>
+                </tr>
+              ) : requests.map((request) => (
+                <tr key={request.id}>
+                  <td>{request.id}</td>
+                  <td>{request.productName || '—'}</td>
+                  <td>{request.userName || '—'}</td>
+                  <td>{request.phone || '—'}</td>
+                  <td>
+                    <span className={`${styles.badge} ${request.status === 'fulfilled' ? styles.badgeDelivered : styles.badgePlaced}`}>
+                      {request.status}
+                    </span>
+                  </td>
+                  <td>{formatDateTime(request.createdAt)}</td>
+                  <td>{Number(request.requestCount || 0)}</td>
+                  <td>
+                    <div className={styles.inventoryActionButtons}>
+                      {String(request.status || '').toLowerCase() !== 'fulfilled' ? (
+                        <button
+                          type="button"
+                          className={`${styles.secondaryBtnSmall} ${styles.inventoryActionBtn}`}
+                          onClick={() => handleMarkFulfilled(request.id)}
+                          disabled={busyId === request.id}
+                        >
+                          Mark Fulfilled
+                        </button>
+                      ) : (
+                        <span className={styles.lowStockPill}>Fulfilled</span>
+                      )}
+                      <button
+                        type="button"
+                        className={`${styles.inventoryEditBtn} ${styles.inventoryActionBtn}`}
+                        onClick={() => handleDelete(request.id)}
+                        disabled={busyId === request.id}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function WarehouseDashboard() {
   const router = useRouter()
   const [token, setToken] = useState(null)
@@ -1522,6 +1656,7 @@ export default function WarehouseDashboard() {
   const [socketConnected, setSocketConnected] = useState(false)
   const [isAdminView, setIsAdminView] = useState(false)
   const [adminViewError, setAdminViewError] = useState('')
+  const [productRequestsCount, setProductRequestsCount] = useState(0)
   const audioContextRef = useRef(null)
 
   // Real-time notifications via Socket.io
@@ -1804,6 +1939,7 @@ export default function WarehouseDashboard() {
     { id: 'orders', label: 'Orders' },
     { id: 'delivery-partners', label: 'Delivery Partners' },
     { id: 'inventory', label: 'Inventory' },
+    { id: 'product-requests', label: `Product Requests (${productRequestsCount})` },
     { id: 'cod-collections', label: 'COD Collections' },
   ]
 
@@ -1923,6 +2059,7 @@ export default function WarehouseDashboard() {
             {activeTab === 'orders' ? <OrdersPanel token={token} warehouseId={warehouseId} notify={setToast} liveStatusUpdate={liveStatusUpdate} liveAssignment={liveAssignment} /> : null}
             {activeTab === 'delivery-partners' ? <DeliveryPartnersPanel token={token} warehouseId={warehouseId} notify={setToast} /> : null}
             {activeTab === 'inventory' ? <InventoryPanel token={token} warehouseId={warehouseId} notify={setToast} /> : null}
+            {activeTab === 'product-requests' ? <ProductRequestsPanel token={token} warehouseId={warehouseId} notify={setToast} onCountChange={setProductRequestsCount} /> : null}
             {activeTab === 'cod-collections' ? <CodCollectionsPanel token={token} warehouseId={warehouseId} /> : null}
           </div>
         </main>

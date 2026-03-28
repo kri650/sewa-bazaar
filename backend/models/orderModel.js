@@ -1,6 +1,8 @@
 const { pool, query } = require('../config/db')
 const { calculateDistanceKm } = require('../utils/distanceCalculator')
 
+const COD_MIN_ORDER_AMOUNT = 200
+
 const ORDER_STATUS_FLOW = {
   placed: ['confirmed', 'cancelled'],
   confirmed: ['packed', 'cancelled'],
@@ -294,6 +296,13 @@ async function createOrder({ userId, items, customer, addressLine1, addressLine2
     })
 
     const total = normalizedItems.reduce((sum, item) => sum + item.price * item.qty, 0)
+    const normalizedPaymentMethod = String(paymentMethod || 'cod').toLowerCase() === 'online' ? 'online' : 'cod'
+
+    if (normalizedPaymentMethod === 'cod' && total < COD_MIN_ORDER_AMOUNT) {
+      const err = new Error('COD available only for orders above Rs 200')
+      err.statusCode = 400
+      throw err
+    }
 
     // Assign warehouse_id at order creation time so warehouse dashboards can filter correctly.
     // Prefer geolocation, then address mapping. Do not silently fall back to an unrelated warehouse.
@@ -391,7 +400,7 @@ async function createOrder({ userId, items, customer, addressLine1, addressLine2
         city || null,
         state || null,
         pincode || null,
-        paymentMethod || 'cod',
+        normalizedPaymentMethod,
         total,
         total,
       ]

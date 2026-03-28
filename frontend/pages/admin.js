@@ -51,6 +51,7 @@ function StatusBadge({ status }) {
     out_for_delivery: { bg: '#dbeafe', color: '#1d4ed8',  label: 'Out for Delivery' },
     delivered:        { bg: '#dcfce7', color: '#15803d',  label: 'Delivered' },
     cancelled:        { bg: '#fee2e2', color: '#b91c1c',  label: 'Cancelled' },
+    fulfilled:        { bg: '#dcfce7', color: '#15803d',  label: 'Fulfilled' },
     customer:         { bg: '#f0fdf4', color: '#16a34a',  label: 'Customer' },
     admin:            { bg: '#ede9fe', color: '#7c3aed',  label: 'Admin' },
     delivery:         { bg: '#fff7ed', color: '#ea580c',  label: 'Delivery' },
@@ -544,6 +545,7 @@ export default function AdminPage() {
   const [users, setUsers]               = useState([])
   const [deliveryBoys, setDeliveryBoys] = useState([])
   const [products, setProducts]         = useState([])
+  const [productRequests, setProductRequests] = useState([])
 
   const [orderSearch, setOrderSearch]       = useState('')
   const [userSearch, setUserSearch]       = useState('')
@@ -728,23 +730,25 @@ if (!res.ok || (data?.role !== 'admin' && data?.role !== 'superadmin')) throw ne
   const loadData = async () => {
     if (!isAdmin) return
     try {
-      const [oR, uR, pR, dR, waR, whR] = await Promise.all([
+      const [oR, uR, pR, dR, waR, whR, prR] = await Promise.all([
         fetch(`${API_BASE}/admin/orders`,           { headers: authHeaders }),
         fetch(`${API_BASE}/admin/users`,            { headers: authHeaders }),
         fetch(`${API_BASE}/admin/products`,         { headers: authHeaders }),
         fetch(`${API_BASE}/admin/delivery-boys`,    { headers: authHeaders }),
         fetch(`${API_BASE}/admin/warehouse-admins`, { headers: authHeaders }),
         fetch(`${API_BASE}/admin/warehouses`,       { headers: authHeaders }),
+        fetch(`${API_BASE}/admin/product-requests`, { headers: authHeaders }),
       ])
-      if ([oR, uR, pR, dR, waR, whR].some(r => r.status === 401 || r.status === 403)) {
+      if ([oR, uR, pR, dR, waR, whR, prR].some(r => r.status === 401 || r.status === 403)) {
         handleAuthError()
         return
       }
-      const [o, u, p, d, wa, wh] = await Promise.all([oR.json(), uR.json(), pR.json(), dR.json(), waR.json(), whR.json()])
+      const [o, u, p, d, wa, wh, pr] = await Promise.all([oR.json(), uR.json(), pR.json(), dR.json(), waR.json(), whR.json(), prR.json()])
       setOrders(Array.isArray(o) ? o : [])
       setUsers(Array.isArray(u) ? u : [])
       setProducts(Array.isArray(p) ? p : [])
       setDeliveryBoys(Array.isArray(d) ? d : [])
+      setProductRequests(Array.isArray(pr) ? pr : [])
       setWarehouseAdmins(Array.isArray(wa) ? wa : [])
       const whList = wh?.data?.warehouses || []
       setWarehousesForAdmins(Array.isArray(whList) ? whList : [])
@@ -1097,6 +1101,37 @@ if (!res.ok || (data?.role !== 'admin' && data?.role !== 'superadmin')) throw ne
     } catch (e) { flash(e.message, true) }
   }
 
+  const handleMarkRequestFulfilled = async (id) => {
+    try {
+      const r = await fetch(`${API_BASE}/admin/product-requests/${id}/fulfilled`, {
+        method: 'PATCH',
+        headers: authHeaders,
+      })
+      if (r.status === 401 || r.status === 403) { handleAuthError(); return }
+      if (!r.ok) { flash('Failed to mark request as fulfilled.', true); return }
+      flash('Request marked as fulfilled.')
+      await loadData()
+    } catch (e) {
+      flash(e.message, true)
+    }
+  }
+
+  const handleDeleteProductRequest = async (id) => {
+    if (!confirm('Delete this product request?')) return
+    try {
+      const r = await fetch(`${API_BASE}/admin/product-requests/${id}`, {
+        method: 'DELETE',
+        headers: authHeaders,
+      })
+      if (r.status === 401 || r.status === 403) { handleAuthError(); return }
+      if (!r.ok) { flash('Failed to delete request.', true); return }
+      flash('Request deleted.')
+      await loadData()
+    } catch (e) {
+      flash(e.message, true)
+    }
+  }
+
   // ── Stats ───────────────────────────────────────────────────────────────────
   const totalRevenue    = orders.reduce((s, o) => s + Number(o.total || 0), 0)
   const pendingOrders   = orders.filter(o => o.status === 'pending').length
@@ -1129,6 +1164,7 @@ if (!res.ok || (data?.role !== 'admin' && data?.role !== 'superadmin')) throw ne
   { id: 'warehouse-view',   label: selectedWarehouse ? `📍 ${allWarehouses.find(w => w.id === selectedWarehouse)?.name || 'Warehouse'}` : '📍 Warehouse View' },
   { id: 'orders',           label: `Orders (${orders.length})` },
   { id: 'products',         label: `Products (${products.length})` },
+  { id: 'product-requests', label: `Product Requests (${productRequests.length})` },
   { id: 'users',            label: `Users (${users.length})` },
   { id: 'delivery',         label: `Delivery Partners (${deliveryBoys.length})` },
   { id: 'delivery-config',  label: 'Delivery Configuration' },
@@ -1872,6 +1908,79 @@ if (!res.ok || (data?.role !== 'admin' && data?.role !== 'superadmin')) throw ne
                   </tbody>
                 </table>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── PRODUCT REQUESTS ── */}
+        {activeTab === 'product-requests' && (
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h2 className={styles.cardTitle}>Product Requests ({productRequests.length})</h2>
+            </div>
+            <div className={styles.tableWrap}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Product</th>
+                    <th>Warehouse</th>
+                    <th>Requester</th>
+                    <th>Phone</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Requests/Product</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {productRequests.map((r) => (
+                    <tr key={r.id}>
+                      <td>{r.id}</td>
+                      <td>{r.productName || '—'}</td>
+                      <td>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            background: '#ecfeff',
+                            color: '#0e7490',
+                            padding: '2px 10px',
+                            borderRadius: 99,
+                            fontSize: 12,
+                            fontWeight: 700,
+                          }}
+                        >
+                          {r.warehouse_name || r.warehouseName || 'Unassigned'}
+                        </span>
+                      </td>
+                      <td>{r.userName || '—'}</td>
+                      <td>{r.phone || '—'}</td>
+                      <td><StatusBadge status={r.status} /></td>
+                      <td>{formatDate(r.createdAt)}</td>
+                      <td>{Number(r.requestCount || 0)}</td>
+                      <td style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        {String(r.status || '').toLowerCase() !== 'fulfilled' ? (
+                          <button className={styles.tableEditBtn} onClick={() => handleMarkRequestFulfilled(r.id)}>
+                            Mark Fulfilled
+                          </button>
+                        ) : (
+                          <span style={{ color: '#16a34a', fontWeight: 700, fontSize: 12 }}>Fulfilled</span>
+                        )}
+                        <button className={styles.tableDeleteBtn} onClick={() => handleDeleteProductRequest(r.id)}>
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {productRequests.length === 0 && (
+                    <tr>
+                      <td colSpan={9} style={{ textAlign: 'center', color: '#aaa', padding: 32 }}>
+                        No product requests found.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         )}

@@ -25,6 +25,7 @@ async function initializeDatabase() {
     // Run other migrations
     await runMigration('products_discounts_coupons.sql')
     await runMigration('user_dashboard.sql')
+    await runMigration('product_requests.sql')
 
     console.log('[DB Init] Database initialization completed successfully')
     return { ok: true, message: 'Database initialized' }
